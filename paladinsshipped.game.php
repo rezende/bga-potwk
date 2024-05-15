@@ -132,8 +132,8 @@ class paladinsshipped extends Table
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
         // $result['pieces'] = self::getCollectionFromDB($piece_sql);
 
-        // $result['invaders'] = $this->deck->getCardsInLocation("invader_display");
-        // $result['assitants'] = $this->deck->getCardsInLocation("assistant_display");
+        $result['invader_display'] = $this->deck->getCardsInLocation("invader_display");
+        $result['assitant_display'] = $this->deck->getCardsInLocation("assistant_display");
 
 
 
@@ -234,12 +234,6 @@ class paladinsshipped extends Table
         }
         $card_display = $this->deck->getCardsInLocation("{$card_type}_display");
         self::notifyAllPlayers('slideCards', '', array('cards' => $card_display, 'trigger_by' => $trigger_by));
-    }
-
-    public function hireInitialAssistant(int $assistant_card_id)
-    {
-        self::checkAction('hireInitialAssistant');
-
     }
 
     // public function pickCharacter($character_type)
@@ -361,6 +355,21 @@ class paladinsshipped extends Table
             $this->gamestate->nextState('transStartGame');
         }
     }
+    public function getLastPlayerId()
+    {
+        $player_order = self::getNextPlayerTable();
+        $last_player_id = null;
+        $next_player_id = $player_order[0];
+        do {
+            $last_player_id = $next_player_id;
+            {
+                $next_player_id = $player_order[$next_player_id];
+            }
+        } while ($next_player_id != $player_order[0]);
+        return $last_player_id;
+    }
+
+
     //////////////////////////////////////////////////////////////////////////////
     //////////// Zombie
     ////////////

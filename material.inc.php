@@ -85,6 +85,14 @@ if (!defined("ATTR_FAITH")) {
     define("GREEN_SUIT", "GREEN_SUIT");
 }
 
+//NEW
+
+
+
+
+
+//OLD
+
 $this->assistant_cards_material = [
     0 => [
         "name" => clienttranslate("Missionary"),
@@ -450,7 +458,6 @@ $this->kings_orders_material = [
 ];
 
 $this->outsider_cards_material = [
-    // Blue suit
     [
         "name" => clienttranslate("Adventurer"),
         "attack" => [WORKER_LABOURER, WORKER_CLERIC],
@@ -525,8 +532,6 @@ $this->outsider_cards_material = [
         "end_game" => "2_absolve",
         "suit" => BLUE_SUIT
     ],
-
-    // green suit
     [
         "name" => clienttranslate("Archer"),
         "attack" => [WORKER_SCOUT, RESOURCE_PROVISION],
@@ -601,8 +606,6 @@ $this->outsider_cards_material = [
         "end_game" => "4_faith",
         "suit" => GREEN_SUIT
     ],
-
-    //Yellow Suit
     [
         "name" => clienttranslate("Adventurer"),
         "attack" => [WORKER_LABOURER, WORKER_SCOUT],
