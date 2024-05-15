@@ -66,7 +66,7 @@ $machinestates = array(
         'description' => '',
         'type' => 'game',
         'action' => 'stGameHireInitialAssistant',
-        'transitions' => array( 'transHireInitialAssistant' => 3, 'transStartGame' => 4 )
+        'transitions' => array( 'transHireInitialAssistant' => 3, 'transStartGame' => 99 )
     ),
 
     3 => array(
@@ -75,61 +75,61 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must hire an assistant'),
         "type" => "activeplayer",
         "possibleactions" => array("hireInitialAssistant"),
-        "transitions" => array("" => 2)
+        "transitions" => array("test" => 2)
     ),
 
-    4 => array(
-        'name' => 'startRound',
-        'description' => '',
-        'type' => 'game',
-        'action' => 'stStartNewRound',
-        'transitions' => array('' => 5),
-        "updateGameProgression" => true,
-        /*
-            steps:
-                 - reveal new orders / favors
-                 - reveal new assistants (don't discard the first one if not first round)
-                 - pass first player (not in first round)
-                 - refill outsiders (not in first round)
-        */
-    ),
+    // 4 => array(
+    //     'name' => 'startRound',
+    //     'description' => '',
+    //     'type' => 'game',
+    //     'action' => 'stStartNewRound',
+    //     'transitions' => array('' => 5),
+    //     "updateGameProgression" => true,
+    //     /*
+    //         steps:
+    //              - reveal new orders / favors
+    //              - reveal new assistants (don't discard the first one if not first round)
+    //              - pass first player (not in first round)
+    //              - refill outsiders (not in first round)
+    //     */
+    // ),
 
-    5 => array(
-        'name' => 'gamePickPaladins',
-        'type' => 'game',
-        'action' => 'stGamePickPaladins',
-        'transitions' => array('pickGoals' => 6, 'firstMove' => 8)
-    ),
+    // 5 => array(
+    //     'name' => 'gamePickPaladins',
+    //     'type' => 'game',
+    //     'action' => 'stGamePickPaladins',
+    //     'transitions' => array('pickGoals' => 6, 'firstMove' => 8)
+    // ),
 
-    6 => array(
-        'name' => 'pickPaladins',
-        'description' => clienttranslate('All players must select their Paladins'),
-        'descriptionmyturn' => clienttranslate('${you} must select your Paladins'),
-        'type' => 'multipleactiveplayer',
-        'possibleactions' => array('pickPaladins'),
-        'transitions' => array('' => 5)
-    ),
+    // 6 => array(
+    //     'name' => 'pickPaladins',
+    //     'description' => clienttranslate('All players must select their Paladins'),
+    //     'descriptionmyturn' => clienttranslate('${you} must select your Paladins'),
+    //     'type' => 'multipleactiveplayer',
+    //     'possibleactions' => array('pickPaladins'),
+    //     'transitions' => array('' => 5)
+    // ),
 
-    7 => array(
-        'name' => 'playerTurn',
-        'description' => clienttranslate('${actplayer} must perform an action or pass'),
-        'descriptionmyturn' => clienttranslate('${you} must perform an action or pass'),
-        'type' => 'activeplayer',
-        'args' => 'argPlayerTurn',
-        'possibleactions' => array(
-            'mainAction', 'pass', 'undo'
-        ),
-        'transitions' => array(
-            'actionDone' => 7, 'inquisition' => 8
-        )
-    ),
+    // 7 => array(
+    //     'name' => 'playerTurn',
+    //     'description' => clienttranslate('${actplayer} must perform an action or pass'),
+    //     'descriptionmyturn' => clienttranslate('${you} must perform an action or pass'),
+    //     'type' => 'activeplayer',
+    //     'args' => 'argPlayerTurn',
+    //     'possibleactions' => array(
+    //         'mainAction', 'pass', 'undo'
+    //     ),
+    //     'transitions' => array(
+    //         'actionDone' => 7, 'inquisition' => 8
+    //     )
+    // ),
 
-    8 => array(
-        "name" => "next",
-        "type" => "game",
-        "action" => "stGameNext",
-        "transitions" => array("nextPlayer" => 7, "nextRound" => 4, "gameover" => 98)
-    ),
+    // 8 => array(
+    //     "name" => "next",
+    //     "type" => "game",
+    //     "action" => "stGameNext",
+    //     "transitions" => array("nextPlayer" => 7, "nextRound" => 4, "gameover" => 98)
+    // ),
 /*
     Examples:
 
