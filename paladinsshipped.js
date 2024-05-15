@@ -31,6 +31,34 @@ function (dojo, declare) {
 
         },
         
+        // onZoomPlus: function() {
+        //     this.setZoom(this.zoom + 0.1);
+        // },
+        //  onZoomMinus: function() {
+        //     this.setZoom(this.zoom - 0.1);
+        // },
+     
+        //  setZoom: function (zoom) {
+        //    zoom = parseInt(zoom) || 0;
+        //    if (zoom === 0 || zoom < 0.1 || zoom > 10) {
+        //      zoom = 1;
+        //    }
+        //    this.zoom = zoom;
+        //    var inner = document.getElementById("mainboard");
+     
+        //    if (zoom == 1) {
+        //      inner.style.removeProperty("transform");
+        //      inner.style.removeProperty("width");
+        //    } else {
+        //      inner.style.transform = "scale(" + zoom + ")";
+        //      inner.style.transformOrigin = "0 0";
+        //      inner.style.width = 100 / zoom + "%";
+        //    }
+        //    localStorage.setItem(`${this.game_name}_zoom`, "" + this.zoom);
+        //    this.onScreenWidthChange();
+        // },
+
+
         /*
             setup:
             
@@ -47,6 +75,8 @@ function (dojo, declare) {
         setup: function( gamedatas )
         {
             console.log( "Starting game setup" );
+            this.default_viewport = "width=" + this.interface_min_width;
+            this.onScreenWidthChange();
             
             // Setting up player boards
             for( var player_id in gamedatas.players )
@@ -65,6 +95,15 @@ function (dojo, declare) {
             console.log( "Ending game setup" );
         },
        
+
+        // To be overrided by games
+        onScreenWidthChange: function () {
+        // Remove broken "zoom" property added by BGA framework
+        this.gameinterface_zoomFactor = 1;
+        $("page-content").style.removeProperty("zoom");
+        $("page-title").style.removeProperty("zoom");
+        $("right-side-first-part").style.removeProperty("zoom");
+      },
 
         ///////////////////////////////////////////////////
         //// Game & client states
@@ -157,7 +196,7 @@ function (dojo, declare) {
             script.
         
         */
-
+           
 
         ///////////////////////////////////////////////////
         //// Player's action

@@ -42,12 +42,43 @@
            Consequently, don't hesitate to put as many comments as necessary.
 */
 
-
 /* Note: you must not use any @import directive */
-
 
 /********* You can start writing your CSS below this line: **********/
 
+.container {
+  display: grid;
+  max-width: 1500px;
+}
+
+.mainboard {
+  display: flex;
+  flex-wrap: wrap;
+  align-self: center;
+  justify-content: center;
+}
+
+#mainboard_1 {
+  width: 734px;
+  height: 180px;
+  background-image: url("img/main_board_1.png");
+  background-repeat: no-repeat;
+  background-size: 734px 180px;
+}
+
+#mainboard_2 {
+  width: 734px;
+  height: 180px;
+  background-image: url("img/main_board_2.png");
+  background-repeat: no-repeat;
+  background-size: 734px 180px;
+}
+
+#card {
+  width: 74px;
+  height: 113px;
+  background-color: white;
+}
 
 /*
     Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
@@ -66,7 +97,3 @@
         background-repeat: none;
     }
 */
-
-
-
-
