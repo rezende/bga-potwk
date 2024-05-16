@@ -108,12 +108,12 @@ function (dojo, declare) {
 
         // To be overrided by games
         onScreenWidthChange: function () {
-        // Remove broken "zoom" property added by BGA framework
-        this.gameinterface_zoomFactor = 1;
-        $("page-content").style.removeProperty("zoom");
-        $("page-title").style.removeProperty("zoom");
-        $("right-side-first-part").style.removeProperty("zoom");
-      },
+            // Remove broken "zoom" property added by BGA framework
+            this.gameinterface_zoomFactor = 1;
+            $("page-content").style.removeProperty("zoom");
+            $("page-title").style.removeProperty("zoom");
+            $("right-side-first-part").style.removeProperty("zoom");
+        },
 
         ///////////////////////////////////////////////////
         //// Game & client states
