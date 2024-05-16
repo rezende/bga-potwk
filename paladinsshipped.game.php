@@ -90,8 +90,8 @@ class paladinsshipped extends Table
         // (note: statistics used in this file must be defined in your stats.inc.php file)
         // self::initStat('player', 'fortifications', 0);
         // self::initStat('player', 'commisions', 0);
-        // self::initStat('player', 'invaders_attacked', 0);
-        // self::initStat('player', 'invaders_converted', 0);
+        // self::initStat('player', 'outisder_attacked', 0);
+        // self::initStat('player', 'outsider_converted', 0);
         // self::initStat('player', 'absolutions', 0);
         // self::initStat('player', 'garrisoned_posts', 0);
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
@@ -127,16 +127,14 @@ class paladinsshipped extends Table
 
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $player_sql = "SELECT player_id id, player_score score, white_worker, green_worker, red_worker, blue_worker, black_worker, purple_worker, coin, provision, unpaid_debt, paid_debt FROM player ";
+        $player_sql = "SELECT player_id id, player_score score, white_worker, green_worker, red_worker, blue_worker, black_worker, purple_worker, coin, provision, unpaid_debt, paid_debt, parchment FROM player ";
         $result['players'] = self::getCollectionFromDb($player_sql);
 
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
         // $result['pieces'] = self::getCollectionFromDB($piece_sql);
 
-        $result['invader_display'] = $this->deck->getCardsInLocation("invader_display");
-        $result['assitant_display'] = $this->deck->getCardsInLocation("assistant_display");
-
-
+        $result['os_display'] = $this->deck->getCardsInLocation("os_display");
+        $result['tf_display'] = $this->deck->getCardsInLocation("tf_display");
 
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
 
@@ -163,7 +161,7 @@ class paladinsshipped extends Table
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Utility functions
-    ////////////
+    ///////////
 
     /*
         In this space, you can put any utility methods useful for your game logic
@@ -177,23 +175,23 @@ class paladinsshipped extends Table
 
     public function createAllDecks()
     {
-        $outsider_cards = array();
-        foreach ($this->outsider_cards_material as $outsider_card_id => $outsider_card_type) {
-            $outsider_cards[] = array('type' => 'outsider', 'type_arg' => $outsider_card_id, 'nbr' => 1);
+        $os_cards = array();
+        foreach ($this->os_cards_material as $os_card_id => $os_card_type) {
+            $os_cards[] = array('type' => 'os', 'type_arg' => $os_card_id, 'nbr' => 1);
         }
-        $this->deck->createCards($outsider_cards, 'outsider_deck');
-        $this->deck->shuffle('outsider_deck');
-        $this->deck->pickCardsForLocation(6, 'outsider_deck', 'outsider_display');
-        $this->slideCards(card_type: 'outsider', trigger_by: 'game_setup');
+        $this->deck->createCards($os_cards, 'os_deck');
+        $this->deck->shuffle('os_deck');
+        $this->deck->pickCardsForLocation(6, 'os_deck', 'os_display');
+        $this->slideCards(card_type: 'os', trigger_by: 'game_setup');
 
-        $assistant_cards = array();
-        foreach ($this->assistant_cards_material as $assistant_card_id => $assistant_card_type) {
-            $assistant_cards[] = array('type' => 'assistant', 'type_arg' => $assistant_card_id, 'nbr' => 1);
+        $tf_cards = array();
+        foreach ($this->tf_cards_material as $tf_card_id => $tf_card_type) {
+            $tf_cards[] = array('type' => 'tf', 'type_arg' => $tf_card_id, 'nbr' => 1);
         }
-        $this->deck->createCards($assistant_cards, 'assistant_deck');
-        $this->deck->shuffle('assistant_deck');
-        $this->deck->pickCardsForLocation(5, 'assistant_deck', 'assistant_display');
-        $this->slideCards(card_type: 'assistant', trigger_by: 'game_setup');
+        $this->deck->createCards($tf_cards, 'tf_deck');
+        $this->deck->shuffle('tf_deck');
+        $this->deck->pickCardsForLocation(5, 'tf_deck', 'tf_display');
+        $this->slideCards(card_type: 'tf', trigger_by: 'game_setup');
 
         // $tavern_cards = array();
         // foreach ($this->tavern_cards_material as $tavern_card_id => $tavern_card_type) {
@@ -242,6 +240,35 @@ class paladinsshipped extends Table
         }
         $card_display = $this->deck->getCardsInLocation("{$card_type}_display");
         self::notifyAllPlayers('slideCards', '', array('cards' => $card_display, 'trigger_by' => $trigger_by));
+    }
+    public function getPlayerName($player_id)
+    {
+        return self::getUniqueValueFromDB("SELECT player_name FROM player WHERE player_id = {$player_id}");
+    }
+
+    public function debug_getPlayerOrder()
+    {
+        self::notifyAllPlayers(
+            "message",
+            "Player {order}",
+            [
+                "order" => self::getNextPlayerTable()[0]
+            ]
+        );
+    }
+
+    public function getLastPlayerId()
+    {
+        $player_order = self::getNextPlayerTable();
+        $last_player_id = null;
+        $next_player_id = $player_order[0];
+        do {
+            $last_player_id = $next_player_id;
+            {
+                $next_player_id = $player_order[$next_player_id];
+            }
+        } while ($next_player_id != $player_order[0]);
+        return $last_player_id;
     }
 
     // public function pickCharacter($character_type)
@@ -300,6 +327,33 @@ class paladinsshipped extends Table
 
     */
 
+    public function hireInitialTownsfolk($townsfolk_card_id)
+    {
+        self::checkAction('hireInitialTownsfolk');
+        $player_id = self::getCurrentPlayerId();
+        $townsfolk_card_info = $this->getCardInfoById($townsfolk_card_id);
+        $this->deck->moveCard($townsfolk_card_id, "hand", $player_id);
+        self::notifyAllPlayers(
+            "message",
+            clienttranslate('${player_name} hires ${townsfolk_name}'),
+            [
+                "player_name" => $this->getPlayerName($player_id),
+                "townsfolk_name" => $townsfolk_card_info['name']
+            ]
+        );
+        $this->gamestate->nextState();
+    }
+
+    public function getCardInfoById($card_id)
+    {
+        $card = $this->deck->getCard($card_id);
+        if ($card['type'] == 'os') {
+            return $this->os_cards_material[$card['type_arg']];
+        } elseif ($card['type'] == 'tf') {
+            return $this->tf_cards_material[$card['type_arg']];
+        }
+        return new stdClass();
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Game state arguments
@@ -340,10 +394,6 @@ class paladinsshipped extends Table
     /*
 
     Example for game state "MyGameState":
-
-
-
-
     function stMyGameState()
     {
         // Do some stuff ...
@@ -352,29 +402,16 @@ class paladinsshipped extends Table
         $this->gamestate->nextState( 'some_gamestate_transition' );
     }
     */
-    public function stGameHireInitialAssistant()
+    public function stGameHireInitialTownsfolk()
     {
         $next_player_id = self::getPlayerBefore(self::getActivePlayerId());
         $last_player_id = $this->getLastPlayerId();
         if ($next_player_id != $last_player_id) {
             $this->gamestate->changeActivePlayer($next_player_id);
-            $this->gamestate->nextState('transHireInitialAssistant');
+            $this->gamestate->nextState('transHireInitialTownsfolk');
         } else {
             $this->gamestate->nextState('transStartGame');
         }
-    }
-    public function getLastPlayerId()
-    {
-        $player_order = self::getNextPlayerTable();
-        $last_player_id = null;
-        $next_player_id = $player_order[0];
-        do {
-            $last_player_id = $next_player_id;
-            {
-                $next_player_id = $player_order[$next_player_id];
-            }
-        } while ($next_player_id != $player_order[0]);
-        return $last_player_id;
     }
 
 

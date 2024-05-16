@@ -28,6 +28,8 @@ function (dojo, declare) {
             // Here, you can init the global variables of your user interface
             // Example:
             // this.myGlobalValue = 0;
+            this.tf_display = [];
+            this.os_display = [];
 
         },
         
@@ -79,10 +81,9 @@ function (dojo, declare) {
             this.onScreenWidthChange();
             
             // Setting up player boards
-            for( var player_id in gamedatas.players )
+            for( const player_id in gamedatas.players )
             {
-                var player = gamedatas.players[player_id];
-                         
+                const player = gamedatas.players[player_id];
                 // TODO: Setting up players boards if needed
                 dojo.place( this.format_block(
                     'jstpl_player_panel_extension', { player_id: player_id } ),
@@ -94,8 +95,10 @@ function (dojo, declare) {
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
+            console.log(gamedatas);
+            this.tf_display = gamedatas.tf_display;
+            this.os_display = gamedatas.os_display;
             
- 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
             this.addTooltipToClass('.panel_parchment', _("Parchment, indicates the first player of each round"), "");
@@ -124,7 +127,6 @@ function (dojo, declare) {
             
             switch( stateName )
             {
-            
             /* Example:
             
             case 'myGameState':
@@ -190,6 +192,16 @@ function (dojo, declare) {
                     this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
                     break;
 */
+                    case 'hireInitialTownsfolk':
+                        for (const [key, value] of Object.entries(this.tf_display)) {
+                            townsfolk_id = value.id; 
+                            this.addActionButton(
+                                'btnHire_' + townsfolk_id,
+                                _('Hire '+ townsfolk_id),
+                                dojo.hitch(this, dojo.partial(this.onClickConfirmTownsfolk, townsfolk_id))
+                            );
+                        }
+                        break;
                 }
             }
         },        
@@ -256,6 +268,15 @@ function (dojo, declare) {
         },        
         
         */
+
+
+        onClickConfirmTownsfolk: function(townsfolk_card_id) {
+            this.checkAction('hireInitialTownsfolk');
+            this.ajaxcall("/paladinsshipped/paladinsshipped/hireInitialTownsfolk.html", { lock: true, "townsfolk_card_id": townsfolk_card_id }, this,
+                function (result) { },
+                function (error) { }
+            );
+        },
 
         
         ///////////////////////////////////////////////////

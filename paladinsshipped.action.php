@@ -35,11 +35,11 @@ class action_paladinsshipped extends APP_GameAction
             self::trace("Complete reinitialization of board game");
         }
     }
-    public function hireInitialAssistant()
+    public function hireInitialTownsfolk()
     {
         self::setAjaxMode();
-        $assistant_card_id = self::getArg("assistant_card_id", AT_posint, true);
-        $this->game->hireInitialAssistant($assistant_card_id);
+        $townsfolk_card_id = self::getArg("townsfolk_card_id", AT_int, true);
+        $this->game->hireInitialTownsfolk($townsfolk_card_id);
         self::ajaxResponse();
     }
 

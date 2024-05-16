@@ -64,14 +64,29 @@ $machinestates = array(
     // Note: ID=2 => your first state
 
     2 => array(
-        "name" => "playerTurn",
-        "description" => clienttranslate('${actplayer} must play a card or pass'),
-        "descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-        "type" => "activeplayer",
-        "possibleactions" => array( "playCard", "pass" ),
-        "transitions" => array( "playCard" => 2, "pass" => 2 )
+        "name" => "prepareTownsfolk",
+        "type" => "game",
+        "action" => "stGameHireInitialTownsfolk",
+        "transitions" => array( "transHireInitialTownsfolk" => 3, "transStartGame" => 4)
     ),
 
+    3 => array(
+        "name" => "hireInitialTownsfolk",
+        "description" => clienttranslate('${actplayer} must hire an initial assistant'),
+        "descriptionmyturn" => clienttranslate('${you} must hire your initial assistant'),
+        "type" => "activeplayer",
+        "possibleactions" => array( "hireInitialTownsfolk" ),
+        "transitions" => array( "" => 2)
+    ),
+
+    4 => array(
+        "name" => "otherPlayerTurn",
+        "description" => clienttranslate('${actplayer} must hire an initial person'),
+        "descriptionmyturn" => clienttranslate('${you} must hire your initial person'),
+        "type" => "activeplayer",
+        "possibleactions" => array( "hireTownsfolk" ),
+        "transitions" => array( "" => 2)
+    ),
 /*
     Examples:
 

@@ -93,7 +93,7 @@ if (!defined("ATTR_FAITH")) {
 
 //OLD
 
-$this->assistant_cards_material = [
+$this->tf_cards_material = [
     0 => [
         "name" => clienttranslate("Missionary"),
         "discard" => [ATTR_FAITH],
@@ -457,7 +457,7 @@ $this->kings_orders_material = [
   "ABSOLVE", "FORTIFY", "GARRISON", "COMMISION", "ATTACK", "CONVERT"
 ];
 
-$this->outsider_cards_material = [
+$this->os_cards_material = [
     [
         "name" => clienttranslate("Adventurer"),
         "attack" => [WORKER_LABOURER, WORKER_CLERIC],
