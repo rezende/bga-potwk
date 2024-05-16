@@ -104,7 +104,8 @@ class paladinsshipped extends Table
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
-        // $this->setFirstPlayerMarker($this->getActivePlayerId());
+        $this->setParchment($this->getActivePlayerId());
+        // $this->gamestate->changeActivePlayer($this->getLastPlayerId());
 
         /************ End of the game initialization *****/
     }
@@ -167,6 +168,13 @@ class paladinsshipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
+    public function setParchment($player_id)
+    {
+        self::DbQuery("UPDATE player SET parchment = 0");
+        self::DbQuery("UPDATE player SET parchment = 1 WHERE player_id = {$player_id}");
+        self::notifyAllPlayers("moveParchment", '', array("player_id" => $player_id));
+    }
+
     public function createAllDecks()
     {
         $outsider_cards = array();

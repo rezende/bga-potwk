@@ -80,6 +80,15 @@
   background-color: white;
 }
 
+.piece.panel_parchment
+{
+    background-image: url('img/Provisions.png');
+    background-repeat: no-repeat;
+    /* width: 36px; */
+    /* height: 60px; */
+    position: absolute;
+}
+
 /*
     Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
 

@@ -84,6 +84,13 @@ function (dojo, declare) {
                 var player = gamedatas.players[player_id];
                          
                 // TODO: Setting up players boards if needed
+                dojo.place( this.format_block(
+                    'jstpl_player_panel_extension', { player_id: player_id } ),
+                    $('player_board_'+ player_id) 
+                );
+                if(player.parchment == "1") {
+                    this.updateParchment(player_id);
+                }
             }
             
             // TODO: Set up your game interface here, according to "gamedatas"
@@ -91,7 +98,7 @@ function (dojo, declare) {
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
-
+            this.addTooltipToClass('.panel_parchment', _("Parchment, indicates the first player of each round"), "");
             console.log( "Ending game setup" );
         },
        
@@ -197,6 +204,10 @@ function (dojo, declare) {
         
         */
            
+        updateParchment: function (playerId) {
+            dojo.query('.panel_parchment').style("display", "none");
+            dojo.setStyle($('panel_parchment_' + playerId), "display", "inline");
+        },
 
         ///////////////////////////////////////////////////
         //// Player's action
@@ -262,6 +273,7 @@ function (dojo, declare) {
         setupNotifications: function()
         {
             console.log( 'notifications subscriptions setup' );
+            dojo.subscribe('moveParchment', this, "notif_moveParchment");
             
             // TODO: here, associate your game notifications with local methods
             
@@ -292,5 +304,10 @@ function (dojo, declare) {
         },    
         
         */
+
+        notif_moveParchment: function (notif) {
+            this.updateParchment(notif.args.player_id);
+        },
+
    });             
 });
