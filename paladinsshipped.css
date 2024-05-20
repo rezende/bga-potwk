@@ -75,8 +75,10 @@
 }
 
 #card {
-  width: 74px;
-  height: 113px;
+  width: 160px;
+  height: 250px;
+  border-radius: 15px;
+  background: url("img/sprite_outsiders.png") 0 0;
   background-color: white;
 }
 
