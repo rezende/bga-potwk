@@ -61,8 +61,6 @@ $machinestates = array(
         "transitions" => array( "" => 2 )
     ),
 
-    // Note: ID=2 => your first state
-
     2 => array(
         "name" => "prepareTownsfolk",
         "type" => "game",
@@ -80,35 +78,74 @@ $machinestates = array(
     ),
 
     4 => array(
-        "name" => "otherPlayerTurn",
-        "description" => clienttranslate('${actplayer} must hire an initial person'),
-        "descriptionmyturn" => clienttranslate('${you} must hire your initial person'),
-        "type" => "activeplayer",
-        "possibleactions" => array( "hireTownsfolk" ),
-        "transitions" => array( "" => 2)
-    ),
-/*
-    Examples:
-
-    2 => array(
-        "name" => "nextPlayer",
-        "description" => '',
+        "name" => "assistantCleanup",
         "type" => "game",
-        "action" => "stNextPlayer",
-        "updateGameProgression" => true,
-        "transitions" => array( "endGame" => 99, "nextPlayer" => 10 )
+        "action" => "stGameRefreshAssistantsDisplay",
+        "transitions" => array( "" => 6) // only happens before Round 1. No need to setup round
     ),
 
-    10 => array(
-        "name" => "playerTurn",
-        "description" => clienttranslate('${actplayer} must play a card or pass'),
-        "descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
+    5 => array(
+        "name" => "newRound",
+        "type" => "game",
+        "action" => "stGameSetupNewRound",
+        /*
+            increase round number
+            discard cheapest outsider / townsfolk
+            refill display of outsiders
+            refill display of townsfolk
+            assign new first player
+            reveal new king's favor / king's order
+        */
+        "transitions" => array( "paladinChoice" => 6, "calculateScores" => 98)
+    ),
+
+    6 => array(
+        "name" => "choosePaladins",
+        "description" => clienttranslate("All players need to choose their Paladin for the round"),
+        "descriptionmyturn" => clienttranslate('${you} need to choose your Paladin for the round'),
+        "type" => "multiplayeractive",
+        "action" => "stChoosePaladins",
+        "possibleactions" => ['pickPaladins'],
+        "transitions" => array( "allDone" => 7)
+    ),
+
+    7 => array(
+        "name" => "pickTavern",
+        "description" => clienttranslate('${actplayer} must choose a tavern card'),
+        "descriptionmyturn" => clienttranslate('${you} must choose your tavern card'),
         "type" => "activeplayer",
-        "possibleactions" => array( "playCard", "pass" ),
-        "transitions" => array( "playCard" => 2, "pass" => 2 )
+        "possibleactions" => array( "pickTavern" ),
+        "transitions" => array( "" => 8)
     ),
 
-*/
+    8 => array(
+        "name" => "playerAction",
+        "description" => clienttranslate('${actplayer} must choose a board action or pass'),
+        "descriptionmyturn" => clienttranslate('${you} must choose a board action or pass'),
+        "type" => "activeplayer",
+        "possibleactions" => array(
+            "pass", "pray", "recruitDiscard", "recruitHire", "develop", "hunt",
+            "trade", "conspire", "commission", "fortify", "garrison", "absolve",
+            "attack", "convert", "kingsFavor"
+        ),
+        "transitions" => array( "nextPlayer" => 8, "endOfRound" => 5, "inquisition" => 9)
+    ),
+
+    9 => array(
+        "name" => "inquisition",
+        "type" => "game",
+        "action" => "stPerformInquisition",
+        "transitions" => array("" => 8)
+    ),
+
+    98 => array(
+        "name" => "calculateScores",
+        "description" => clienttranslate("End of game"),
+        "type" => "game",
+        "action" => "stCalculateScores",
+        "transitions" => array( "endGame" => 99)
+    ),
+
 
     // Final state.
     // Please do not modify (and do not overload action/args methods).

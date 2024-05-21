@@ -104,8 +104,7 @@ class paladinsshipped extends Table
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
-        $this->setParchment($this->getActivePlayerId());
-        // $this->gamestate->changeActivePlayer($this->getLastPlayerId());
+        $this->setParchment(self::getActivePlayerId());
 
         /************ End of the game initialization *****/
     }
@@ -246,86 +245,9 @@ class paladinsshipped extends Table
         return self::getUniqueValueFromDB("SELECT player_name FROM player WHERE player_id = {$player_id}");
     }
 
-    public function debug_getPlayerOrder()
-    {
-        self::notifyAllPlayers(
-            "message",
-            "Player {order}",
-            [
-                "order" => self::getNextPlayerTable()[0]
-            ]
-        );
-    }
-
-    public function getLastPlayerId()
-    {
-        $player_order = self::getNextPlayerTable();
-        $last_player_id = null;
-        $next_player_id = $player_order[0];
-        do {
-            $last_player_id = $next_player_id;
-            {
-                $next_player_id = $player_order[$next_player_id];
-            }
-        } while ($next_player_id != $player_order[0]);
-        return $last_player_id;
-    }
-
-    // public function pickCharacter($character_type)
-    // {
-    //     self::checkAction('pickCharacter');
-    //     $player_id = self::getActivePlayerId();
-    //     $pending_id = self::getUniqueValueFromDB("SELECT pending_id FROM pending_action WHERE pending_type = 'character' AND pending_type_arg = {$character_type}");
-    //     if ($pending_id == null) {
-    //         throw new BgaUserException(self::_("Oops something went wrong, this character is not available"));
-    //     }
-
-    //     self::notifyAllPlayers(
-    //         "pickCharacter",
-    //         clienttranslate('${player_name} picks character ${character_name}'),
-    //         array(
-    //             'i18n' => array('character_name'), 'player_id' => $player_id,
-    //             'player_name' => self::getActivePlayerName(), 'character_type' => $character_type, 'character_name' => $this->character_types[$character_type]["name"]
-    //         )
-    //     );
-    //     $this->setupCharacter($character_type, $player_id);
-    //     self::DbQuery("DELETE FROM pending_action WHERE pending_id = {$pending_id}");
-    //     $this->gamestate->nextState("");
-    // }
     //////////////////////////////////////////////////////////////////////////////
     //////////// Player actions
     ////////////
-
-    /*
-        Each time a player is doing some game action, one of the methods below is called.
-        (note: each method below must match an input method in paladinsshipped.action.php)
-    */
-
-    /*
-
-    Example:
-
-    function playCard( $card_id )
-    {
-        // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
-        self::checkAction( 'playCard' );
-
-        $player_id = self::getActivePlayerId();
-
-        // Add your game logic to play a card there
-        ...
-
-        // Notify all players about the card played
-        self::notifyAllPlayers( "cardPlayed", clienttranslate( '${player_name} plays ${card_name}' ), array(
-            'player_id' => $player_id,
-            'player_name' => self::getActivePlayerName(),
-            'card_name' => $card_name,
-            'card_id' => $card_id
-        ) );
-
-    }
-
-    */
 
     public function hireInitialTownsfolk($townsfolk_card_id)
     {
@@ -386,27 +308,10 @@ class paladinsshipped extends Table
     //////////// Game state actions
     ////////////
 
-    /*
-        Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
-        The action method of state X is called everytime the current game state is set to X.
-    */
-
-    /*
-
-    Example for game state "MyGameState":
-    function stMyGameState()
-    {
-        // Do some stuff ...
-
-        // (very often) go to another gamestate
-        $this->gamestate->nextState( 'some_gamestate_transition' );
-    }
-    */
     public function stGameHireInitialTownsfolk()
     {
-        $next_player_id = self::getPlayerBefore(self::getActivePlayerId());
-        $last_player_id = $this->getLastPlayerId();
-        if ($next_player_id != $last_player_id) {
+        $next_player_id = self::getPlayerBefore(self::getActivePlayerId());  // 2000
+        if (!$this->deck->getPlayerHand($next_player_id)) {
             $this->gamestate->changeActivePlayer($next_player_id);
             $this->gamestate->nextState('transHireInitialTownsfolk');
         } else {
