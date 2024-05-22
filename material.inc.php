@@ -2,7 +2,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * paladinsshipped implementation : © <Your name here> <Your email address here>
+ * PaladinsShipped implementation : © <Your name here> <Your email address here>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -10,7 +10,7 @@
  *
  * material.inc.php
  *
- * paladinsshipped game material description
+ * PaladinsShipped game material description
  *
  * Here, you can describe the material of your game with PHP variables.
  *
@@ -129,18 +129,14 @@ $this->player_spaces_material = [
     ACTION_FORTIFY => [WORKER_BLUE, COST_ANY_WORKER, WORKER_GREEN],
     ACTION_ATTACK => [WORKER_GREEN, COST_ANY_WORKER, WORKER_RED],
     ACTION_GARRISON => [WORKER_BLUE, COST_ANY_WORKER, WORKER_RED],
-    ACTION_CONVERT => [WORKER_RED, COST_ANY_WORKER, WORKER_BLACK]
+    ACTION_CONVERT => [WORKER_RED, COST_ANY_WORKER, WORKER_BLACK],
 ];
 
 $this->tf_cards_material = [
-    // ROW 1
     [
         "name" => clienttranslate("Abbot"),
         "discard" => [WORKER_BLACK, WORKER_WHITE],
-        "passive" => [
-            "trigger" => ACTION_ABSOLVE,
-            "reward" => [WORKER_WHITE],
-        ],
+        "passive" => ["trigger" => ACTION_ABSOLVE, "reward" => [WORKER_WHITE]],
     ],
     [
         "name" => clienttranslate("Abbot"),
@@ -162,18 +158,12 @@ $this->tf_cards_material = [
     [
         "name" => clienttranslate("Architect"),
         "discard" => [WORKER_PURPLE],
-        "passive" => [
-            "trigger" => ACTION_DEVELOP,
-            "reward" => [WORKER_WHITE],
-        ],
+        "passive" => ["trigger" => ACTION_DEVELOP, "reward" => [WORKER_WHITE]],
     ],
     [
         "name" => clienttranslate("Defender"),
         "discard" => [ATTR_STRENGTH],
-        "passive" => [
-            "trigger" => ACTION_ATTACK,
-            "reward" => [WORKER_WHITE],
-        ],
+        "passive" => ["trigger" => ACTION_ATTACK, "reward" => [WORKER_WHITE]],
     ],
     [
         "name" => clienttranslate("Architect"),
@@ -184,23 +174,16 @@ $this->tf_cards_material = [
             "reward" => [EFFECT_TAKE_TAX],
         ],
     ],
-    // ROW 2
     [
         "name" => clienttranslate("Gatekeeper"),
         "discard" => [WORKER_GREEN],
         "purchase_bonus" => RESOURCE_COIN,
-        "passive" => [
-            "trigger" => ACTION_FORTIFY,
-            "reward" => [RESOURCE_COIN],
-        ],
+        "passive" => ["trigger" => ACTION_FORTIFY, "reward" => [RESOURCE_COIN]],
     ],
     [
         "name" => clienttranslate("Missionary"),
         "discard" => [EFFECT_PRAY],
-        "passive" => [
-            "trigger" => ACTION_CONVERT,
-            "reward" => [WORKER_WHITE],
-        ],
+        "passive" => ["trigger" => ACTION_CONVERT, "reward" => [WORKER_WHITE]],
     ],
     [
         "name" => clienttranslate("Acolyte"),
@@ -232,12 +215,8 @@ $this->tf_cards_material = [
     [
         "name" => clienttranslate("Debt Collector"),
         "discard" => [WORKER_WHITE, WORKER_WHITE],
-        "passive" => [
-            "trigger" => EFFECT_PAY_DEBT,
-            "reward" => [WORKER_WHITE],
-        ],
+        "passive" => ["trigger" => EFFECT_PAY_DEBT, "reward" => [WORKER_WHITE]],
     ],
-    // ROW 3
     [
         "name" => clienttranslate("Peddler"),
         "discard" => [WORKER_WHITE, RESOURCE_PROVISION],
@@ -291,7 +270,6 @@ $this->tf_cards_material = [
             "condition" => "2_or_more",
         ],
     ],
-    // ROW 4
     [
         "name" => clienttranslate("Missionary"),
         "discard" => [WORKER_GREEN, WORKER_WHITE],
@@ -313,10 +291,7 @@ $this->tf_cards_material = [
     [
         "name" => clienttranslate("Debt Collector"),
         "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
-        "passive" => [
-            "trigger" => EFFECT_PAY_DEBT,
-            "reward" => [WORKER_GREEN],
-        ],
+        "passive" => ["trigger" => EFFECT_PAY_DEBT, "reward" => [WORKER_GREEN]],
     ],
     [
         "name" => clienttranslate("Defender"),
@@ -330,10 +305,7 @@ $this->tf_cards_material = [
     [
         "name" => clienttranslate("Gatekeeper"),
         "discard" => [WORKER_BLUE, WORKER_WHITE],
-        "passive" => [
-            "trigger" => ACTION_FORTIFY,
-            "reward" => [WORKER_WHITE],
-        ],
+        "passive" => ["trigger" => ACTION_FORTIFY, "reward" => [WORKER_WHITE]],
     ],
     [
         "name" => clienttranslate("Squire"),
@@ -344,7 +316,6 @@ $this->tf_cards_material = [
             "condition" => "zero",
         ],
     ],
-    // ROW 5
     [
         "name" => clienttranslate("Gatekeeper"),
         "discard" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
@@ -357,10 +328,7 @@ $this->tf_cards_material = [
     [
         "name" => clienttranslate("Debt Collector"),
         "discard" => [EFFECT_RMV_DEBT],
-        "passive" => [
-            "trigger" => EFFECT_PAY_DEBT,
-            "reward" => [WORKER_RED],
-        ],
+        "passive" => ["trigger" => EFFECT_PAY_DEBT, "reward" => [WORKER_RED]],
     ],
     [
         "name" => clienttranslate("Architect"),
@@ -383,10 +351,7 @@ $this->tf_cards_material = [
     [
         "name" => clienttranslate("Watchman"),
         "discard" => [WORKER_RED, WORKER_WHITE],
-        "passive" => [
-            "trigger" => ACTION_GARRISON,
-            "reward" => [WORKER_WHITE],
-        ],
+        "passive" => ["trigger" => ACTION_GARRISON, "reward" => [WORKER_WHITE]],
     ],
     [
         "name" => clienttranslate("Watchman"),
@@ -397,7 +362,6 @@ $this->tf_cards_material = [
             "reward" => [RESOURCE_COIN],
         ],
     ],
-    // ROW 6
     [
         "name" => clienttranslate("Acolyte"),
         "discard" => [WORKER_BLACK],
@@ -417,8 +381,6 @@ $this->tf_cards_material = [
     ],
 ];
 
-// OLD
-
 $this->kings_favors_material = [
     // ROW 1
     [
@@ -427,11 +389,11 @@ $this->kings_favors_material = [
     ],
     [
         "worker_cost" => WORKER_BLACK,
-        "effect" => "rmvsus_2tax"
+        "effect" => "rmvsus_2tax",
     ],
     [
         "worker_cost" => COST_ANY_WORKER,
-        "effect" => "2_purple"
+        "effect" => "2_purple",
     ],
     [
         "worker_cost" => WORKER_PURPLE,
@@ -439,25 +401,25 @@ $this->kings_favors_material = [
     ],
     [
         "worker_cost" => WORKER_RED,
-        "effect" => "pay_coin_for_debt_or_rmv2sus"
+        "effect" => "pay_coin_for_debt_or_rmv2sus",
     ],
     // ROW 2
     [
         "worker_cost" => COST_ANY_WORKER,
-        "effect" => "get_debt_for_3_workers"
+        "effect" => "get_debt_for_3_workers",
     ],
     [
         "worker_cost" => WORKER_BLUE,
-        "effect" => "pay_food_for_develop_or_2_workers"
+        "effect" => "pay_food_for_develop_or_2_workers",
     ],
     [
         "worker_cost" => WORKER_PURPLE,
-        "reward" => "3_white_workers"
+        "reward" => "3_white_workers",
     ],
 
     [
         "worker_cost" => COST_ANY_WORKER,
-        "reward" => "2_food_tax"
+        "reward" => "2_food_tax",
     ],
     [
         "worker_cost" => COST_ANY_WORKER,
@@ -468,240 +430,256 @@ $this->kings_favors_material = [
 $this->kings_orders_material = [
     //ROW 1
     "FORTIFY",
-    "COMMISION",
-    "ABSOLVE",
-    "ATTACK",
     "CONVERT",
+    "COMMISION",
+    "ATTACK",
     // ROW 2
     "GARRISON",
+    "ABSOLVE",
 ];
 
-$this->os_cards_material = [
-    [
-        "name" => clienttranslate("Adventurer"),
-        "attack" => [WORKER_WHITE, WORKER_BLACK],
-        "end_game" => "2_commision",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Armourer"),
-        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
-        "end_game" => "4_strength",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Assassin"),
-        "attack" => [WORKER_WHITE, WORKER_RED],
-        "end_game" => "attacked_yellow",
-        "convert_extra_strength" => true,
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Barbarian"),
-        "attack" => [EFFECT_TAKE_TAX, RESOURCE_PROVISION],
-        "end_game" => "attacked_green",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Guardian"),
-        "attack" => [WORKER_BLUE, RESOURCE_PROVISION],
-        "end_game" => "2_develop",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Lookout"),
-        "attack" => [WORKER_BLUE],
-        "end_game" => "2_fortify",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Marauder"),
-        "attack" => [WORKER_PURPLE],
-        "end_game" => "4_influence",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Mercenary"),
-        "attack" => [WORKER_WHITE, WORKER_WHITE],
-        "end_game" => "more_mercenary",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Protector"),
-        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
-        "end_game" => "paid_debt",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Thief"),
-        "attack" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
-        "end_game" => "suspicion_card",
-        "suit" => BLUE_SUIT
-    ],
+// OLD
 
-    [
-        "name" => clienttranslate("Traitor"),
-        "attack" => [WORKER_PURPLE],
-        "end_game" => "unpaid_debt",
-        "suit" => BLUE_SUIT
-    ],
-    [
-        "name" => clienttranslate("Vigilante"),
-        "attack" => [EFFECT_RMV_DEBT],
-        "end_game" => "2_absolve",
-        "suit" => BLUE_SUIT
-    ],
+$this->os_cards_material = [
+    // ROW 1
     [
         "name" => clienttranslate("Archer"),
         "attack" => [WORKER_GREEN, RESOURCE_PROVISION],
         "end_game" => "2_garrison",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Armourer"),
         "attack" => [WORKER_RED],
         "end_game" => "4_strength",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Assassin"),
         "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
         "end_game" => "yellow_attacked",
         "convert_extra_strength" => true,
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Champion"),
         "attack" => [EFFECT_RMV_SUSPICION, WORKER_BLUE],
         "end_game" => "kings_order",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
+    [
+        "name" => clienttranslate("Mercenary"),
+        "attack" => [EFFECT_RMV_SUSPICION, WORKER_WHITE],
+        "end_game" => "more_mercenary",
+        "suit" => GREEN_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Champion"),
+        "attack" => [EFFECT_RMV_SUSPICION, WORKER_GREEN],
+        "end_game" => "kings_order",
+        "suit" => YELLOW_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Invader"),
+        "attack" => [ATTR_INFLUENCE],
+        "convert_extra_strength" => true,
+        "end_game" => "attacked_blue",
+        "suit" => YELLOW_SUIT,
+    ],
+    
+    // ROW 2
     [
         "name" => clienttranslate("Guardian"),
         "attack" => [WORKER_WHITE, WORKER_WHITE],
         "end_game" => "2_develop",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Hunter"),
         "attack" => [EFFECT_RMV_SUSPICION, WORKER_RED],
         "end_game" => "2_assistant",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Invader"),
         "attack" => [EFFECT_TAKE_TAX, RESOURCE_PROVISION],
         "convert_extra_strength" => true,
         "end_game" => "attacked_blue",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Lookout"),
         "attack" => [WORKER_WHITE, WORKER_BLUE],
         "end_game" => "2_fortify",
-        "suit" => GREEN_SUIT
-    ],
-    [
-        "name" => clienttranslate("Mercenary"),
-        "attack" => [EFFECT_RMV_SUSPICION, WORKER_WHITE],
-        "end_game" => "more_mercenary",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Thief"),
         "attack" => [WORKER_PURPLE],
         "end_game" => "suspicion",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
+    [
+        "name" => clienttranslate("Hunter"),
+        "attack" => [EFFECT_RMV_DEBT],
+        "end_game" => "2_assistant",
+        "suit" => YELLOW_SUIT,
+    ],
+
+    //ROW 3
     [
         "name" => clienttranslate("Traitor"),
         "attack" => [EFFECT_RMV_DEBT],
         "end_game" => "unpaid_debt",
-        "suit" => GREEN_SUIT
-    ],
-    [
-        "name" => clienttranslate("Warrior"),
-        "attack" => [RESOURCE_PROVISION, RESOURCE_PROVISION],
-        "end_game" => "4_faith",
-        "suit" => GREEN_SUIT
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Adventurer"),
         "attack" => [WORKER_WHITE, WORKER_GREEN],
         "end_game" => "2_commision",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Warrior"),
+        "attack" => [RESOURCE_PROVISION, RESOURCE_PROVISION],
+        "end_game" => "4_faith",
+        "suit" => GREEN_SUIT,
     ],
     [
         "name" => clienttranslate("Archer"),
         "attack" => [RESOURCE_PROVISION, RESOURCE_PROVISION],
         "end_game" => "2_garrison",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
     ],
     [
         "name" => clienttranslate("Barbarian"),
         "attack" => [WORKER_WHITE, WORKER_GREEN],
         "conver_extra_strength" => true,
         "end_game" => "attacked_green",
-        "suit" => YELLOW_SUIT
-    ],
-    [
-        "name" => clienttranslate("Champion"),
-        "attack" => [EFFECT_RMV_SUSPICION, WORKER_WHITE],
-        "end_game" => "kings_favor",
-        "suit" => YELLOW_SUIT
-    ],
-    [
-        "name" => clienttranslate("Hunter"),
-        "attack" => [EFFECT_RMV_DEBT],
-        "end_game" => "2_assistant",
-        "suit" => YELLOW_SUIT
-    ],
-    [
-        "name" => clienttranslate("Invader"),
-        "attack" => [ATTR_INFLUENCE],
-        "convert_extra_strength" => true,
-        "end_game" => "attacked_blue",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
     ],
     [
         "name" => clienttranslate("Marauder"),
         "attack" => [ATTR_INFLUENCE],
         "end_game" => "4_influence",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
     ],
+    
+    // ROW 4
+
+    // ROW 5
+
+    //OLD
+
     [
         "name" => clienttranslate("Mercenary"),
         "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
         "end_game" => "more_mercenary",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
     ],
     [
         "name" => clienttranslate("Mercenary"),
         "attack" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
         "end_game" => "more_mercenary",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
     ],
     [
         "name" => clienttranslate("Protector"),
         "attack" => [WORKER_WHITE, WORKER_WHITE],
         "end_game" => "paid_debt",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
     ],
     [
         "name" => clienttranslate("Vigilante"),
         "attack" => [EFFECT_RMV_DEBT, WORKER_BLACK],
         "end_game" => "2_absolve",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
     ],
     [
         "name" => clienttranslate("Warrior"),
         "attack" => [WORKER_BLACK],
         "end_game" => "4_faith",
-        "suit" => YELLOW_SUIT
+        "suit" => YELLOW_SUIT,
+    ],
+
+    // BLUE
+    [
+        "name" => clienttranslate("Adventurer"),
+        "attack" => [WORKER_WHITE, WORKER_BLACK],
+        "end_game" => "2_commision",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Armourer"),
+        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
+        "end_game" => "4_strength",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Assassin"),
+        "attack" => [WORKER_WHITE, WORKER_RED],
+        "end_game" => "attacked_yellow",
+        "convert_extra_strength" => true,
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Barbarian"),
+        "attack" => [EFFECT_TAKE_TAX, RESOURCE_PROVISION],
+        "end_game" => "attacked_green",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Guardian"),
+        "attack" => [WORKER_BLUE, RESOURCE_PROVISION],
+        "end_game" => "2_develop",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Lookout"),
+        "attack" => [WORKER_BLUE],
+        "end_game" => "2_fortify",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Marauder"),
+        "attack" => [WORKER_PURPLE],
+        "end_game" => "4_influence",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Mercenary"),
+        "attack" => [WORKER_WHITE, WORKER_WHITE],
+        "end_game" => "more_mercenary",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Protector"),
+        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
+        "end_game" => "paid_debt",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Thief"),
+        "attack" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
+        "end_game" => "suspicion_card",
+        "suit" => BLUE_SUIT,
+    ],
+
+    [
+        "name" => clienttranslate("Traitor"),
+        "attack" => [WORKER_PURPLE],
+        "end_game" => "unpaid_debt",
+        "suit" => BLUE_SUIT,
+    ],
+    [
+        "name" => clienttranslate("Vigilante"),
+        "attack" => [EFFECT_RMV_DEBT],
+        "end_game" => "2_absolve",
+        "suit" => BLUE_SUIT,
     ],
 ];
 
-$this->card_positions = [
+$this->card_board_locations = [
     "assistant3_debt",
     "assistant2_debt",
     "assistant2",
@@ -715,221 +693,220 @@ $this->card_positions = [
     "kings_order5",
     "kings_order6",
     "kings_order7",
-    "ousider0",
-    "outsider2",
-    "outisder4",
-    "outisder6",
-    "outsider8",
-    "outsider10",
+    "outsider_0",
+    "outsider_2",
+    "outisder_4",
+    "outisder_6",
+    "outsider_8",
+    "outsider_10",
 ];
 
 $this->board_positions_material = [
     [
         "column" => 0,
         "bonus" => "free_recruit",
-        "min_players" => 1
+        "min_players" => 1,
     ],
     [
         "column" => 0,
         "bonus" => "2_coin",
-        "min_players" => 1
+        "min_players" => 1,
     ],
     [
         "column" => 0,
         "bonus" => "labourer",
-        "min_players" => 3
+        "min_players" => 3,
     ],
     [
         "column" => 0,
         "bonus" => "rmv_suspicion",
-        "min_players" => 4
+        "min_players" => 4,
     ],
 
     [
         "column" => 2,
         "bonus" => "free_recruit",
-        "min_players" => 1
+        "min_players" => 1,
     ],
     [
         "column" => 2,
         "bonus" => "2_coin",
-        "min_players" => 1
+        "min_players" => 1,
     ],
     [
         "column" => 2,
         "bonus" => "scout",
-        "min_players" => 1
+        "min_players" => 1,
     ],
     [
         "column" => 2,
         "bonus" => "rmv_suspicion",
-        "min_players" => 1
+        "min_players" => 1,
     ],
     [
         "column" => 2,
         "bonus" => "labourer",
-        "min_players" => 4
+        "min_players" => 4,
     ],
     [
         "column" => 2,
         "bonus" => "2_coin",
-        "min_players" => 3
+        "min_players" => 3,
     ],
     [
         "column" => 2,
         "bonus" => "rmv_suspicion",
-        "min_players" => 3
+        "min_players" => 3,
     ],
 
     [
         "column" => 4,
         "min_players" => 1,
-        "bonus" => "labourer"
+        "bonus" => "labourer",
     ],
     [
         "column" => 4,
         "min_players" => 1,
-        "bonus" => "merchant"
+        "bonus" => "merchant",
     ],
     [
         "column" => 4,
         "min_players" => 1,
-        "bonus" => "2_coin"
+        "bonus" => "2_coin",
     ],
     [
         "column" => 4,
         "min_players" => 1,
-        "bonus" => "pray"
+        "bonus" => "pray",
     ],
     [
         "column" => 4,
         "min_players" => 1,
-        "bonus" => "scout"
+        "bonus" => "scout",
     ],
     [
         "column" => 4,
         "min_players" => 1,
-        "bonus" => "fighter"
+        "bonus" => "fighter",
     ],
     [
         "column" => 4,
         "min_players" => 3,
-        "bonus" => "free_recruit"
+        "bonus" => "free_recruit",
     ],
     [
         "column" => 4,
         "min_players" => 3,
-        "bonus" => "pay_debt"
+        "bonus" => "pay_debt",
     ],
     [
         "column" => 4,
         "min_players" => 4,
-        "bonus" => "2_coin"
+        "bonus" => "2_coin",
     ],
 
     [
         "column" => 6,
         "min_players" => 1,
-        "bonus" => "fighter"
+        "bonus" => "fighter",
     ],
     [
         "column" => 6,
         "min_players" => 1,
-        "bonus" => "pray"
+        "bonus" => "pray",
     ],
     [
         "column" => 6,
         "min_players" => 1,
-        "bonus" => "merchant"
+        "bonus" => "merchant",
     ],
     [
         "column" => 6,
         "min_players" => 1,
-        "bonus" => "cleric"
+        "bonus" => "cleric",
     ],
     [
         "column" => 6,
         "min_players" => 1,
-        "bonus" => "pay_debt"
+        "bonus" => "pay_debt",
     ],
     [
         "column" => 6,
         "min_players" => 1,
-        "bonus" => "labourer_scout"
+        "bonus" => "labourer_scout",
     ],
     [
         "column" => 6,
         "min_players" => 1,
-        "bonus" => "2_coin"
+        "bonus" => "2_coin",
     ],
     [
         "column" => 6,
         "min_players" => 3,
-        "bonus" => "pray"
+        "bonus" => "pray",
     ],
     [
         "column" => 6,
         "min_players" => 4,
-        "bonus" => "labourer_labourer"
+        "bonus" => "labourer_labourer",
     ],
     [
         "column" => 6,
         "min_players" => 3,
-        "bonus" => "2_coin"
+        "bonus" => "2_coin",
     ],
 
     [
         "column" => 8,
         "min_players" => 1,
-        "bonus" => "pray"
+        "bonus" => "pray",
     ],
     [
         "column" => 8,
         "min_players" => 1,
-        "bonus" => "labourer_fighter"
+        "bonus" => "labourer_fighter",
     ],
     [
         "column" => 8,
         "min_players" => 1,
-        "bonus" => "pay_debt"
+        "bonus" => "pay_debt",
     ],
     [
         "column" => 8,
         "min_players" => 1,
-        "bonus" => "labourer_merchant"
+        "bonus" => "labourer_merchant",
     ],
     [
         "column" => 8,
         "min_players" => 1,
-        "bonus" => "labourer_cleric"
+        "bonus" => "labourer_cleric",
     ],
     [
         "column" => 8,
         "min_players" => 4,
-        "bonus" => "pay_debt"
+        "bonus" => "pay_debt",
     ],
     [
         "column" => 8,
         "min_players" => 3,
-        "bonus" => "labourer_labourer"
+        "bonus" => "labourer_labourer",
     ],
 
     [
         "column" => 10,
         "min_players" => 1,
-        "bonus" => "pay_debt"
+        "bonus" => "pay_debt",
     ],
     [
         "column" => 10,
         "min_players" => 3,
-        "bonus" => "pray"
+        "bonus" => "pray",
     ],
     [
         "column" => 10,
         "min_players" => 4,
-        "bonus" => "labourer_labourer"
+        "bonus" => "labourer_labourer",
     ],
-
 ];
 
 $this->tavern_cards_material = [
@@ -960,13 +937,8 @@ $this->tavern_cards_material = [
     [WORKER_BLACK, WORKER_GREEN, WORKER_GREEN, WORKER_PURPLE],
     [WORKER_BLUE, WORKER_BLUE, WORKER_GREEN, WORKER_GREEN],
     [WORKER_RED, WORKER_BLUE, WORKER_GREEN, WORKER_GREEN],
-
 ];
 
-$this->suspicion_cards_material = [
-    "2tax",
-    "1tax",
-    "0tax"
-];
+$this->suspicion_cards_material = ["2tax", "1tax", "0tax"];
 
 $this->paladins_cards_material = [];
