@@ -941,4 +941,61 @@ $this->tavern_cards_material = [
 
 $this->suspicion_cards_material = ["2tax", "1tax", "0tax"];
 
-$this->paladins_cards_material = [];
+# SETS: castle, barracks, fountain, tower
+$this->paladins_cards_material = [
+    // ROW 1
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH=> 1], "workers" => [WORKER_BLUE, WORKER_GREEN], "effect" => "", "set" => "castle"],
+    ["stats" => [ATTR_INFLUENCE => 4], "workers" => [WORKER_BLUE, WORKER_WHITE], "effect" => "", "set" => "castle"],
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_WHITE, WORKER_GREEN], "action" => ACTION_DEVELOP, "set" => "castle"],
+    ["stats" => [ATTR_FAITH => 4], "workers" => [WORKER_BLACK, WORKER_BLACK], "action" => ACTION_PRAY, "set" => "castle"],
+    ["stats" => [ATTR_STRENGTH => 4], "workers" => [WORKER_RED, WORKER_WHITE], "action" => ACTION_RECRUIT, "set" => "castle"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH=> 3], "workers" => [WORKER_BLUE, WORKER_RED], "action" => "", "set" => "castle"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_RED], "action" => "", "set" => "castle"],
+    // ROW 2
+    ["stats" => [ATTR_STRENGTH => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_GREEN], "action" => "", "set" => "castle"],
+    ["stats" => [ATTR_STRENGTH => 3, ATTR_FAITH=> 1], "workers" => [WORKER_RED, WORKER_GREEN], "action" => "", "set" => "castle"],
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH=> 2], "workers" => [WORKER_GREEN, WORKER_GREEN], "action" => ACTION_HUNT, "set" => "castle"],
+    ["stats" => [ATTR_STRENGTH => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_GREEN], "action" => "", "set" => "barracks"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_RED], "action" => "", "set" => "barracks"],
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH=> 1], "workers" => [WORKER_BLACK, WORKER_BLUE], "action" => "", "set" => "barracks"],
+    ["stats" => [ATTR_STRENGTH => 4], "workers" => [WORKER_RED, WORKER_WHITE], "action" => ACTION_RECRUIT, "set" => "barracks"],
+    // ROW 3
+    ["stats" => [ATTR_FAITH => 4], "workers" => [WORKER_BLACK, WORKER_BLACK], "action" => ACTION_PRAY, "set" => "barracks"],
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH=> 1], "workers" => [WORKER_BLACK, WORKER_BLUE], "action" => "", "set" => "fountain"],
+    ["stats" => [ATTR_STRENGTH => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_GREEN], "action" => "", "set" => "fountain"],
+    ["stats" => [ATTR_FAITH => 4], "workers" => [WORKER_BLACK, WORKER_BLACK], "action" => ACTION_PRAY, "set" => "fountain"],
+    ["stats" => [ATTR_STRENGTH => 4], "workers" => [WORKER_RED, WORKER_WHITE], "action" => ACTION_RECRUIT, "set" => "fountain"],
+    ["stats" => [ATTR_FAITH => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_BLUE, WORKER_BLUE], "action" => "", "set" => "fountain"],
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_WHITE, WORKER_GREEN], "action" => ACTION_DEVELOP, "set" => "fountain"],
+    // ROW 4
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH=> 1], "workers" => [WORKER_BLUE, WORKER_GREEN], "effect" => "", "set" => "tower"],
+    ["stats" => [ATTR_STRENGTH => 3, ATTR_FAITH=> 1], "workers" => [WORKER_RED, WORKER_GREEN], "action" => "", "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_RED], "action" => "", "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH=> 3], "workers" => [WORKER_BLUE, WORKER_RED], "action" => "", "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 4], "workers" => [WORKER_BLUE, WORKER_WHITE], "effect" => "", "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH=> 2], "workers" => [WORKER_GREEN, WORKER_GREEN], "action" => ACTION_HUNT, "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH=> 1], "workers" => [WORKER_BLACK, WORKER_BLUE], "action" => "", "set" => "tower"],
+    // ROW 5
+    ["stats" => [ATTR_STRENGTH => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_GREEN], "action" => "", "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH=> 2], "workers" => [WORKER_GREEN, WORKER_GREEN], "action" => ACTION_HUNT, "set" => "barracks"],
+    ["stats" => [ATTR_FAITH => 4], "workers" => [WORKER_BLACK, WORKER_BLACK], "action" => ACTION_PRAY, "set" => "tower"],
+    ["stats" => [ATTR_FAITH => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_BLUE, WORKER_BLUE], "action" => "", "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH=> 1], "workers" => [WORKER_BLUE, WORKER_GREEN], "effect" => "", "set" => "barracks"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH=> 3], "workers" => [WORKER_BLUE, WORKER_RED], "action" => "", "set" => "barracks"],
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH=> 1], "workers" => [WORKER_BLUE, WORKER_GREEN], "effect" => "", "set" => "fountain"],
+    // ROW 6
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_WHITE, WORKER_GREEN], "action" => ACTION_DEVELOP, "set" => "barracks"],
+    ["stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH=> 1], "workers" => [WORKER_BLACK, WORKER_BLUE], "action" => "", "set" => "castle"],
+    ["stats" => [ATTR_STRENGTH => 3, ATTR_FAITH=> 1], "workers" => [WORKER_RED, WORKER_GREEN], "action" => "", "set" => "fountain"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH=> 3], "workers" => [WORKER_BLUE, WORKER_RED], "action" => "", "set" => "fountain"],
+    ["stats" => [ATTR_STRENGTH => 3, ATTR_FAITH=> 1], "workers" => [WORKER_RED, WORKER_GREEN], "action" => "", "set" => "barracks"],
+    ["stats" => [ATTR_FAITH => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_BLUE, WORKER_BLUE], "action" => "", "set" => "barracks"],
+    ["stats" => [ATTR_STRENGTH => 4], "workers" => [WORKER_RED, WORKER_WHITE], "action" => ACTION_RECRUIT, "set" => "tower"],
+    // ROW 7
+    ["stats" => [ATTR_INFLUENCE => 4], "workers" => [WORKER_BLUE, WORKER_WHITE], "effect" => "", "set" => "barracks"],
+    ["stats" => [ATTR_FAITH => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_BLUE, WORKER_BLUE], "action" => "", "set" => "castle"],
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH=> 2], "workers" => [WORKER_GREEN, WORKER_GREEN], "action" => ACTION_HUNT, "set" => "fountain"],
+    ["stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH=> 2], "workers" => [WORKER_WHITE, WORKER_GREEN], "action" => ACTION_DEVELOP, "set" => "tower"],
+    ["stats" => [ATTR_INFLUENCE => 4], "workers" => [WORKER_BLUE, WORKER_WHITE], "effect" => "", "set" => "fountain"],
+    ["stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH=> 3], "workers" => [WORKER_BLACK, WORKER_RED], "action" => "", "set" => "fountain"],
+];
