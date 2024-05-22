@@ -35,12 +35,10 @@ class PaladinsShipped extends Table
 
         self::initGameStateLabels(array(
             "current_round" => 10,
-            "main_player_id" => 11,
-            "first_move_of_round" => 12, //maybe not needed as ir moves clockwise
-            "can_undo" => 15,
+            "can_undo" => 11,
         ));
         $this->deck = self::getNew("module.common.deck");
-        $this->deck->init("card"); // table name
+        $this->deck->init("card");
     }
 
     protected function getGameName()
@@ -81,11 +79,9 @@ class PaladinsShipped extends Table
 
         // Init global values with their initial values
 
+
         //self::setGameStateInitialValue( 'my_first_global_variable', 0 );
-        self::setGameStateInitialValue('current_round', 0);
-        self::setGameStateInitialValue('main_player_id', 0);
-        self::setGameStateInitialValue('first_move_of_round', 1);
-        self::setGameStateInitialValue('can_undo', 0);
+
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
         // self::initStat('player', 'fortifications', 0);
@@ -100,11 +96,9 @@ class PaladinsShipped extends Table
         // TODO: setup the initial game situation here
         $this->createAllDecks();
         // $this->createDefaultGamePieces($players);
-
+        $this->setNextFirstPlayer();
 
         // Activate first player (which is in general a good idea :) )
-        $this->activeNextPlayer();
-        $this->setFirstPlayerMarker(self::getActivePlayerId());
 
         /************ End of the game initialization *****/
     }
@@ -118,6 +112,7 @@ class PaladinsShipped extends Table
         _ when the game starts
         _ when a player refreshes the game page (F5)
     */
+
     protected function getAllDatas()
     {
         $result = array();
@@ -135,7 +130,7 @@ class PaladinsShipped extends Table
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
         // $result['pieces'] = self::getCollectionFromDB($piece_sql);
 
-        $result['os_display'] = $this->deck->getCardsInLocation("os_display");
+        $result['outsider_display'] = $this->deck->getCardsInLocation("outsider_display");
         $result['tf_display'] = $this->deck->getCardsInLocation("tf_display");
 
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
@@ -168,8 +163,10 @@ class PaladinsShipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
-    public function setFirstPlayerMarker($player_id)
+    public function setNextFirstPlayer()
     {
+        $this->activeNextPlayer();
+        $player_id = self::getActivePlayerId();
         self::DbQuery("UPDATE player SET parchment = 0");
         self::DbQuery("UPDATE player SET parchment = 1 WHERE player_id = {$player_id}");
         self::notifyAllPlayers("moveParchment", '', array("player_id" => $player_id));
@@ -179,42 +176,42 @@ class PaladinsShipped extends Table
     {
         $os_cards = array();
         foreach ($this->os_cards_material as $os_card_id => $os_card_type) {
-            $os_cards[] = array('type' => 'os', 'type_arg' => $os_card_id, 'nbr' => 1);
+            $os_cards[] = array('type' => 'outsider', 'type_arg' => $os_card_id, 'nbr' => 1);
         }
-        $this->deck->createCards($os_cards, 'os_deck');
-        $this->deck->shuffle('os_deck');
-        $this->deck->pickCardsForLocation(6, 'os_deck', 'os_display');
-        $this->slideCards(card_type: 'os', trigger_by: 'game_setup');
+        $this->deck->createCards($os_cards, 'outsider_deck');
+        $this->deck->shuffle('outsider_deck');
+        $this->deck->pickCardsForLocation(6, 'outsider_deck', 'outsider_display');
+        $this->slideCards(card_type: 'outsider', trigger_by: 'game_setup');
 
         $tf_cards = array();
         foreach ($this->tf_cards_material as $tf_card_id => $tf_card_type) {
-            $tf_cards[] = array('type' => 'tf', 'type_arg' => $tf_card_id, 'nbr' => 1);
+            $tf_cards[] = array('type' => 'townsfolk', 'type_arg' => $tf_card_id, 'nbr' => 1);
         }
-        $this->deck->createCards($tf_cards, 'tf_deck');
-        $this->deck->shuffle('tf_deck');
-        $this->deck->pickCardsForLocation(5, 'tf_deck', 'tf_display');
-        $this->slideCards(card_type: 'tf', trigger_by: 'game_setup');
+        $this->deck->createCards($tf_cards, 'townsfolk_deck');
+        $this->deck->shuffle('townsfolk_deck');
+        $this->deck->pickCardsForLocation(5, 'townsfolk_deck', 'townsfolk_display');
+        $this->slideCards(card_type: 'townsfolk', trigger_by: 'game_setup');
 
-        // $tavern_cards = array();
-        // foreach ($this->tavern_cards_material as $tavern_card_id => $tavern_card_type) {
-        //     $tavern_cards[] = array('type' => $tavern_card_id, 'type_arg' => $tavern_card_id, 'nbr' => 1);
-        // }
-        // $this->deck->createCards($tavern_cards, 'tavern_deck');
-        // $this->deck->shuffle('tavern_deck');
+        $tavern_cards = array();
+        foreach ($this->tavern_cards_material as $tavern_card_id => $tavern_card_type) {
+            $tavern_cards[] = array('type' => 'tavern', 'type_arg' => $tavern_card_id, 'nbr' => 1);
+        }
+        $this->deck->createCards($tavern_cards, 'tavern_deck');
+        $this->deck->shuffle('tavern_deck');
 
-        // $fortification_cards = array();
-        // foreach ($this->fortification_cards_material as $fortification_card_id => $fortification_card_type) {
-        //     $fortification_cards[] = array('type' => $fortification_card_id, 'type_arg' => $fortification_card_id, 'nbr' => 1);
-        // }
-        // $this->deck->createCards($fortification_cards, 'fortification_deck');
-        // $this->deck->shuffle('fortification_deck');
+        $wall_cards = array();
+        foreach ($this->wall_cards_material as $wall_card_id => $wall_card_type) {
+            $wall_cards[] = array('type' => 'wall', 'type_arg' => $wall_card_id, 'nbr' => 1);
+        }
+        $this->deck->createCards($wall_cards, 'wall_deck');
+        $this->deck->shuffle('wall_deck');
 
-        // $suspicion_cards = array();
-        // foreach ($this->suspicion_cards_material as $suspicion_card_id => $suspicion_card_type) {
-        //     $suspicion_cards[] = array('type' => $suspicion_card_id, 'type_arg' => $suspicion_card_id, 'nbr' => 8);
-        // }
-        // $this->deck->createCards($suspicion_cards, 'suspicion_deck');
-        // $this->deck->shuffle('suspicion_deck');
+        $suspicion_cards = array();
+        foreach ($this->suspicion_cards_material as $suspicion_card_id => $suspicion_card_qty) {
+            $suspicion_cards[] = array('type' => 'suspicion', 'type_arg' => $suspicion_card_id, 'nbr' => $suspicion_card_qty);
+        }
+        $this->deck->createCards($suspicion_cards, 'suspicion_deck');
+        $this->deck->shuffle('suspicion_deck');
     }
 
     // public function placeNewOutsidersOutOnBoard($num_of, $trigger_by = "")
@@ -256,7 +253,7 @@ class PaladinsShipped extends Table
     {
         self::checkAction('hireInitialTownsfolk');
         $player_id = self::getCurrentPlayerId();
-        $townsfolk_card_info = $this->getCardInfoById($townsfolk_card_id);
+        $townsfolk_card_info = $this->getCardInfoByGlobalId($townsfolk_card_id);
         $this->deck->moveCard($townsfolk_card_id, "hand", $player_id);
         self::notifyAllPlayers(
             "message",
@@ -269,12 +266,12 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState();
     }
 
-    public function getCardInfoById($card_id)
+    public function getCardInfoByGlobalId($card_id)
     {
         $card = $this->deck->getCard($card_id);
-        if ($card['type'] == 'os') {
+        if ($card['type'] == 'outsider') {
             return $this->os_cards_material[$card['type_arg']];
-        } elseif ($card['type'] == 'tf') {
+        } elseif ($card['type'] == 'townsfolk') {
             return $this->tf_cards_material[$card['type_arg']];
         }
         return new stdClass();
@@ -321,7 +318,26 @@ class PaladinsShipped extends Table
             $this->gamestate->nextState('transStartGame');
         }
     }
-
+    public function stGameSetupNewRound() {
+        $new_round = intval(self::getGameStateValue('current_round')) + 1;
+        if ($new_round > 7) {
+            $this->gamestate->nextState('calculateScores');
+            return; //bye
+        }
+        if ($new_round < 4) {
+            $this->revealKingsOrder($new_round);
+        }
+        if ($new_round > 2) {
+            $this->revealKingsFavor($new_round);
+        }
+        if ($new_round > 1) {
+            $this->refillDisplays();
+        }
+        self::incGameStateValue('current_round', 1);
+        $this->revealTavernCards();
+        $this->setNextFirstPlayer();
+        $this->gamestate->nextState('done');
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Zombie
