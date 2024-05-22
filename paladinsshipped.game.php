@@ -176,7 +176,7 @@ class PaladinsShipped extends Table
     {
         $os_cards = array();
         foreach ($this->os_cards_material as $os_card_id => $os_card_type) {
-            $os_cards[] = array('type' => 'os', 'type_arg' => $os_card_id, 'nbr' => 1);
+            $os_cards[] = array('type' => 'outsider', 'type_arg' => $os_card_id, 'nbr' => 1);
         }
         $this->deck->createCards($os_cards, 'outsider_deck');
         $this->deck->shuffle('outsider_deck');
@@ -269,9 +269,9 @@ class PaladinsShipped extends Table
     public function getCardInfoByGlobalId($card_id)
     {
         $card = $this->deck->getCard($card_id);
-        if ($card['type'] == 'os') {
+        if ($card['type'] == 'outsider') {
             return $this->os_cards_material[$card['type_arg']];
-        } elseif ($card['type'] == 'tf') {
+        } elseif ($card['type'] == 'townsfolk') {
             return $this->tf_cards_material[$card['type_arg']];
         }
         return new stdClass();
