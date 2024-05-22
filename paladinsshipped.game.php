@@ -104,7 +104,7 @@ class paladinsshipped extends Table
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
-        $this->setParchment(self::getActivePlayerId());
+        $this->setFirstPlayerMarker(self::getActivePlayerId());
 
         /************ End of the game initialization *****/
     }
@@ -126,7 +126,10 @@ class paladinsshipped extends Table
 
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $player_sql = "SELECT player_id id, player_score score, white_worker, green_worker, red_worker, blue_worker, black_worker, purple_worker, coin, provision, unpaid_debt, paid_debt, parchment FROM player ";
+        $player_sql = "SELECT player_id id, player_score score, white_worker,
+                        green_worker, red_worker, blue_worker,
+                        black_worker, purple_worker, coin, provision,
+                        unpaid_debt, paid_debt, parchment FROM player ";
         $result['players'] = self::getCollectionFromDb($player_sql);
 
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
@@ -165,7 +168,7 @@ class paladinsshipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
-    public function setParchment($player_id)
+    public function setFirstPlayerMarker($player_id)
     {
         self::DbQuery("UPDATE player SET parchment = 0");
         self::DbQuery("UPDATE player SET parchment = 1 WHERE player_id = {$player_id}");
@@ -310,7 +313,7 @@ class paladinsshipped extends Table
 
     public function stGameHireInitialTownsfolk()
     {
-        $next_player_id = self::getPlayerBefore(self::getActivePlayerId());  // 2000
+        $next_player_id = self::getPlayerBefore(self::getActivePlayerId());
         if (!$this->deck->getPlayerHand($next_player_id)) {
             $this->gamestate->changeActivePlayer($next_player_id);
             $this->gamestate->nextState('transHireInitialTownsfolk');

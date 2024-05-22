@@ -29,8 +29,6 @@ $this->card_types = array(
               )
 );
 
-
-
 */
 
 if (!defined("ATTR_FAITH")) {
@@ -61,12 +59,12 @@ if (!defined("ATTR_FAITH")) {
     define("ACTION_USE_KINGS_FAVOR", "USE_KINGS_FAVOR");
     define("ACTION_PASS", "ACTION_PASS");
 
-    define("WORKER_LABOURER", "WORKER_LABOURER");
-    define("WORKER_FIGHTER", "WORKER_FIGHTER");
-    define("WORKER_SCOUT", "WORKER_SCOUT");
-    define("WORKER_CLERIC", "WORKER_CLERIC");
-    define("WORKER_MERCHANT", "WORKER_MERCHANT");
-    define("WORKER_CRIMINAL", "WORKER_CRIMINAL");
+    define("WORKER_WHITE", "WORKER_WHITE");
+    define("WORKER_RED", "WORKER_RED");
+    define("WORKER_GREEN", "WORKER_GREEN");
+    define("WORKER_BLACK", "WORKER_BLACK");
+    define("WORKER_BLUE", "WORKER_BLUE");
+    define("WORKER_PURPLE", "WORKER_PURPLE");
 
     define("COST_ANY_WORKER", "COST_ANY_WORKER");
 
@@ -87,14 +85,187 @@ if (!defined("ATTR_FAITH")) {
 
 //NEW
 
+// Always give 1 strength
+$this->fortification_cards_material = [
+    ["gain" => [ATTR_STRENGTH]],
+    ["gain" => [ATTR_STRENGTH]],
+    ["gain" => [WORKER_WHITE], "vp" => 1],
+    ["gain" => [WORKER_WHITE], "vp" => 1],
+    ["vp" => 2],
 
+    ["vp" => 2],
+    ["choice" => [EFFECT_PAY_DEBT, "2_COINS"]],
+    ["choice" => [EFFECT_PAY_DEBT, "2_COINS"]],
+    ["choice" => [EFFECT_RMV_SUSPICION, "2_COINS"]],
+    ["choice" => [EFFECT_RMV_SUSPICION, "2_COINS"]],
 
+    ["choice" => [EFFECT_RMV_SUSPICION, "2_COINS"]],
+    ["choice" => [EFFECT_PAY_DEBT, "2_COINS"]],
+    ["gain" => [WORKER_WHITE, WORKER_WHITE, WORKER_WHITE]],
+    ["choice" => [EFFECT_RMV_SUSPICION, "2_COINS"]],
+    ["gain" => [WORKER_WHITE, WORKER_WHITE]],
 
+    ["gain" => [WORKER_WHITE, WORKER_BLUE]],
+    ["gain" => [WORKER_WHITE, WORKER_RED]],
+    ["gain" => [WORKER_WHITE, WORKER_GREEN]],
+    ["gain" => [WORKER_GREEN]],
+    ["gain" => [WORKER_BLUE]],
 
-//OLD
+    ["gain" => [WORKER_RED]],
+    ["gain" => [WORKER_WHITE, WORKER_BLACK]],
+    ["gain" => [WORKER_GREEN, WORKER_BLUE]],
+    ["gain" => [WORKER_BLACK]],
+];
+
+$this->player_spaces_material = [
+    ACTION_DEVELOP => [COST_ANY_WORKER, COST_ANY_WORKER],
+    ACTION_HUNT => [COST_ANY_WORKER, WORKER_GREEN],
+    ACTION_TRADE => [COST_ANY_WORKER, WORKER_BLUE],
+    ACTION_RECRUIT => [COST_ANY_WORKER, WORKER_RED],
+    ACTION_PRAY => [WORKER_BLACK],
+    ACTION_CONSPIRE => [COST_ANY_WORKER],
+    ACTION_COMMISSION => [WORKER_GREEN, COST_ANY_WORKER, WORKER_BLACK],
+    ACTION_ABSOLVE => [WORKER_BLACK, COST_ANY_WORKER, WORKER_BLUE],
+    ACTION_FORTIFY => [WORKER_BLUE, COST_ANY_WORKER, WORKER_GREEN],
+    ACTION_ATTACK => [WORKER_GREEN, COST_ANY_WORKER, WORKER_RED],
+    ACTION_GARRISON => [WORKER_BLUE, COST_ANY_WORKER, WORKER_RED],
+    ACTION_CONVERT => [WORKER_RED, COST_ANY_WORKER, WORKER_BLACK]
+];
 
 $this->tf_cards_material = [
-    0 => [
+    // ROW 1
+    [
+        "name" => clienttranslate("Abbot"),
+        "discard" => [WORKER_BLACK, WORKER_WHITE],
+        "passive" => [
+            "trigger" => ACTION_ABSOLVE,
+            "reward" => [WORKER_WHITE],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Abbot"),
+        "discard" => [EFFECT_RMV_DEBT],
+        "purchase_bonus" => EFFECT_RMV_SUSPICION,
+        "passive" => [
+            "trigger" => ACTION_ABSOLVE,
+            "reward" => [EFFECT_TAKE_TAX],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Conspirator"),
+        "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
+        "passive" => [
+            "trigger" => EVENT_INQUISITION,
+            "reward" => [EFFECT_RMV_SUSPICION],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Architect"),
+        "discard" => [WORKER_PURPLE],
+        "passive" => [
+            "trigger" => ACTION_DEVELOP,
+            "reward" => [WORKER_WHITE],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Defender"),
+        "discard" => [ATTR_STRENGTH],
+        "passive" => [
+            "trigger" => ACTION_ATTACK,
+            "reward" => [WORKER_WHITE],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Architect"),
+        "discard" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
+        "purchase_bonus" => EFFECT_RMV_SUSPICION,
+        "passive" => [
+            "trigger" => ACTION_DEVELOP,
+            "reward" => [EFFECT_TAKE_TAX],
+        ],
+    ],
+    // ROW 2
+    [
+        "name" => clienttranslate("Gatekeeper"),
+        "discard" => [WORKER_GREEN],
+        "purchase_bonus" => RESOURCE_COIN,
+        "passive" => [
+            "trigger" => ACTION_FORTIFY,
+            "reward" => [RESOURCE_COIN],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Missionary"),
+        "discard" => [EFFECT_PRAY],
+        "passive" => [
+            "trigger" => ACTION_CONVERT,
+            "reward" => [WORKER_WHITE],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Acolyte"),
+        "discard" => [EFFECT_PRAY],
+        "purchase_bonus" => RESOURCE_COIN,
+        "passive" => [
+            "trigger" => ACTION_COMMISSION,
+            "reward" => [RESOURCE_COIN],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Acolyte"),
+        "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
+        "purchase_bonus" => EFFECT_RMV_SUSPICION,
+        "passive" => [
+            "trigger" => ACTION_COMMISSION,
+            "reward" => [EFFECT_TAKE_TAX],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Abbot"),
+        "discard" => [EFFECT_PRAY],
+        "purchase_bonus" => RESOURCE_PROVISION,
+        "passive" => [
+            "trigger" => ACTION_ABSOLVE,
+            "reward" => [RESOURCE_PROVISION],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Debt Collector"),
+        "discard" => [WORKER_WHITE, WORKER_WHITE],
+        "passive" => [
+            "trigger" => EFFECT_PAY_DEBT,
+            "reward" => [WORKER_WHITE],
+        ],
+    ],
+    // ROW 3
+    [
+        "name" => clienttranslate("Peddler"),
+        "discard" => [WORKER_WHITE, RESOURCE_PROVISION],
+        "passive" => [
+            "trigger" => EVENT_INQUISITION,
+            "reward" => [RESOURCE_PROVISION, RESOURCE_PROVISION],
+            "condition" => "2_or_more",
+        ],
+    ],
+    [
+        "name" => clienttranslate("Squire"),
+        "discard" => [WORKER_PURPLE],
+        "passive" => [
+            "trigger" => EVENT_INQUISITION,
+            "reward" => [ATTR_FAITH],
+            "condition" => "zero",
+        ],
+    ],
+    [
+        "name" => clienttranslate("Defender"),
+        "discard" => [WORKER_WHITE, RESOURCE_PROVISION],
+        "purchase_bonus" => RESOURCE_PROVISION,
+        "passive" => [
+            "trigger" => ACTION_ATTACK,
+            "reward" => [RESOURCE_PROVISION],
+        ],
+    ],
+    [
         "name" => clienttranslate("Missionary"),
         "discard" => [ATTR_FAITH],
         "purchase_bonus" => RESOURCE_PROVISION,
@@ -103,43 +274,15 @@ $this->tf_cards_material = [
             "reward" => [RESOURCE_PROVISION],
         ],
     ],
-    1 => [
-        "name" => clienttranslate("Missionary"),
-        "discard" => [WORKER_SCOUT, WORKER_LABOURER],
-        "purchase_bonus" => EFFECT_RMV_SUSPICION,
-        "passive" => [
-            "trigger" => ACTION_CONVERT,
-            "reward" => [EFFECT_TAKE_TAX],
-        ],
-    ],
-    2 => [
-        "name" => clienttranslate("Missionary"),
-        "discard" => [EFFECT_PRAY],
-        "passive" => [
-            "trigger" => ACTION_CONVERT,
-            "reward" => [WORKER_LABOURER],
-        ],
-    ],
-
-    3 => [
-        "name" => clienttranslate("Peddler"),
-        "discard" => [WORKER_LABOURER, WORKER_LABOURER],
+    [
+        "name" => clienttranslate("Conspirator"),
+        "discard" => [WORKER_PURPLE],
         "passive" => [
             "trigger" => EVENT_INQUISITION,
-            "reward" => [WORKER_LABOURER],
-            "condition" => "2_or_more",
+            "reward" => [EFFECT_RMV_SUSPICION],
         ],
     ],
-    4 => [
-        "name" => clienttranslate("Peddler"),
-        "discard" => [WORKER_LABOURER, RESOURCE_PROVISION],
-        "passive" => [
-            "trigger" => EVENT_INQUISITION,
-            "reward" => [RESOURCE_PROVISION, RESOURCE_PROVISION],
-            "condition" => "2_or_more",
-        ],
-    ],
-    5 => [
+    [
         "name" => clienttranslate("Peddler"),
         "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
         "passive" => [
@@ -148,17 +291,51 @@ $this->tf_cards_material = [
             "condition" => "2_or_more",
         ],
     ],
-
-    6 => [
-        "name" => clienttranslate("Squire"),
-        "discard" => [WORKER_FIGHTER],
+    // ROW 4
+    [
+        "name" => clienttranslate("Missionary"),
+        "discard" => [WORKER_GREEN, WORKER_WHITE],
+        "purchase_bonus" => EFFECT_RMV_SUSPICION,
         "passive" => [
-            "trigger" => EVENT_INQUISITION,
-            "reward" => [ATTR_FAITH],
-            "condition" => "zero",
+            "trigger" => ACTION_CONVERT,
+            "reward" => [EFFECT_TAKE_TAX],
         ],
     ],
-    7 => [
+    [
+        "name" => clienttranslate("Peddler"),
+        "discard" => [WORKER_WHITE, WORKER_WHITE],
+        "passive" => [
+            "trigger" => EVENT_INQUISITION,
+            "reward" => [WORKER_WHITE],
+            "condition" => "2_or_more",
+        ],
+    ],
+    [
+        "name" => clienttranslate("Debt Collector"),
+        "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
+        "passive" => [
+            "trigger" => EFFECT_PAY_DEBT,
+            "reward" => [WORKER_GREEN],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Defender"),
+        "discard" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
+        "purchase_bonus" => EFFECT_RMV_SUSPICION,
+        "passive" => [
+            "trigger" => ACTION_ATTACK,
+            "reward" => [EFFECT_TAKE_TAX],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Gatekeeper"),
+        "discard" => [WORKER_BLUE, WORKER_WHITE],
+        "passive" => [
+            "trigger" => ACTION_FORTIFY,
+            "reward" => [WORKER_WHITE],
+        ],
+    ],
+    [
         "name" => clienttranslate("Squire"),
         "discard" => [ATTR_INFLUENCE],
         "passive" => [
@@ -167,285 +344,120 @@ $this->tf_cards_material = [
             "condition" => "zero",
         ],
     ],
-    8 => [
+    // ROW 5
+    [
+        "name" => clienttranslate("Gatekeeper"),
+        "discard" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
+        "purchase_bonus" => EFFECT_RMV_SUSPICION,
+        "passive" => [
+            "trigger" => ACTION_FORTIFY,
+            "reward" => [EFFECT_TAKE_TAX],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Debt Collector"),
+        "discard" => [EFFECT_RMV_DEBT],
+        "passive" => [
+            "trigger" => EFFECT_PAY_DEBT,
+            "reward" => [WORKER_RED],
+        ],
+    ],
+    [
+        "name" => clienttranslate("Architect"),
+        "discard" => [WORKER_WHITE, RESOURCE_PROVISION],
+        "purchase_bonus" => RESOURCE_PROVISION,
+        "passive" => [
+            "trigger" => ACTION_DEVELOP,
+            "reward" => [RESOURCE_PROVISION],
+        ],
+    ],
+    [
         "name" => clienttranslate("Squire"),
-        "discard" => [WORKER_CRIMINAL],
+        "discard" => [WORKER_RED],
         "passive" => [
             "trigger" => EVENT_INQUISITION,
             "reward" => [ATTR_FAITH],
             "condition" => "zero",
         ],
     ],
-
-    8 => [
+    [
         "name" => clienttranslate("Watchman"),
-        "discard" => [WORKER_FIGHTER, WORKER_LABOURER],
+        "discard" => [WORKER_RED, WORKER_WHITE],
         "passive" => [
             "trigger" => ACTION_GARRISON,
-            "reward" => [WORKER_LABOURER],
+            "reward" => [WORKER_WHITE],
         ],
     ],
-    9 => [
+    [
         "name" => clienttranslate("Watchman"),
-        "discard" => [WORKER_LABOURER, RESOURCE_PROVISION],
+        "discard" => [WORKER_WHITE, RESOURCE_PROVISION],
         "purchase_bonus" => RESOURCE_COIN,
         "passive" => [
             "trigger" => ACTION_GARRISON,
             "reward" => [RESOURCE_COIN],
         ],
     ],
-    10 => [
+    // ROW 6
+    [
+        "name" => clienttranslate("Acolyte"),
+        "discard" => [WORKER_BLACK],
+        "passive" => [
+            "trigger" => ACTION_COMMISSION,
+            "reward" => [WORKER_WHITE],
+        ],
+    ],
+    [
         "name" => clienttranslate("Watchman"),
-        "discard" => [WORKER_MERCHANT],
+        "discard" => [WORKER_BLUE],
         "purchase_bonus" => EFFECT_RMV_SUSPICION,
         "passive" => [
             "trigger" => ACTION_GARRISON,
-            "reward" => [EFFECT_TAKE_TAX],
-        ],
-    ],
-
-    11 => [
-        "name" => clienttranslate("Abbot"),
-        "discard" => [WORKER_CLERIC, WORKER_LABOURER],
-        "passive" => [
-            "trigger" => ACTION_ABSOLVE,
-            "reward" => [WORKER_LABOURER],
-        ],
-    ],
-    12 => [
-        "name" => clienttranslate("Abbot"),
-        "discard" => [EFFECT_PRAY],
-        "purchase_bonus" => RESOURCE_PROVISION,
-        "passive" => [
-            "trigger" => ACTION_ABSOLVE,
-            "reward" => [RESOURCE_PROVISION],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Abbot"),
-        "discard" => [EFFECT_RMV_DEBT],
-        "purchase_bonus" => EFFECT_RMV_SUSPICION,
-        "passive" => [
-            "trigger" => ACTION_ABSOLVE,
-            "reward" => [EFFECT_TAKE_TAX],
-        ],
-    ],
-
-    [
-        "name" => clienttranslate("Acolyte"),
-        "discard" => [WORKER_CLERIC],
-        "passive" => [
-            "trigger" => ACTION_COMMISSION,
-            "reward" => [WORKER_LABOURER],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Acolyte"),
-        "discard" => [EFFECT_PRAY],
-        "purchase_bonus" => RESOURCE_COIN,
-        "passive" => [
-            "trigger" => ACTION_COMMISSION,
-            "reward" => [RESOURCE_COIN],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Acolyte"),
-        "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
-        "purchase_bonus" => EFFECT_RMV_SUSPICION,
-        "passive" => [
-            "trigger" => ACTION_COMMISSION,
-            "reward" => [EFFECT_TAKE_TAX],
-        ],
-    ],
-
-    [
-        "name" => clienttranslate("Architect"),
-        "discard" => [WORKER_CRIMINAL],
-        "passive" => [
-            "trigger" => ACTION_DEVELOP,
-            "reward" => [WORKER_LABOURER],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Architect"),
-        "discard" => [WORKER_LABOURER, RESOURCE_PROVISION],
-        "purchase_bonus" => RESOURCE_PROVISION,
-        "passive" => [
-            "trigger" => ACTION_DEVELOP,
-            "reward" => [RESOURCE_PROVISION],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Architect"),
-        "discard" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
-        "purchase_bonus" => EFFECT_RMV_SUSPICION,
-        "passive" => [
-            "trigger" => ACTION_DEVELOP,
-            "reward" => [EFFECT_TAKE_TAX],
-        ],
-    ],
-
-    [
-        "name" => clienttranslate("Conspirator"),
-        "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
-        "passive" => [
-            "trigger" => EVENT_INQUISITION,
-            "reward" => [EFFECT_RMV_SUSPICION],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Conspirator"),
-        "discard" => [WORKER_CRIMINAL],
-        "passive" => [
-            "trigger" => EVENT_INQUISITION,
-            "reward" => [EFFECT_RMV_SUSPICION],
-        ],
-    ],
-
-    //Debt Collector x 3
-    [
-        "name" => clienttranslate("Debt Collector"),
-        "discard" => [WORKER_LABOURER, WORKER_LABOURER],
-        "passive" => [
-            "trigger" => EFFECT_PAY_DEBT,
-            "reward" => [WORKER_LABOURER],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Debt Collector"),
-        "discard" => [EFFECT_RMV_DEBT],
-        "passive" => [
-            "trigger" => EFFECT_PAY_DEBT,
-            "reward" => [WORKER_FIGHTER],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Debt Collector"),
-        "discard" => [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
-        "passive" => [
-            "trigger" => EFFECT_PAY_DEBT,
-            "reward" => [WORKER_SCOUT],
-        ],
-    ],
-
-    //Defender x 3
-    [
-        "name" => clienttranslate("Defender"),
-        "discard" => [ATTR_STRENGTH],
-        "passive" => [
-            "trigger" => ACTION_ATTACK,
-            "reward" => [WORKER_LABOURER],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Defender"),
-        "discard" => [WORKER_LABOURER, RESOURCE_PROVISION],
-        "purchase_bonus" => RESOURCE_PROVISION,
-        "passive" => [
-            "trigger" => ACTION_ATTACK,
-            "reward" => [RESOURCE_PROVISION],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Defender"),
-        "discard" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
-        "purchase_bonus" => EFFECT_RMV_SUSPICION,
-        "passive" => [
-            "trigger" => ACTION_ATTACK,
-            "reward" => [EFFECT_TAKE_TAX],
-        ],
-    ],
-
-    // Gatekeeper x 3
-    [
-        "name" => clienttranslate("Gatekeeper"),
-        "discard" => [WORKER_MERCHANT, WORKER_LABOURER],
-        "passive" => [
-            "trigger" => ACTION_FORTIFY,
-            "reward" => [WORKER_LABOURER],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Gatekeeper"),
-        "discard" => [WORKER_SCOUT],
-        "purchase_bonus" => RESOURCE_COIN,
-        "passive" => [
-            "trigger" => ACTION_FORTIFY,
-            "reward" => [RESOURCE_COIN],
-        ],
-    ],
-    [
-        "name" => clienttranslate("Gatekeeper"),
-        "discard" => [EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
-        "purchase_bonus" => EFFECT_RMV_SUSPICION,
-        "passive" => [
-            "trigger" => ACTION_FORTIFY,
             "reward" => [EFFECT_TAKE_TAX],
         ],
     ],
 ];
 
+// OLD
+
 $this->kings_favors_material = [
+    // ROW 1
     [
-        "worker_cost" => WORKER_CRIMINAL,
-        "reward" => [WORKER_LABOURER, WORKER_LABOURER, WORKER_LABOURER],
+        "worker_cost" => WORKER_GREEN,
+        "effect" => EFFECT_FREE_RECRUIT,
     ],
     [
-        "worker_cost" => WORKER_SCOUT,
-        "reward" => EFFECT_FREE_RECRUIT,
-    ],
-    [
-        "worker_cost" => WORKER_CRIMINAL,
-        "reward" => [
-            "choices" => [ATTR_FAITH],
-            [ATTR_INFLUENCE],
-            [ATTR_STRENGTH],
-        ],
-        "type" => "choice",
-    ],
-    [
-        "worker_cost" => WORKER_FIGHTER,
-        "reward" => [
-            "choices" => [EFFECT_PAY_DEBT],
-            [EFFECT_RMV_SUSPICION, EFFECT_RMV_SUSPICION],
-        ],
-        "resource_cost" => [
-            "value" => -1,
-            "resource" => RESOURCE_COIN,
-        ],
-        "type" => "choice",
-    ],
-    [
-        "worker_cost" => WORKER_CLERIC,
-        "reward" => [EFFECT_RMV_SUSPICION, EFFECT_TAKE_TAX, EFFECT_TAKE_TAX],
+        "worker_cost" => WORKER_BLACK,
+        "effect" => "rmvsus_2tax"
     ],
     [
         "worker_cost" => COST_ANY_WORKER,
-        "reward" => [WORKER_CRIMINAL, WORKER_CRIMINAL],
+        "effect" => "2_purple"
     ],
     [
-        "worker_cost" => COST_ANY_WORKER,
-        "reward" => [RESOURCE_PROVISION, RESOURCE_PROVISION, EFFECT_TAKE_TAX],
+        "worker_cost" => WORKER_PURPLE,
+        "effect" => "choose_attr",
     ],
     [
-        "worker_cost" => COST_ANY_WORKER,
-        "reward" => [WORKER_SCOUT, WORKER_MERCHANT, WORKER_FIGHTER],
-        "resource_cost" => [
-            "value" => 1,
-            "resource" => RESOURCE_UNPAID_DEBT,
-        ],
+        "worker_cost" => WORKER_RED,
+        "effect" => "pay_coin_for_debt_or_rmv2sus"
     ],
+    // ROW 2
     [
         "worker_cost" => COST_ANY_WORKER,
-        "resource_cost" => [
-            "value" => -1,
-            "resource" => RESOURCE_PROVISION,
-        ],
-        "reward" => [
-            "choices" => [EFFECT_FREE_DEVELOPMENT],
-            [WORKER_FIGHTER, WORKER_CLERIC],
-        ],
-        "type" => "choice",
+        "effect" => "get_debt_for_3_workers"
+    ],
+    [
+        "worker_cost" => WORKER_BLUE,
+        "effect" => "pay_food_for_develop_or_2_workers"
+    ],
+    [
+        "worker_cost" => WORKER_PURPLE,
+        "reward" => "3_white_workers"
+    ],
+
+    [
+        "worker_cost" => COST_ANY_WORKER,
+        "reward" => "2_food_tax"
     ],
     [
         "worker_cost" => COST_ANY_WORKER,
@@ -454,25 +466,32 @@ $this->kings_favors_material = [
 ];
 
 $this->kings_orders_material = [
-  "ABSOLVE", "FORTIFY", "GARRISON", "COMMISION", "ATTACK", "CONVERT"
+    //ROW 1
+    "FORTIFY",
+    "COMMISION",
+    "ABSOLVE",
+    "ATTACK",
+    "CONVERT",
+    // ROW 2
+    "GARRISON",
 ];
 
 $this->os_cards_material = [
     [
         "name" => clienttranslate("Adventurer"),
-        "attack" => [WORKER_LABOURER, WORKER_CLERIC],
+        "attack" => [WORKER_WHITE, WORKER_BLACK],
         "end_game" => "2_commision",
         "suit" => BLUE_SUIT
     ],
     [
         "name" => clienttranslate("Armourer"),
-        "attack" => [WORKER_LABOURER, RESOURCE_PROVISION],
+        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
         "end_game" => "4_strength",
         "suit" => BLUE_SUIT
     ],
     [
         "name" => clienttranslate("Assassin"),
-        "attack" => [WORKER_LABOURER, WORKER_FIGHTER],
+        "attack" => [WORKER_WHITE, WORKER_RED],
         "end_game" => "attacked_yellow",
         "convert_extra_strength" => true,
         "suit" => BLUE_SUIT
@@ -485,31 +504,31 @@ $this->os_cards_material = [
     ],
     [
         "name" => clienttranslate("Guardian"),
-        "attack" => [WORKER_MERCHANT, RESOURCE_PROVISION],
+        "attack" => [WORKER_BLUE, RESOURCE_PROVISION],
         "end_game" => "2_develop",
         "suit" => BLUE_SUIT
     ],
     [
         "name" => clienttranslate("Lookout"),
-        "attack" => [WORKER_MERCHANT],
+        "attack" => [WORKER_BLUE],
         "end_game" => "2_fortify",
         "suit" => BLUE_SUIT
     ],
     [
         "name" => clienttranslate("Marauder"),
-        "attack" => [WORKER_CRIMINAL],
+        "attack" => [WORKER_PURPLE],
         "end_game" => "4_influence",
         "suit" => BLUE_SUIT
     ],
     [
         "name" => clienttranslate("Mercenary"),
-        "attack" => [WORKER_LABOURER, WORKER_LABOURER],
+        "attack" => [WORKER_WHITE, WORKER_WHITE],
         "end_game" => "more_mercenary",
         "suit" => BLUE_SUIT
     ],
     [
         "name" => clienttranslate("Protector"),
-        "attack" => [WORKER_LABOURER, RESOURCE_PROVISION],
+        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
         "end_game" => "paid_debt",
         "suit" => BLUE_SUIT
     ],
@@ -522,7 +541,7 @@ $this->os_cards_material = [
 
     [
         "name" => clienttranslate("Traitor"),
-        "attack" => [WORKER_CRIMINAL],
+        "attack" => [WORKER_PURPLE],
         "end_game" => "unpaid_debt",
         "suit" => BLUE_SUIT
     ],
@@ -534,38 +553,38 @@ $this->os_cards_material = [
     ],
     [
         "name" => clienttranslate("Archer"),
-        "attack" => [WORKER_SCOUT, RESOURCE_PROVISION],
+        "attack" => [WORKER_GREEN, RESOURCE_PROVISION],
         "end_game" => "2_garrison",
         "suit" => GREEN_SUIT
     ],
     [
         "name" => clienttranslate("Armourer"),
-        "attack" => [WORKER_FIGHTER],
+        "attack" => [WORKER_RED],
         "end_game" => "4_strength",
         "suit" => GREEN_SUIT
     ],
     [
         "name" => clienttranslate("Assassin"),
-        "attack" => [WORKER_LABOURER, RESOURCE_PROVISION],
+        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
         "end_game" => "yellow_attacked",
         "convert_extra_strength" => true,
         "suit" => GREEN_SUIT
     ],
     [
         "name" => clienttranslate("Champion"),
-        "attack" => [EFFECT_RMV_SUSPICION, WORKER_MERCHANT],
+        "attack" => [EFFECT_RMV_SUSPICION, WORKER_BLUE],
         "end_game" => "kings_order",
         "suit" => GREEN_SUIT
     ],
     [
         "name" => clienttranslate("Guardian"),
-        "attack" => [WORKER_LABOURER, WORKER_LABOURER],
+        "attack" => [WORKER_WHITE, WORKER_WHITE],
         "end_game" => "2_develop",
         "suit" => GREEN_SUIT
     ],
     [
         "name" => clienttranslate("Hunter"),
-        "attack" => [EFFECT_RMV_SUSPICION, WORKER_FIGHTER],
+        "attack" => [EFFECT_RMV_SUSPICION, WORKER_RED],
         "end_game" => "2_assistant",
         "suit" => GREEN_SUIT
     ],
@@ -578,19 +597,19 @@ $this->os_cards_material = [
     ],
     [
         "name" => clienttranslate("Lookout"),
-        "attack" => [WORKER_LABOURER, WORKER_MERCHANT],
+        "attack" => [WORKER_WHITE, WORKER_BLUE],
         "end_game" => "2_fortify",
         "suit" => GREEN_SUIT
     ],
     [
         "name" => clienttranslate("Mercenary"),
-        "attack" => [EFFECT_RMV_SUSPICION, WORKER_LABOURER],
+        "attack" => [EFFECT_RMV_SUSPICION, WORKER_WHITE],
         "end_game" => "more_mercenary",
         "suit" => GREEN_SUIT
     ],
     [
         "name" => clienttranslate("Thief"),
-        "attack" => [WORKER_CRIMINAL],
+        "attack" => [WORKER_PURPLE],
         "end_game" => "suspicion",
         "suit" => GREEN_SUIT
     ],
@@ -608,7 +627,7 @@ $this->os_cards_material = [
     ],
     [
         "name" => clienttranslate("Adventurer"),
-        "attack" => [WORKER_LABOURER, WORKER_SCOUT],
+        "attack" => [WORKER_WHITE, WORKER_GREEN],
         "end_game" => "2_commision",
         "suit" => YELLOW_SUIT
     ],
@@ -620,14 +639,14 @@ $this->os_cards_material = [
     ],
     [
         "name" => clienttranslate("Barbarian"),
-        "attack" => [WORKER_LABOURER, WORKER_SCOUT],
+        "attack" => [WORKER_WHITE, WORKER_GREEN],
         "conver_extra_strength" => true,
         "end_game" => "attacked_green",
         "suit" => YELLOW_SUIT
     ],
     [
         "name" => clienttranslate("Champion"),
-        "attack" => [EFFECT_RMV_SUSPICION, WORKER_LABOURER],
+        "attack" => [EFFECT_RMV_SUSPICION, WORKER_WHITE],
         "end_game" => "kings_favor",
         "suit" => YELLOW_SUIT
     ],
@@ -652,7 +671,7 @@ $this->os_cards_material = [
     ],
     [
         "name" => clienttranslate("Mercenary"),
-        "attack" => [WORKER_LABOURER, RESOURCE_PROVISION],
+        "attack" => [WORKER_WHITE, RESOURCE_PROVISION],
         "end_game" => "more_mercenary",
         "suit" => YELLOW_SUIT
     ],
@@ -664,29 +683,44 @@ $this->os_cards_material = [
     ],
     [
         "name" => clienttranslate("Protector"),
-        "attack" => [WORKER_LABOURER, WORKER_LABOURER],
+        "attack" => [WORKER_WHITE, WORKER_WHITE],
         "end_game" => "paid_debt",
         "suit" => YELLOW_SUIT
     ],
     [
         "name" => clienttranslate("Vigilante"),
-        "attack" => [EFFECT_RMV_DEBT, WORKER_CLERIC],
+        "attack" => [EFFECT_RMV_DEBT, WORKER_BLACK],
         "end_game" => "2_absolve",
         "suit" => YELLOW_SUIT
     ],
     [
         "name" => clienttranslate("Warrior"),
-        "attack" => [WORKER_CLERIC],
+        "attack" => [WORKER_BLACK],
         "end_game" => "4_faith",
         "suit" => YELLOW_SUIT
     ],
 ];
 
-$this->board_positions = [
-    "assistant3_debt", "assistant2_debt", "assistant2", "assistant1", "assistant0",
-    "kings_order1", "kings_order2", "kings_order3",
-    "kings_favor3", "kings_favor4", "kings_order5" , "kings_order6" ,  "kings_order7",
-    "ousider0", "outsider2", "outisder4", "outisder6", "outsider8", "outsider10",
+$this->card_positions = [
+    "assistant3_debt",
+    "assistant2_debt",
+    "assistant2",
+    "assistant1",
+    "assistant0",
+    "kings_order1",
+    "kings_order2",
+    "kings_order3",
+    "kings_favor3",
+    "kings_favor4",
+    "kings_order5",
+    "kings_order6",
+    "kings_order7",
+    "ousider0",
+    "outsider2",
+    "outisder4",
+    "outisder6",
+    "outsider8",
+    "outsider10",
 ];
 
 $this->board_positions_material = [
@@ -899,33 +933,33 @@ $this->board_positions_material = [
 ];
 
 $this->tavern_cards_material = [
-    [WORKER_MERCHANT, WORKER_MERCHANT, WORKER_SCOUT, WORKER_CRIMINAL],
-    [WORKER_MERCHANT, WORKER_MERCHANT, WORKER_SCOUT, WORKER_LABOURER],
-    [WORKER_FIGHTER, WORKER_MERCHANT, WORKER_SCOUT, WORKER_CRIMINAL],
-    [WORKER_CLERIC, WORKER_SCOUT, WORKER_LABOURER, WORKER_LABOURER],
-    [WORKER_FIGHTER, WORKER_FIGHTER, WORKER_MERCHANT, WORKER_CRIMINAL],
-    [WORKER_FIGHTER, WORKER_FIGHTER, WORKER_CRIMINAL, WORKER_LABOURER],
-    [WORKER_FIGHTER, WORKER_FIGHTER, WORKER_SCOUT, WORKER_CRIMINAL],
+    [WORKER_BLUE, WORKER_BLUE, WORKER_GREEN, WORKER_PURPLE],
+    [WORKER_BLUE, WORKER_BLUE, WORKER_GREEN, WORKER_WHITE],
+    [WORKER_RED, WORKER_BLUE, WORKER_GREEN, WORKER_PURPLE],
+    [WORKER_BLACK, WORKER_GREEN, WORKER_WHITE, WORKER_WHITE],
+    [WORKER_RED, WORKER_RED, WORKER_BLUE, WORKER_PURPLE],
+    [WORKER_RED, WORKER_RED, WORKER_PURPLE, WORKER_WHITE],
+    [WORKER_RED, WORKER_RED, WORKER_GREEN, WORKER_PURPLE],
 
-    [WORKER_CLERIC, WORKER_CLERIC, WORKER_MERCHANT, WORKER_LABOURER],
-    [WORKER_CLERIC, WORKER_CLERIC, WORKER_MERCHANT, WORKER_SCOUT],
-    [WORKER_CLERIC, WORKER_CLERIC, WORKER_FIGHTER, WORKER_SCOUT],
-    [WORKER_FIGHTER, WORKER_CRIMINAL, WORKER_CRIMINAL, WORKER_LABOURER],
-    [WORKER_FIGHTER, WORKER_SCOUT, WORKER_CRIMINAL, WORKER_CRIMINAL],
-    [WORKER_FIGHTER, WORKER_MERCHANT, WORKER_CRIMINAL, WORKER_CRIMINAL],
-    [WORKER_CLERIC, WORKER_LABOURER, WORKER_CRIMINAL, WORKER_LABOURER],
+    [WORKER_BLACK, WORKER_BLACK, WORKER_BLUE, WORKER_WHITE],
+    [WORKER_BLACK, WORKER_BLACK, WORKER_BLUE, WORKER_GREEN],
+    [WORKER_BLACK, WORKER_BLACK, WORKER_RED, WORKER_GREEN],
+    [WORKER_RED, WORKER_PURPLE, WORKER_PURPLE, WORKER_WHITE],
+    [WORKER_RED, WORKER_GREEN, WORKER_PURPLE, WORKER_PURPLE],
+    [WORKER_RED, WORKER_BLUE, WORKER_PURPLE, WORKER_PURPLE],
+    [WORKER_BLACK, WORKER_WHITE, WORKER_PURPLE, WORKER_WHITE],
 
-    [WORKER_FIGHTER, WORKER_FIGHTER, WORKER_LABOURER, WORKER_LABOURER],
-    [WORKER_FIGHTER, WORKER_LABOURER, WORKER_CRIMINAL, WORKER_LABOURER],
-    [WORKER_CLERIC, WORKER_CLERIC, WORKER_MERCHANT, WORKER_MERCHANT],
-    [WORKER_SCOUT, WORKER_SCOUT, WORKER_SCOUT, WORKER_LABOURER],
-    [WORKER_CLERIC, WORKER_CLERIC, WORKER_CLERIC, WORKER_FIGHTER],
-    [WORKER_CLERIC, WORKER_CLERIC, WORKER_FIGHTER, WORKER_MERCHANT],
-    [WORKER_MERCHANT, WORKER_MERCHANT, WORKER_LABOURER, WORKER_LABOURER],
+    [WORKER_RED, WORKER_RED, WORKER_WHITE, WORKER_WHITE],
+    [WORKER_RED, WORKER_WHITE, WORKER_PURPLE, WORKER_WHITE],
+    [WORKER_BLACK, WORKER_BLACK, WORKER_BLUE, WORKER_BLUE],
+    [WORKER_GREEN, WORKER_GREEN, WORKER_GREEN, WORKER_WHITE],
+    [WORKER_BLACK, WORKER_BLACK, WORKER_BLACK, WORKER_RED],
+    [WORKER_BLACK, WORKER_BLACK, WORKER_RED, WORKER_BLUE],
+    [WORKER_BLUE, WORKER_BLUE, WORKER_WHITE, WORKER_WHITE],
 
-    [WORKER_CLERIC, WORKER_SCOUT, WORKER_SCOUT, WORKER_CRIMINAL],
-    [WORKER_MERCHANT, WORKER_MERCHANT, WORKER_SCOUT, WORKER_SCOUT],
-    [WORKER_FIGHTER, WORKER_MERCHANT, WORKER_SCOUT, WORKER_SCOUT],
+    [WORKER_BLACK, WORKER_GREEN, WORKER_GREEN, WORKER_PURPLE],
+    [WORKER_BLUE, WORKER_BLUE, WORKER_GREEN, WORKER_GREEN],
+    [WORKER_RED, WORKER_BLUE, WORKER_GREEN, WORKER_GREEN],
 
 ];
 
@@ -936,9 +970,3 @@ $this->suspicion_cards_material = [
 ];
 
 $this->paladins_cards_material = [];
-
-$this->fortification_cards_material = [];
-
-$this->suspicion_cards_material = [
-    "2_coin", "1_coin", "0_coin"
-];
