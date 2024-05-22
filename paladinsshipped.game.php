@@ -21,7 +21,7 @@
 require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
 
 
-class paladinsshipped extends Table
+class PaladinsShipped extends Table
 {
     public function __construct()
     {
