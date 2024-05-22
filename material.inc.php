@@ -83,10 +83,8 @@ if (!defined("ATTR_FAITH")) {
     define("GREEN_SUIT", "GREEN_SUIT");
 }
 
-//NEW
-
 // Always give 1 strength
-$this->fortification_cards_material = [
+$this->wall_cards_material = [
     ["gain" => [ATTR_STRENGTH]],
     ["gain" => [ATTR_STRENGTH]],
     ["gain" => [WORKER_WHITE], "vp" => 1],
@@ -486,7 +484,7 @@ $this->os_cards_material = [
         "end_game" => "attacked_blue",
         "suit" => YELLOW_SUIT,
     ],
-    
+
     // ROW 2
     [
         "name" => clienttranslate("Guardian"),
@@ -564,7 +562,7 @@ $this->os_cards_material = [
         "end_game" => "4_influence",
         "suit" => YELLOW_SUIT,
     ],
-    
+
     // ROW 4
 
     // ROW 5
@@ -939,6 +937,352 @@ $this->tavern_cards_material = [
     [WORKER_RED, WORKER_BLUE, WORKER_GREEN, WORKER_GREEN],
 ];
 
-$this->suspicion_cards_material = ["2tax", "1tax", "0tax"];
+// qty of each
+$this->suspicion_cards_material = [6, 8, 10];
 
-$this->paladins_cards_material = [];
+# SETS: castle, barracks, fountain, tower
+$this->paladins_cards_material = [
+    // ROW 1
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_BLUE, WORKER_GREEN],
+        "action" => ACTION_CONVERT,
+        "name" => clienttranslate("Gérier"),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 4],
+        "workers" => [WORKER_BLUE, WORKER_WHITE],
+        "name" => clienttranslate("Gérin"),
+        "action" => ACTION_CONSPIRE,
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_WHITE, WORKER_GREEN],
+        "action" => ACTION_DEVELOP,
+        "name" => clienttranslate('Samson'),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_FAITH => 4],
+        "workers" => [WORKER_BLACK, WORKER_BLACK],
+        "action" => ACTION_PRAY,
+        "name" => clienttranslate('Oliver'),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 4],
+        "workers" => [WORKER_RED, WORKER_WHITE],
+        "action" => ACTION_RECRUIT,
+        "name" => clienttranslate('Roland'),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH => 3],
+        "workers" => [WORKER_BLUE, WORKER_RED],
+        "action" => ACTION_GARRISON,
+        "name" => clienttranslate("Bérengier"),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_RED],
+        "action" => ACTION_FORTIFY,
+        "name" => clienttranslate("Anséis"),
+        "set" => "castle",
+    ],
+    // ROW 2
+    [
+        "stats" => [ATTR_STRENGTH => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_GREEN],
+        "action" => ACTION_COMMISSION,
+        "name" => clienttranslate("Ivon"),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_RED, WORKER_GREEN],
+        "action" => ACTION_ATTACK,
+        "name" => clienttranslate("Engelier"),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH => 2],
+        "workers" => [WORKER_GREEN, WORKER_GREEN],
+        "action" => ACTION_HUNT,
+        "name" => clienttranslate('Girard'),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_GREEN],
+        "action" => ACTION_COMMISSION,
+        "name" => clienttranslate("Ivon"),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_RED],
+        "action" => ACTION_FORTIFY,
+        "name" => clienttranslate("Anséis"),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH => 1],
+        "workers" => [WORKER_BLACK, WORKER_BLUE],
+        "action" => ACTION_ABSOLVE,
+        "name" => clienttranslate("Ivoire"),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 4],
+        "workers" => [WORKER_RED, WORKER_WHITE],
+        "action" => ACTION_RECRUIT,
+        "name" => clienttranslate('Roland'),
+        "set" => "barracks",
+    ],
+    // ROW 3
+    [
+        "stats" => [ATTR_FAITH => 4],
+        "workers" => [WORKER_BLACK, WORKER_BLACK],
+        "action" => ACTION_PRAY,
+        "name" => clienttranslate('Oliver'),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH => 1],
+        "workers" => [WORKER_BLACK, WORKER_BLUE],
+        "action" => ACTION_ABSOLVE,
+        "name" => clienttranslate("Ivoire"),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_GREEN],
+        "action" => ACTION_COMMISSION,
+        "name" => clienttranslate("Ivon"),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_FAITH => 4],
+        "workers" => [WORKER_BLACK, WORKER_BLACK],
+        "action" => ACTION_PRAY,
+        "name" => clienttranslate('Oliver'),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 4],
+        "workers" => [WORKER_RED, WORKER_WHITE],
+        "action" => ACTION_RECRUIT,
+        "name" => clienttranslate('Roland'),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_FAITH => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_BLUE, WORKER_BLUE],
+        "action" => ACTION_TRADE,
+        "name" => clienttranslate('Otton'),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_WHITE, WORKER_GREEN],
+        "action" => ACTION_DEVELOP,
+        "name" => clienttranslate('Samson'),
+        "set" => "fountain",
+    ],
+    // ROW 4
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_BLUE, WORKER_GREEN],
+        "action" => ACTION_CONVERT,
+        "name" => clienttranslate("Gérier"),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_RED, WORKER_GREEN],
+        "action" => ACTION_ATTACK,
+        "name" => clienttranslate("Engelier"),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_RED],
+        "action" => ACTION_FORTIFY,
+        "name" => clienttranslate("Anséis"),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH => 3],
+        "workers" => [WORKER_BLUE, WORKER_RED],
+        "action" => ACTION_GARRISON,
+        "name" => clienttranslate("Bérengier"),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 4],
+        "workers" => [WORKER_BLUE, WORKER_WHITE],
+        "name" => clienttranslate("Gérin"),
+        "action" => ACTION_CONSPIRE,
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH => 2],
+        "workers" => [WORKER_GREEN, WORKER_GREEN],
+        "action" => ACTION_HUNT,
+        "name" => clienttranslate('Girard'),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH => 1],
+        "workers" => [WORKER_BLACK, WORKER_BLUE],
+        "action" => ACTION_ABSOLVE,
+        "name" => clienttranslate("Ivoire"),
+        "set" => "tower",
+    ],
+    // ROW 5
+    [
+        "stats" => [ATTR_STRENGTH => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_GREEN],
+        "action" => ACTION_COMMISSION,
+        "name" => clienttranslate("Ivon"),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH => 2],
+        "workers" => [WORKER_GREEN, WORKER_GREEN],
+        "action" => ACTION_HUNT,
+        "name" => clienttranslate('Girard'),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_FAITH => 4],
+        "workers" => [WORKER_BLACK, WORKER_BLACK],
+        "action" => ACTION_PRAY,
+        "name" => clienttranslate('Oliver'),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_FAITH => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_BLUE, WORKER_BLUE],
+        "action" => ACTION_TRADE,
+        "name" => clienttranslate('Otton'),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_BLUE, WORKER_GREEN],
+        "action" => ACTION_CONVERT,
+        "name" => clienttranslate("Gérier"),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH => 3],
+        "workers" => [WORKER_BLUE, WORKER_RED],
+        "action" => ACTION_GARRISON,
+        "name" => clienttranslate("Bérengier"),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_BLUE, WORKER_GREEN],
+        "action" => ACTION_CONVERT,
+        "name" => clienttranslate("Gérier"),
+        "set" => "fountain",
+    ],
+    // ROW 6
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_WHITE, WORKER_GREEN],
+        "action" => ACTION_DEVELOP,
+        "name" => clienttranslate('Samson'),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 3, ATTR_STRENGTH => 1],
+        "workers" => [WORKER_BLACK, WORKER_BLUE],
+        "action" => ACTION_ABSOLVE,
+        "name" => clienttranslate("Ivoire"),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_RED, WORKER_GREEN],
+        "action" => ACTION_ATTACK,
+        "name" => clienttranslate("Engelier"),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_STRENGTH => 3],
+        "workers" => [WORKER_BLUE, WORKER_RED],
+        "action" => ACTION_GARRISON,
+        "name" => clienttranslate("Bérengier"),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 3, ATTR_FAITH => 1],
+        "workers" => [WORKER_RED, WORKER_GREEN],
+        "action" => ACTION_ATTACK,
+        "name" => clienttranslate("Engelier"),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_FAITH => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_BLUE, WORKER_BLUE],
+        "action" => ACTION_TRADE,
+        "name" => clienttranslate('Otton'),
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_STRENGTH => 4],
+        "workers" => [WORKER_RED, WORKER_WHITE],
+        "action" => ACTION_RECRUIT,
+        "name" => clienttranslate('Roland'),
+        "set" => "tower",
+    ],
+    // ROW 7
+    [
+        "stats" => [ATTR_INFLUENCE => 4],
+        "workers" => [WORKER_BLUE, WORKER_WHITE],
+        "name" => clienttranslate("Gérin"),
+        "action" => ACTION_CONSPIRE,
+        "set" => "barracks",
+    ],
+    [
+        "stats" => [ATTR_FAITH => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_BLUE, WORKER_BLUE],
+        "action" => ACTION_TRADE,
+        "name" => clienttranslate('Otton'),
+        "set" => "castle",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_FAITH => 2],
+        "workers" => [WORKER_GREEN, WORKER_GREEN],
+        "action" => ACTION_HUNT,
+        "name" => clienttranslate('Girard'),
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 2, ATTR_STRENGTH => 2],
+        "workers" => [WORKER_WHITE, WORKER_GREEN],
+        "action" => ACTION_DEVELOP,
+        "name" => clienttranslate('Samson'),
+        "set" => "tower",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 4],
+        "workers" => [WORKER_BLUE, WORKER_WHITE],
+        "name" => clienttranslate("Gérin"),
+        "action" => ACTION_CONSPIRE,
+        "set" => "fountain",
+    ],
+    [
+        "stats" => [ATTR_INFLUENCE => 1, ATTR_FAITH => 3],
+        "workers" => [WORKER_BLACK, WORKER_RED],
+        "action" => ACTION_FORTIFY,
+        "name" => clienttranslate("Anséis"),
+        "set" => "fountain",
+    ],
+];
