@@ -85,6 +85,8 @@ ALTER TABLE `player` ADD `spaces_absolve` varchar(32);
 ALTER TABLE `player` ADD `spaces_attack` varchar(32);
 ALTER TABLE `player` ADD `spaces_convert` varchar(32);
 
+ALTER TABLE `player` ADD `paladin_board` varchar(16);
+
 -- Other player stuff
 -- suspicion: deck of cards: location: hand
 -- townsfolk: deck of cards, location: hand

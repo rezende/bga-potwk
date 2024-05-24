@@ -677,28 +677,6 @@ $this->os_cards_material = [
     ],
 ];
 
-$this->card_board_locations = [
-    "assistant3_debt",
-    "assistant2_debt",
-    "assistant2",
-    "assistant1",
-    "assistant0",
-    "kings_order1",
-    "kings_order2",
-    "kings_order3",
-    "kings_favor3",
-    "kings_favor4",
-    "kings_order5",
-    "kings_order6",
-    "kings_order7",
-    "outsider_0",
-    "outsider_2",
-    "outisder_4",
-    "outisder_6",
-    "outsider_8",
-    "outsider_10",
-];
-
 $this->board_positions_material = [
     [
         "column" => 0,
