@@ -242,13 +242,13 @@ class PaladinsShipped extends Table
         $this->deck->createCards($kingsfavour_cards, 'kingsfavour_deck');
         $this->deck->shuffle('kingsfavour_deck');
 
-        $paladin_cards = array();
         foreach($paladin_sets as $paladin_set) {
             $my_set = array_filter(
                 $this->paladins_cards_material,
                 function($card_type) use ($paladin_set) {return $card_type['set'] == $paladin_set;}
             );
             foreach($my_set as $paladin_card_id => $paladin_card_type) {
+                $paladin_cards = [];
                 $paladin_cards[] = ['type' => CARD_TYPE_PALADIN, 'type_arg' => $paladin_card_id, 'nbr' => 1];
                 $this->deck->createCards($paladin_cards, "paladin_{$paladin_set}_deck");
                 $this->deck->shuffle("paladin_{$paladin_set}_deck");
