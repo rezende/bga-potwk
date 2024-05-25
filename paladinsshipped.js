@@ -96,8 +96,8 @@ function (dojo, declare) {
             
             // TODO: Set up your game interface here, according to "gamedatas"
             console.log(gamedatas);
-            this.tf_display = gamedatas.tf_display;
-            this.os_display = gamedatas.os_display;
+            this.tf_display = gamedatas.townsfolk_display;
+            this.os_display = gamedatas.outsider_display;
             
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();

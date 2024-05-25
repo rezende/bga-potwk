@@ -145,7 +145,7 @@ class PaladinsShipped extends Table
         // $result['pieces'] = self::getCollectionFromDB($piece_sql);
 
         $result['outsider_display'] = $this->deck->getCardsInLocation("outsider_display");
-        $result['tf_display'] = $this->deck->getCardsInLocation("tf_display");
+        $result['townsfolk_display'] = $this->deck->getCardsInLocation("townsfolk_display");
 
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
 
@@ -235,12 +235,12 @@ class PaladinsShipped extends Table
         $this->deck->createCards($kingsorder_cards, 'kingsorder_deck');
         $this->deck->shuffle('kingsorder_deck');
 
-        $kingsfavor_cards = array();
-        foreach ($this->kingsfavor_cards_material as $kingsfavor_card_id => $kingsfavor_card_type) {
-            $kingsfavor_cards[] = array('type' => CARD_TYPE_KINGS_FAVOUR, 'type_arg' => $kingsfavor_card_id, 'nbr' => 1);
+        $kingsfavour_cards = array();
+        foreach ($this->kingsfavour_cards_material as $kingsfavour_card_id => $kingsfavour_card_type) {
+            $kingsfavour_cards[] = array('type' => CARD_TYPE_KINGS_FAVOUR, 'type_arg' => $kingsfavour_card_id, 'nbr' => 1);
         }
-        $this->deck->createCards($kingsfavor_cards, 'kingsfavor_deck');
-        $this->deck->shuffle('kingsfavor_deck');
+        $this->deck->createCards($kingsfavour_cards, 'kingsfavour_deck');
+        $this->deck->shuffle('kingsfavour_deck');
 
         $paladin_cards = array();
         foreach($paladin_sets as $paladin_set) {
@@ -303,7 +303,7 @@ class PaladinsShipped extends Table
         $this->deck->pickCardForLocation('kingsorder_deck', 'kingsorder_display');
     }
 
-    public function revealKingsFavor($round) {
+    public function revealKingsFavour($round) {
         $num_revealed = sizeof($this->getBoardCardsByType(CARD_TYPE_KINGS_FAVOUR));
         if ($round < 3) {
             //TODO: error
@@ -421,7 +421,7 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('done');
     }
 
-    public function stChoosePaladins () {
+    public function stGameChoosePaladins () {
 
     }
     //////////////////////////////////////////////////////////////////////////////

@@ -379,7 +379,7 @@ $this->tf_cards_material = [
     ],
 ];
 
-$this->kings_favors_material = [
+$this->kingsfavour_cards_material = [
     // ROW 1
     [
         "worker_cost" => WORKER_GREEN,
@@ -425,7 +425,7 @@ $this->kings_favors_material = [
     ],
 ];
 
-$this->kings_orders_material = [
+$this->kingsorder_cards_material = [
     //ROW 1
     "FORTIFY",
     "CONVERT",
