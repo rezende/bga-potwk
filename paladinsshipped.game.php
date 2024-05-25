@@ -354,7 +354,7 @@ class PaladinsShipped extends Table
     public function pickPaladins($id_bottom, $id_chosen, $id_top) {
         self::checkAction('pickPaladins');
         $player_id = self::getCurrentPlayerId();
-
+        // TODO: WIP
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -406,18 +406,18 @@ class PaladinsShipped extends Table
             $this->gamestate->nextState('calculateScores');
             return; //bye
         }
-        if ($new_round < 4) {
+        if ($new_round <= 3) {
             $this->revealKingsOrder($new_round);
         }
-        if ($new_round > 2) {
-            $this->revealKingsFavor($new_round);
+        if ($new_round >= 3) {
+            $this->revealKingsFavour($new_round);
         }
-        if ($new_round > 1) {
+        if ($new_round >= 2) {
+            $this->setNextFirstPlayer();
             $this->refillDisplays();
         }
-        self::incGameStateValue('current_round', 1);
+        self::setGameStateValue('current_round', $new_round);
         $this->revealTaverns();
-        $this->setNextFirstPlayer();
         $this->gamestate->nextState('done');
     }
 
