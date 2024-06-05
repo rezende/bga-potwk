@@ -96,8 +96,8 @@ function (dojo, declare) {
             
             // TODO: Set up your game interface here, according to "gamedatas"
             console.log(gamedatas);
-            this.tf_display = gamedatas.tf_display;
-            this.os_display = gamedatas.os_display;
+            this.townsfolk_display = gamedatas.townsfolk_display;
+            this.outsider_display = gamedatas.outsider_display;
             
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -193,7 +193,7 @@ function (dojo, declare) {
                     break;
 */
                     case 'hireInitialTownsfolk':
-                        for (const [key, value] of Object.entries(this.tf_display)) {
+                        for (const [key, value] of Object.entries(this.townsfolk_display)) {
                             townsfolk_id = value.id; 
                             this.addActionButton(
                                 'btnHire_' + townsfolk_id,
