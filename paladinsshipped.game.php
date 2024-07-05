@@ -179,7 +179,18 @@ class PaladinsShipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
-    public function revealKingsOrder() {
+    public function revealTavernCards() {
+        $this->deck->pickCardsForLocation(
+            self::getPlayersNumber()+1,'tavern_deck', 'tavern_display'
+        );
+    }
+
+    public function revealKingsOrder($round) {
+        $this->deck->pickCardForLocation('kings_order_deck', 'kings_order_display', $round);
+    }
+
+    public function revealKingsFavor($round) {
+        $this->deck->pickCardForLocation('kings_favor_deck', 'kings_favor_display', $round);
     }
 
     public function setNextFirstPlayer()
@@ -233,19 +244,19 @@ class PaladinsShipped extends Table
         $this->deck->createCards($suspicion_cards, 'suspicion_deck');
         $this->deck->shuffle('suspicion_deck');
 
-        $kingsorder_cards = array();
-        foreach ($this->kingsorder_cards_material as $kingsorder_card_id => $kingsorder_card_type) {
-            $kingsorder_cards[] = array('type' => CARD_TYPE_KINGS_ORDER, 'type_arg' => $kingsorder_card_id, 'nbr' => 1);
+        $kings_order = array();
+        foreach($this->kings_orders_material as $ko_id => $ko_type) {
+            $kings_order[] = array('type' => 'kings_order', 'type_arg' => $ko_id, 'nbr' => 1);
         }
-        $this->deck->createCards($kingsorder_cards, 'kingsorder_deck');
-        $this->deck->shuffle('kingsorder_deck');
+        $this->deck->createCards($kings_order, 'kings_order_deck');
+        $this->deck->shuffle('kings_order_deck');
 
-        $kingsfavour_cards = array();
-        foreach ($this->kingsfavour_cards_material as $kingsfavour_card_id => $kingsfavour_card_type) {
-            $kingsfavour_cards[] = array('type' => CARD_TYPE_KINGS_FAVOUR, 'type_arg' => $kingsfavour_card_id, 'nbr' => 1);
+        $kings_favor = array();
+        foreach($this->kings_favors_material as $kf_id => $kf_type) {
+            $kings_favor[] = array('type' => 'kings_favor', 'type_arg' => $kf_id, 'nbr' => 1);
         }
-        $this->deck->createCards($kingsfavour_cards, 'kingsfavour_deck');
-        $this->deck->shuffle('kingsfavour_deck');
+        $this->deck->createCards($kings_favor, 'kings_favor_deck');
+        $this->deck->shuffle('kings_favor_deck');
 
         foreach($paladin_sets as $paladin_set) {
             $my_set = array_filter(
@@ -259,6 +270,7 @@ class PaladinsShipped extends Table
                 $this->deck->shuffle("paladin_{$paladin_set}_deck");
             }
         }
+
     }
 
     // public function placeNewOutsidersOutOnBoard($num_of, $trigger_by = "")
