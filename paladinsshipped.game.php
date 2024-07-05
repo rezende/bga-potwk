@@ -179,6 +179,9 @@ class PaladinsShipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
+    public function revealKingsOrder() {
+    }
+
     public function setNextFirstPlayer()
     {
         $this->activeNextPlayer();
