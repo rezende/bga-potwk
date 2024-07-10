@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS `card` (
   `card_type` varchar(32) NOT NULL,
   `card_type_arg` int(11) NOT NULL,
   `card_location` varchar(32) NOT NULL,
+  `card_location` varchar(17) NOT NULL,
   `card_location_arg` int(11) NOT NULL,
   PRIMARY KEY (`card_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
@@ -40,8 +41,18 @@ CREATE TABLE IF NOT EXISTS `piece` (
     PRIMARY KEY (`piece_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
--- Example 2: add a custom field to the standard "player" table
--- ALTER TABLE `player` ADD `player_my_custom_field` INT UNSIGNED NOT NULL DEFAULT '0';
+
+
+-- Other player stuff
+-- suspicion: deck of cards: location: hand
+-- townsfolk: deck of cards, location: hand
+-- fortify: deck of cards, location: hand
+-- attack: deck of cards, location: attack_pile
+-- convert: deck of cards, location: hand
+-- paladins: deck of cards, location: hand, deck
+-- absolve bonus pieces
+-- workers pieces with locations
+
 ALTER TABLE `player` ADD `coin` tinyint(10) UNSIGNED NOT NULL DEFAULT '3' COMMENT 'Amount of coins in players possession';
 ALTER TABLE `player` ADD `provision` tinyint(10) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'Amount of provisions in players possession';
 ALTER TABLE `player` ADD `white_worker` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of labourers in player possession';
@@ -94,3 +105,5 @@ ALTER TABLE `player` ADD `paladin_board` varchar(16);
 -- attack: deck of cards, location: attack_pile
 -- convert: deck of cards, location: hand
 -- paladins: deck of cards, location: hand, deck
+ALTER TABLE `player` ADD `commission_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of commissions done. Max 7';
+ALTER TABLE `player` ADD `garrison_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of garrisons done. Max 7';

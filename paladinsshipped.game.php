@@ -138,7 +138,9 @@ class PaladinsShipped extends Table
         $player_sql = "SELECT player_id id, player_score score, white_worker,
                         green_worker, red_worker, blue_worker,
                         black_worker, purple_worker, coin, provision,
-                        unpaid_debt, paid_debt, parchment FROM player ";
+                        unpaid_debt, paid_debt, parchment, develop_qty,
+                        commission_qty, garrison_qty, strength, faith,
+                        influence FROM player";
         $result['players'] = self::getCollectionFromDb($player_sql);
 
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
