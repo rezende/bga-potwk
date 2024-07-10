@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS `card` (
   `card_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `card_type` varchar(32) NOT NULL,
   `card_type_arg` int(11) NOT NULL,
+  `card_location` varchar(32) NOT NULL,
   `card_location` varchar(17) NOT NULL,
   `card_location_arg` int(11) NOT NULL,
   PRIMARY KEY (`card_id`)
@@ -67,5 +68,42 @@ ALTER TABLE `player` ADD `faith` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMME
 ALTER TABLE `player` ADD `influence` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Current influence';
 ALTER TABLE `player` ADD `parchment` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Is first player of the current round';
 ALTER TABLE `player` ADD `develop_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of developments done. Max 8';
+ALTER TABLE `player` ADD `commission_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of commissions done. Max 7.';
+ALTER TABLE `player` ADD `garrison_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of garrisons done. Max 7.';
+
+ALTER TABLE `player` ADD `abs_free_hire` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "free hire" bonus taken. Max 1';
+ALTER TABLE `player` ADD `abs_labourer` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "labourer" bonus taken. Max 1';
+ALTER TABLE `player` ADD `abs_pray` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "pray" bonus taken. Max 2';
+ALTER TABLE `player` ADD `abs_faith` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "faith" bonus taken. Max 1';
+ALTER TABLE `player` ADD `abs_2_provision` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "2 provisions" bonus taken. Max 1';
+ALTER TABLE `player` ADD `abs_rmv_suspicion` tinyint(10) UNSIGNED NOT NULL DEFAULT '0'; -- 1or2
+ALTER TABLE `player` ADD `abs_pay_debt` tinyint(10) UNSIGNED NOT NULL DEFAULT '0'; -- 1or2
+
+-- Is the space occupied by workers
+
+ALTER TABLE `player` ADD `spaces_develop` varchar(32); -- Example: green,green
+ALTER TABLE `player` ADD `spaces_hunt` varchar(32);
+ALTER TABLE `player` ADD `spaces_trade` varchar(32);
+ALTER TABLE `player` ADD `spaces_recruit` varchar(32);
+ALTER TABLE `player` ADD `spaces_pray` varchar(32);
+ALTER TABLE `player` ADD `spaces_conspire` varchar(32);
+
+-- Spaces that can be developed
+ALTER TABLE `player` ADD `spaces_commission` varchar(32); -- Possible values: null, purple or dev
+ALTER TABLE `player` ADD `spaces_fortify` varchar(32);
+ALTER TABLE `player` ADD `spaces_garrison` varchar(32);
+ALTER TABLE `player` ADD `spaces_absolve` varchar(32);
+ALTER TABLE `player` ADD `spaces_attack` varchar(32);
+ALTER TABLE `player` ADD `spaces_convert` varchar(32);
+
+ALTER TABLE `player` ADD `paladin_board` varchar(16);
+
+-- Other player stuff
+-- suspicion: deck of cards: location: hand
+-- townsfolk: deck of cards, location: hand
+-- fortify: deck of cards, location: hand
+-- attack: deck of cards, location: attack_pile
+-- convert: deck of cards, location: hand
+-- paladins: deck of cards, location: hand, deck
 ALTER TABLE `player` ADD `commission_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of commissions done. Max 7';
 ALTER TABLE `player` ADD `garrison_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of garrisons done. Max 7';

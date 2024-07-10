@@ -96,9 +96,13 @@ function (dojo, declare) {
             
             // TODO: Set up your game interface here, according to "gamedatas"
             console.log(gamedatas);
+
+            this.tf_display = gamedatas.townsfolk_display;
+            this.os_display = gamedatas.outsider_display;
+
             this.townsfolk_display = gamedatas.townsfolk_display;
             this.outsider_display = gamedatas.outsider_display;
-            
+
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
             this.addTooltipToClass('.panel_parchment', _("Parchment, indicates the first player of each round"), "");

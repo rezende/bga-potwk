@@ -65,7 +65,7 @@ $machinestates = array(
         "name" => "prepareTownsfolk",
         "type" => "game",
         "action" => "stGameHireInitialTownsfolk",
-        "transitions" => array( "transHireInitialTownsfolk" => 3, "transStartGame" => 4)
+        "transitions" => array( "transHireInitialTownsfolk" => 3, "transStartGame" => 5)
     ),
 
     3 => array(
@@ -77,33 +77,18 @@ $machinestates = array(
         "transitions" => array( "" => 2)
     ),
 
-    4 => array(
-        "name" => "assistantCleanup",
-        "type" => "game",
-        "action" => "stGameRefreshAssistantsDisplay",
-        "transitions" => array( "" => 6) // only happens before Round 1. No need to setup round
-    ),
-
     5 => array(
         "name" => "newRound",
         "type" => "game",
         "action" => "stGameSetupNewRound",
-        /*
-            increase round number
-            discard cheapest outsider / townsfolk
-            refill display of outsiders
-            refill display of townsfolk
-            assign new first player
-            reveal new king's favor / king's order
-        */
-        "transitions" => array( "paladinChoice" => 6, "calculateScores" => 98)
+        "transitions" => array( "done" => 6, "calculateScores" => 98)
     ),
 
     6 => array(
         "name" => "choosePaladins",
         "description" => clienttranslate("All players need to choose their Paladin for the round"),
         "descriptionmyturn" => clienttranslate('${you} need to choose your Paladin for the round'),
-        "type" => "multiplayeractive",
+        "type" => "multipleactiveplayer",
         "action" => "stChoosePaladins",
         "possibleactions" => ['pickPaladins'],
         "transitions" => array( "allDone" => 7)
