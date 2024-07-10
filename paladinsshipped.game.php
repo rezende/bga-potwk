@@ -171,18 +171,23 @@ class PaladinsShipped extends Table
         In this space, you can put any utility methods useful for your game logic
     */
 
-    public function refillDisplays() {
+    public function refillDisplays()
+    {
         $this->placeNewCardsOnBoard('outsider');
         $this->placeNewCardsOnBoard('townsfolk');
     }
 
-    public function setTavernDisplay() {
+    public function setTavernDisplay()
+    {
         $this->deck->pickCardsForLocation(
-            self::getPlayersNumber()+1,'tavern_deck', 'tavern_display'
+            self::getPlayersNumber() + 1,
+            'tavern_deck',
+            'tavern_display'
         );
     }
 
-    public function revealKingsOrder($round) {
+    public function revealKingsOrder($round)
+    {
         if ($round > 3) {
             //TODO: error
         }
@@ -193,7 +198,8 @@ class PaladinsShipped extends Table
         $this->deck->pickCardForLocation('kings_order_deck', 'kings_order_display', $round);
     }
 
-    public function revealKingsFavour($round) {
+    public function revealKingsFavour($round)
+    {
         if ($round < 3) {
             //TODO: error
         }
@@ -272,11 +278,11 @@ class PaladinsShipped extends Table
         foreach($paladin_sets as $paladin_set) {
             $my_set = array_filter(
                 $this->paladins_cards_material,
-                function($card_type) use ($paladin_set) {return $card_type['set'] == $paladin_set;}
+                function ($card_type) use ($paladin_set) {return $card_type['set'] == $paladin_set;}
             );
             foreach($my_set as $paladin_card_id => $paladin_card_type) {
                 $paladin_cards = [];
-                $paladin_cards[] = ['type' => PALADIN, 'type_arg' => $paladin_card_id, 'nbr' => 1];
+                $paladin_cards[] = ['type' => 'paladin', 'type_arg' => $paladin_card_id, 'nbr' => 1];
                 $this->deck->createCards($paladin_cards, "paladin_{$paladin_set}_deck");
                 $this->deck->shuffle("paladin_{$paladin_set}_deck");
             }
@@ -294,9 +300,15 @@ class PaladinsShipped extends Table
         if ($oldest_card) {
             $this->deck->moveCard($oldest_outsider[0]['id'], 'discard');
         }
-        $nbr = 5;
+        $nbr = "";
+        if ($deck_type == 'townsfolk') {
+            $nbr = 5;
+        }
         if ($deck_type == 'outsider') {
             $nbr = 6;
+        }
+        if (!$nbr) {
+            // error: type not supported
         }
         $this->deck->pickCardsForLocation($nbr - count($display), "{$deck_type}_deck", "{$deck_type}_display");
         $this->slideCards($deck_type, "new_round", $trigger_by = "new_round");
@@ -326,7 +338,8 @@ class PaladinsShipped extends Table
         $card = $this->deck->getCard($card_id);
         if ($card['type'] == 'outsider') {
             return $this->os_cards_material[$card['type_arg']];
-        } elseif ($card['type'] == 'townsfolk') {
+        }
+        if ($card['type'] == 'townsfolk') {
             return $this->tf_cards_material[$card['type_arg']];
         }
         return new stdClass();
@@ -353,7 +366,8 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState();
     }
 
-    public function pickPaladins($id_bottom, $id_chosen, $id_top) {
+    public function pickPaladins($id_bottom, $id_chosen, $id_top)
+    {
         self::checkAction('pickPaladins');
         $player_id = self::getCurrentPlayerId();
         // TODO: WIP
@@ -393,15 +407,16 @@ class PaladinsShipped extends Table
     public function stGameHireInitialTownsfolk()
     {
         $next_player_id = self::getPlayerBefore(self::getActivePlayerId());
+        $transition = 'transStartGame';
         if (!$this->deck->getPlayerHand($next_player_id)) {
             $this->gamestate->changeActivePlayer($next_player_id);
-            $this->gamestate->nextState('transHireInitialTownsfolk');
-        } else {
-            $this->gamestate->nextState('transStartGame');
+            $transition = 'transHireInitialTownsfolk';
         }
+        $this->gamestate->nextState($transition);
     }
 
-    public function stGameSetupNewRound() {
+    public function stGameSetupNewRound()
+    {
         $new_round = intval(self::getGameStateValue('current_round')) + 1;
         if ($new_round > 7) {
             $this->gamestate->nextState('calculateScores');
@@ -422,7 +437,8 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('done');
     }
 
-    public function stGameChoosePaladins () {
+    public function stGameChoosePaladins()
+    {
 
     }
     //////////////////////////////////////////////////////////////////////////////
