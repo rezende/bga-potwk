@@ -20,15 +20,6 @@
 
 require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
 
-
-if (!defined("CARD_TYPE_KINGS_ORDER")) {
-    define('CARD_TYPE_KINGS_ORDER', 'CARD_TYPE_KINGS_ORDER');
-    define('CARD_TYPE_KINGS_FAVOUR', 'CARD_TYPE_KINGS_FAVOUR');
-    define('CARD_TYPE_PALADIN', 'CARD_TYPE_PALADIN');
-}
-
-
-
 class PaladinsShipped extends Table
 {
     public function __construct()
@@ -72,7 +63,7 @@ class PaladinsShipped extends Table
 
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $sets = array('tower', 'fountain', 'barracks', 'castle');
+        $sets = $this->paladin_sets_material;
         shuffle($sets);
 
         $sql = "INSERT INTO player (player_id, player_color, paladin_board, player_canal, player_name, player_avatar) VALUES ";
@@ -179,18 +170,38 @@ class PaladinsShipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
-    public function revealTavernCards() {
+
+    public function refillDisplays() {
+        $this->placeNewCardsOnBoard('outsider');
+        $this->placeNewCardsOnBoard('townsfolk');
+    }
+
+    public function setTavernDisplay() {
         $this->deck->pickCardsForLocation(
             self::getPlayersNumber()+1,'tavern_deck', 'tavern_display'
         );
     }
 
     public function revealKingsOrder($round) {
+        if ($round > 3) {
+            //TODO: error
+        }
+        $num_revealed = $this->deck->countCardInLocation('kings_order_display');
+        if ($num_revealed > 2) {
+            //TODO: if 3 is revealed, do not reveal a 4th
+        }
         $this->deck->pickCardForLocation('kings_order_deck', 'kings_order_display', $round);
     }
 
-    public function revealKingsFavor($round) {
-        $this->deck->pickCardForLocation('kings_favor_deck', 'kings_favor_display', $round);
+    public function revealKingsFavour($round) {
+        if ($round < 3) {
+            //TODO: error
+        }
+        $num_revealed = $this->deck->countCardInLocation('kings_favour_display');
+        if ($num_revealed > 4) {
+            //TODO: error: if 5 is revealed, do not reveal a 6th
+        }
+        $this->deck->pickCardForLocation('kings_favour_deck', 'kings_favour_display', $round);
     }
 
     public function setNextFirstPlayer()
@@ -211,7 +222,7 @@ class PaladinsShipped extends Table
         $this->deck->createCards($os_cards, 'outsider_deck');
         $this->deck->shuffle('outsider_deck');
         $this->deck->pickCardsForLocation(6, 'outsider_deck', 'outsider_display');
-        $this->slideCards(card_type: 'outsider', trigger_by: 'game_setup');
+        $this->slideCards('outsider');
 
         $tf_cards = array();
         foreach ($this->tf_cards_material as $tf_card_id => $tf_card_type) {
@@ -220,7 +231,7 @@ class PaladinsShipped extends Table
         $this->deck->createCards($tf_cards, 'townsfolk_deck');
         $this->deck->shuffle('townsfolk_deck');
         $this->deck->pickCardsForLocation(5, 'townsfolk_deck', 'townsfolk_display');
-        $this->slideCards(card_type: 'townsfolk', trigger_by: 'game_setup');
+        $this->slideCards('townsfolk');
 
         $tavern_cards = array();
         foreach ($this->tavern_cards_material as $tavern_card_id => $tavern_card_type) {
@@ -251,12 +262,12 @@ class PaladinsShipped extends Table
         $this->deck->createCards($kings_order, 'kings_order_deck');
         $this->deck->shuffle('kings_order_deck');
 
-        $kings_favor = array();
-        foreach($this->kings_favors_material as $kf_id => $kf_type) {
-            $kings_favor[] = array('type' => 'kings_favor', 'type_arg' => $kf_id, 'nbr' => 1);
+        $kings_favour = array();
+        foreach($this->kings_favours_material as $kf_id => $kf_type) {
+            $kings_favour[] = array('type' => 'kings_favour', 'type_arg' => $kf_id, 'nbr' => 1);
         }
-        $this->deck->createCards($kings_favor, 'kings_favor_deck');
-        $this->deck->shuffle('kings_favor_deck');
+        $this->deck->createCards($kings_favour, 'kings_favour_deck');
+        $this->deck->shuffle('kings_favour_deck');
 
         foreach($paladin_sets as $paladin_set) {
             $my_set = array_filter(
@@ -265,7 +276,7 @@ class PaladinsShipped extends Table
             );
             foreach($my_set as $paladin_card_id => $paladin_card_type) {
                 $paladin_cards = [];
-                $paladin_cards[] = ['type' => CARD_TYPE_PALADIN, 'type_arg' => $paladin_card_id, 'nbr' => 1];
+                $paladin_cards[] = ['type' => PALADIN, 'type_arg' => $paladin_card_id, 'nbr' => 1];
                 $this->deck->createCards($paladin_cards, "paladin_{$paladin_set}_deck");
                 $this->deck->shuffle("paladin_{$paladin_set}_deck");
             }
@@ -273,20 +284,25 @@ class PaladinsShipped extends Table
 
     }
 
-    // public function placeNewOutsidersOutOnBoard($num_of, $trigger_by = "")
-    // {
-    //     $outsider_display = $this->deck->getCardsInLocation('outsider_display');
-    //     $oldest_outsider = array_filter(
-    //         $outsider_display,
-    //         function ($el) { return $el['location_arg'] == 0; }
-    //     );
-    //     if ($oldest_outsider) {
-    //         $this->deck->moveCard($oldest_outsider[0]['id'], 'discard');
-    //     }
-    //     $this->deck->pickCardsForLocation(6 - count($outsider_display), 'outsider_deck', 'outsider_display');
-    //     $this->slideCards('outsider', $trigger_by);
-    // }
-    public function slideCards(string $card_type, string $trigger_by = "")
+    public function placeNewCardsOnBoard(string $deck_type)
+    {
+        $display = $this->deck->getCardsInLocation("{$deck_type}_display");
+        $oldest_card = array_filter(
+            $display,
+            function ($el) { return $el['location_arg'] == 0; }
+        );
+        if ($oldest_card) {
+            $this->deck->moveCard($oldest_outsider[0]['id'], 'discard');
+        }
+        $nbr = 5;
+        if ($deck_type == 'outsider') {
+            $nbr = 6;
+        }
+        $this->deck->pickCardsForLocation($nbr - count($display), "{$deck_type}_deck", "{$deck_type}_display");
+        $this->slideCards($deck_type, "new_round", $trigger_by = "new_round");
+    }
+
+    public function slideCards(string $card_type, string $trigger_by = "gameSetup")
     {
         $display = $this->deck->getCardsInLocation("{$card_type}_display", null, 'card_location_arg');
         $position = 0;
@@ -299,41 +315,10 @@ class PaladinsShipped extends Table
         $card_display = $this->deck->getCardsInLocation("{$card_type}_display");
         self::notifyAllPlayers('slideCards', '', array('cards' => $card_display, 'trigger_by' => $trigger_by));
     }
+
     public function getPlayerName($player_id)
     {
         return self::getUniqueValueFromDB("SELECT player_name FROM player WHERE player_id = {$player_id}");
-    }
-
-    public function getBoardCardsByType($card_type) {
-        $cards_revealed = $this->deck->getCardsInLocation('board');
-        return array_filter($cards_revealed, function($card) use ($card_type) {return $card['type'] == $card_type;});
-    }
-    
-    public function revealKingsOrder($round) {
-        $num_revealed = sizeof($this->getBoardCardsByType(CARD_TYPE_KINGS_ORDER));
-        if ($round > 3) {
-            //TODO: error
-        }
-        if ($num_revealed > 2) {
-            //TODO: error: should not happen
-        }
-        $this->deck->pickCardForLocation('kingsorder_deck', 'kingsorder_display');
-    }
-
-    public function revealKingsFavour($round) {
-        $num_revealed = sizeof($this->getBoardCardsByType(CARD_TYPE_KINGS_FAVOUR));
-        if ($round < 3) {
-            //TODO: error
-        }
-        if ($num_revealed > 4) {
-            //TODO: error: should not happen
-        }
-        $this->deck->pickCardForLocation('kingsfavour_deck', 'kingsfavour_display');
-    }
-
-    public function revealTaverns() {
-        $num_of_players = sizeof(self::loadPlayersBasicInfos());
-        $this->deck->pickCardForLocation($num_of_players + 1, 'tavern_deck', 'tavern_display');
     }
 
     public function getCardInfoByGlobalId($card_id)
@@ -416,7 +401,6 @@ class PaladinsShipped extends Table
         }
     }
 
-    // wonder how to test this
     public function stGameSetupNewRound() {
         $new_round = intval(self::getGameStateValue('current_round')) + 1;
         if ($new_round > 7) {
@@ -434,7 +418,7 @@ class PaladinsShipped extends Table
             $this->refillDisplays();
         }
         self::setGameStateValue('current_round', $new_round);
-        $this->revealTaverns();
+        $this->setTavernDisplay();
         $this->gamestate->nextState('done');
     }
 

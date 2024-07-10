@@ -56,7 +56,7 @@ if (!defined("ATTR_FAITH")) {
     define("ACTION_ABSOLVE", "ACTION_ABSOLVE");
     define("ACTION_ATTACK", "ACTION_ATTACK");
     define("ACTION_CONVERT", "ACTION_CONVERT");
-    define("ACTION_USE_KINGS_FAVOR", "USE_KINGS_FAVOR");
+    define("ACTION_USE_KINGS_FAVOUR", "USE_KINGS_FAVOUR");
     define("ACTION_PASS", "ACTION_PASS");
 
     define("WORKER_WHITE", "WORKER_WHITE");
@@ -918,7 +918,10 @@ $this->tavern_cards_material = [
 // qty of each
 $this->suspicion_cards_material = [6, 8, 10];
 
-# SETS: castle, barracks, fountain, tower
+$this->paladin_sets_material = [
+    'castle', 'barracks', 'fountain', 'tower'
+];
+
 $this->paladins_cards_material = [
     // ROW 1
     [
