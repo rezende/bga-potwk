@@ -284,11 +284,6 @@ class PaladinsShipped extends Table
         $card_display = $this->deck->getCardsInLocation("{$card_type}_display");
         self::notifyAllPlayers('slideCards', '', array('cards' => $card_display, 'trigger_by' => $trigger_by));
     }
-    public function getPlayerName($player_id)
-    {
-        return self::getUniqueValueFromDB("SELECT player_name FROM player WHERE player_id = {$player_id}");
-    }
-
     public function getBoardCardsByType($card_type) {
         $cards_revealed = $this->deck->getCardsInLocation('board');
         return array_filter($cards_revealed, function($card) use ($card_type) {return $card['type'] == $card_type;});
@@ -346,7 +341,7 @@ class PaladinsShipped extends Table
             "message",
             clienttranslate('${player_name} hires ${townsfolk_name}'),
             [
-                "player_name" => $this->getPlayerName($player_id),
+                "player_name" => self::getPlayerNameById($player_id),
                 "townsfolk_name" => $townsfolk_card_info['name']
             ]
         );
