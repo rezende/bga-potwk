@@ -104,5 +104,3 @@ ALTER TABLE `player` ADD `paladin_board` varchar(16);
 -- attack: deck of cards, location: attack_pile
 -- convert: deck of cards, location: hand
 -- paladins: deck of cards, location: hand, deck
-ALTER TABLE `player` ADD `commission_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of commissions done. Max 7';
-ALTER TABLE `player` ADD `garrison_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of garrisons done. Max 7';
