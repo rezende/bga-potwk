@@ -27,10 +27,10 @@
 
 <div class="container">
   <div class="mainboard">
+    <div id="board_spot_outsider_0" class="card_display" style="position:absolute;top:10px;left:12px;"></div>
     <div id="mainboard_1"></div>
     <div id="mainboard_2"></div>
   </div>
-  <div id="card"></div>
 </div>
 
 <script type="text/javascript">

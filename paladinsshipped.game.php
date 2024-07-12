@@ -148,6 +148,7 @@ class PaladinsShipped extends Table
 
         $result['outsider_display'] = $this->deck->getCardsInLocation("outsider_display");
         $result['townsfolk_display'] = $this->deck->getCardsInLocation("townsfolk_display");
+        $result['player_townsfolk'] = $this->deck->getCardsInLocation("hand");
 
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
 
