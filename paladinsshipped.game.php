@@ -140,7 +140,7 @@ class PaladinsShipped extends Table
                         black_worker, purple_worker, coin, provision,
                         unpaid_debt, paid_debt, parchment, develop_qty,
                         commission_qty, garrison_qty, strength, faith,
-                        influence FROM player";
+                        influence, paladin_board FROM player";
         $result['players'] = self::getCollectionFromDb($player_sql);
 
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
