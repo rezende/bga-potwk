@@ -30,7 +30,7 @@
     <div id="mainboard_1"></div>
     <div id="mainboard_2"></div>
   </div>
-  <div id="card"></div>
+  <div id="outsider_cards"></div>
 </div>
 
 <script type="text/javascript">
