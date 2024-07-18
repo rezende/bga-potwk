@@ -1,0 +1,129 @@
+/**
+ *------
+ * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
+ * paladinsshipped implementation : © <Your name here> <Your email address here>
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ *
+ * paladinsshipped.css
+ *
+ * PaladinsShipped stylesheet
+ *
+ */
+
+/*
+    This is the CSS stylesheet of your game User Interface.
+    
+    Styles defined on this file will be applied to the HTML elements you define in your
+    HTML template (paladinsshipped_paladinsshipped.tpl), and to HTML elements you create dynamically
+    (in paladinsshipped.js).
+    
+    Usually, you are using CSS to:
+    
+    1°) define the overall layout of your game
+        (ex: place the board on the top left, place player's hand beside, place the deck on the right, ...).
+
+    2°) create your CSS-sprites:
+        All images of your games should be gathered into a small number of image files. Then, using
+        background-image and background-position CSS properties, you create HTML blocks that can 
+        display these images correctly (see example below).
+    
+    3°) ... anything else:
+        It is really easy to add and remove CSS classes dynamically from your Javascript with
+        dojo.addClass and dojo.removeClass. It is also easy to check if an element has a class
+        (dojo.hasClass) or to get all elements with a specific class (dojo.query). This is why,
+        very often, using CSS classes for the logic of your user interface allow you to do complex
+        thing easily.
+        
+        
+     Note: on the production platform, this file will be compressed and comments will be removed.
+           Consequently, don't hesitate to put as many comments as necessary.
+*/
+
+/* Note: you must not use any @import directive */
+
+/********* You can start writing your CSS below this line: **********/
+.main_container {
+  height: 2000px;
+}
+
+.mainboard_box {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  height: 380px;
+  max-height: 100%;
+}
+
+#mainboard_left {
+  width: 50%;
+  min-height: 90%;
+  background-image: url("img/main_board_1.png");
+  background-repeat: no-repeat;
+  background-size: 100%;
+}
+
+#mainboard_right {
+  display: flex;
+  width: 50%;
+  min-height: 90%;
+  background-image: url("img/main_board_2.png");
+  background-repeat: no-repeat;
+  background-size: 100%;
+}
+
+@media (min-width: 2600px) {
+  .mainboard_box {
+    height: 900px;
+  }
+}
+
+.outsider {
+  min-width: 160px;
+  min-height: 250px;
+  border-radius: 15px;
+  background: url("img/sprite_outsiders.png");
+  background-color: white;
+  transform: scale(0.57);
+  transform-origin: 0px 0px;
+}
+
+.outsider_box {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+#outsider_cards {
+  width: 50%;
+  max-width: 50%;
+  display: flex;
+}
+
+.piece.panel_parchment {
+  background-image: url("img/Provisions.png");
+  background-repeat: no-repeat;
+  /* width: 36px; */
+  /* height: 60px; */
+  position: absolute;
+}
+
+/*
+    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
+
+    .white_token {
+        background-image: url('img/tokens.png');
+        background-position: 0px 0px;
+    }
+    .black_token {
+        background-image: url('img/tokens.png');
+        background-position: -20px 0px;
+    }
+    .token {
+        width: 20px;
+        height: 20px;
+        background-repeat: none;
+    }
+*/
