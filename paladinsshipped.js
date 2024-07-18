@@ -105,20 +105,20 @@ define([
                 }
             },
 
-            // onZoomPlus: function() {
+            // onMainboardZoomPlus: function() {
             //     this.setZoom(this.zoom + 0.1);
             // },
-            //  onZoomMinus: function() {
+            // onMainboardZoomMinus: function() {
             //     this.setZoom(this.zoom - 0.1);
             // },
 
-            //  setZoom: function (zoom) {
+            // setMainboardZoom: function (zoom) {
             //    zoom = parseInt(zoom) || 0;
             //    if (zoom === 0 || zoom < 0.1 || zoom > 10) {
             //      zoom = 1;
             //    }
             //    this.zoom = zoom;
-            //    var inner = document.getElementById("mainboard");
+            //    var inner = document.getElementById("mainboard_box");
 
             //    if (zoom == 1) {
             //      inner.style.removeProperty("transform");
@@ -126,7 +126,7 @@ define([
             //    } else {
             //      inner.style.transform = "scale(" + zoom + ")";
             //      inner.style.transformOrigin = "0 0";
-            //      inner.style.width = 100 / zoom + "%";
+            //      inner.style.width = 200 / zoom + "%";
             //    }
             //    localStorage.setItem(`${this.game_name}_zoom`, "" + this.zoom);
             //    this.onScreenWidthChange();
@@ -155,13 +155,17 @@ define([
             },
 
             setup: function (gamedatas) {
+                this.min_width_viewport = gamedatas.game_interface_width.min;
+                this.max_width_viewport = gamedatas.game_interface_width.max;
+                this.onScreenWidthChange();
+
                 console.log("Starting game setup");
+                console.log("uiItems", this.uiItems);
                 this.outsider_display = gamedatas.outsider_display;
                 this.townsfolk_display = gamedatas.townsfolk_display;
-                this.default_viewport = "width=" + this.interface_min_width;
-                this.onScreenWidthChange();
                 this.attachFunctionsToUiItems();
                 this.uiItems.createItems("outsider", this.getValuesFromObject(this.outsider_display));
+                console.log("uiItemsAfterCreation", this.uiItems);
                 this.setupNotifications();
                 this.drawUi();
 
@@ -189,11 +193,17 @@ define([
 
             // To be overrided by games
             onScreenWidthChange: function () {
-                // Remove broken "zoom" property added by BGA framework
+            // Remove broken "zoom" property added by BGA framework
                 this.gameinterface_zoomFactor = 1;
                 $("page-content").style.removeProperty("zoom");
                 $("page-title").style.removeProperty("zoom");
-                $("right-side-first-part").style.removeProperty("zoom");
+                $("right-side-first-part").style.removeProperty("zoom");     
+                
+                            
+                var viewport = document.querySelector('meta[name="viewport"]');
+                if (viewport) {
+                   viewport.content = this.default_viewport;
+                }
             },
 
             ///////////////////////////////////////////////////
@@ -214,7 +224,7 @@ define([
                         dojo.style( 'my_html_block_id', 'display', 'block' );
                         
                         break;
-                    */
+                   */
 
 
                     case 'dummmy':
@@ -238,7 +248,7 @@ define([
                         dojo.style( 'my_html_block_id', 'display', 'none' );
                         
                         break;
-                    */
+                   */
 
 
                     case 'dummmy':
@@ -254,18 +264,15 @@ define([
 
                 if (this.isCurrentPlayerActive()) {
                     switch (stateName) {
-                        /*               
-                                            Example:
-                            
-                                            case 'myGameState':
-                                            
-                                            // Add 3 action buttons in the action status bar:
-                                            
-                                            this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
-                                            this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
-                                            this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
-                                            break;
-                        */
+                    /*               
+                        Example:
+                        case 'myGameState':
+                            // Add 3 action buttons in the action status bar:
+                            this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
+                            this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
+                            this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
+                            break;
+                    */
                         case 'hireInitialTownsfolk':
                             for (const [key, value] of Object.entries(this.townsfolk_display)) {
                                 townsfolk_id = value.id;
@@ -289,12 +296,12 @@ define([
                 script.
             
             */
-
+           
             getPositionForUiItem: function (uiItem) {
                 var position = { top: null, left: null };
                 return position;
             },
-
+           
             positionUiItem: function (uiItem) {
                 var position = this.getPositionForUiItem(uiItem);
                 if (position.top != null && position.left != null) {
@@ -367,18 +374,18 @@ define([
                                                                         myArgument1: arg1, 
                                                                         myArgument2: arg2,
                                                                         ...
-                                                                        }, 
-                                this, function( result ) {
+                                                                     }, 
+                             this, function( result ) {
                                 
                                 // What to do after the server call if it succeeded
                                 // (most of the time: nothing)
                                 
-                                }, function( is_error) {
+                             }, function( is_error) {
     
                                 // What to do after the server call in anyway (success or failure)
                                 // (most of the time: nothing)
     
-                                } );        
+                             } );        
             },        
             
             */
@@ -402,7 +409,7 @@ define([
                 In this method, you associate each of your game notifications with your local method to handle it.
                 
                 Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" calls in
-                        your paladinsshipped.game.php file.
+                      your paladinsshipped.game.php file.
             
             */
             setupNotifications: function () {
