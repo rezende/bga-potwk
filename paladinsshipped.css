@@ -74,12 +74,19 @@
   background-size: 734px 180px;
 }
 
-#card {
+.outsider {
   width: 160px;
   height: 250px;
   border-radius: 15px;
-  background: url("img/sprite_outsiders.png") 0 0;
+  background: url("img/sprite_outsiders.png");
   background-color: white;
+  position: relative;
+  transform: scale(0.58);
+  transform-origin: 0px 0px;
+}
+
+#outsider_cards {
+  display: flex;
 }
 
 .piece.panel_parchment
