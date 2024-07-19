@@ -81,7 +81,7 @@ function (dojo, declare) {
 
                 dojo.setAttr(htmlNode, "data-uid", "uid-" + this._lastUid);
 
-                var item = {
+                const item = {
                     "uid": this._lastUid,
                     "uiType": uiType,
                     "data": params,
@@ -94,7 +94,6 @@ function (dojo, declare) {
             }
 
             this.uiItems.createItems = function (uiType, dataArray) {
-                console.log("myDATAARRAY", dataArray);
                 this.createItemsViaCallback(function (d) { return uiType; }, dataArray);
             }
 
