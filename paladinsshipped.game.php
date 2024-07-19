@@ -247,7 +247,7 @@ class PaladinsShipped extends Table
         foreach($paladin_sets as $paladin_set) {
             $my_set = array_filter(
                 $this->paladins_cards_material,
-                function($card_type) use ($paladin_set) {return $card_type['set'] == $paladin_set;}
+                function ($card_type) use ($paladin_set) {return $card_type['set'] == $paladin_set;}
             );
             foreach($my_set as $paladin_card_id => $paladin_card_type) {
                 $paladin_cards = [];
@@ -284,12 +284,14 @@ class PaladinsShipped extends Table
         $card_display = $this->deck->getCardsInLocation("{$card_type}_display");
         self::notifyAllPlayers('slideCards', '', array('cards' => $card_display, 'trigger_by' => $trigger_by));
     }
-    public function getBoardCardsByType($card_type) {
+    public function getBoardCardsByType($card_type)
+    {
         $cards_revealed = $this->deck->getCardsInLocation('board');
-        return array_filter($cards_revealed, function($card) use ($card_type) {return $card['type'] == $card_type;});
+        return array_filter($cards_revealed, function ($card) use ($card_type) {return $card['type'] == $card_type;});
     }
-    
-    public function revealKingsOrder($round) {
+
+    public function revealKingsOrder($round)
+    {
         $num_revealed = sizeof($this->getBoardCardsByType(CARD_TYPE_KINGS_ORDER));
         if ($round > 3) {
             //TODO: error
@@ -300,7 +302,8 @@ class PaladinsShipped extends Table
         $this->deck->pickCardForLocation('kingsorder_deck', 'kingsorder_display');
     }
 
-    public function revealKingsFavour($round) {
+    public function revealKingsFavour($round)
+    {
         $num_revealed = sizeof($this->getBoardCardsByType(CARD_TYPE_KINGS_FAVOUR));
         if ($round < 3) {
             //TODO: error
@@ -311,7 +314,8 @@ class PaladinsShipped extends Table
         $this->deck->pickCardForLocation('kingsfavour_deck', 'kingsfavour_display');
     }
 
-    public function revealTaverns() {
+    public function revealTaverns()
+    {
         $num_of_players = sizeof(self::loadPlayersBasicInfos());
         $this->deck->pickCardForLocation($num_of_players + 1, 'tavern_deck', 'tavern_display');
     }
@@ -348,7 +352,8 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState();
     }
 
-    public function pickPaladins($id_bottom, $id_chosen, $id_top) {
+    public function pickPaladins($id_bottom, $id_chosen, $id_top)
+    {
         self::checkAction('pickPaladins');
         $player_id = self::getCurrentPlayerId();
         // TODO: WIP
@@ -397,7 +402,8 @@ class PaladinsShipped extends Table
     }
 
     // wonder how to test this
-    public function stGameSetupNewRound() {
+    public function stGameSetupNewRound()
+    {
         $new_round = intval(self::getGameStateValue('current_round')) + 1;
         if ($new_round > 7) {
             $this->gamestate->nextState('calculateScores');
@@ -418,7 +424,8 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('done');
     }
 
-    public function stGameChoosePaladins () {
+    public function stGameChoosePaladins()
+    {
 
     }
     //////////////////////////////////////////////////////////////////////////////
