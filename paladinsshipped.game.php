@@ -31,6 +31,18 @@ if (!defined("CARD_TYPE_KINGS_ORDER")) {
 
 class PaladinsShipped extends Table
 {
+    public const PLAYER_RESOURCES = array(
+        'white_worker', 'green_worker', 'red_worker', 'blue_worker',
+        'black_worker', 'purple_worker', 'coin', 'provision', 'unpaid_debt',
+        'paid_debt', 'parchment', 'develop_qty',
+        'commission_qty', 'garrison_qty', 'strength', 'faith',
+        'influence', 'paladin_board'
+    );
+
+    public const PALADIN_SETS = array(
+        'tower', 'fountain', 'barracks', 'castle'
+    );
+
     public function __construct()
     {
         // Your global variables labels:
@@ -72,15 +84,12 @@ class PaladinsShipped extends Table
 
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $sets = array('tower', 'fountain', 'barracks', 'castle');
+        $sets = self::PALADIN_SETS;
         shuffle($sets);
-
         $sql = "INSERT INTO player (player_id, player_color, paladin_board, player_canal, player_name, player_avatar) VALUES ";
         $values = array();
-        $picked_sets = array();
         foreach($players as $player_id => $player) {
             $set = array_shift($sets);
-            $picked_sets[] = $set;
             $color = array_shift($default_colors);
             $values[] = "('{$player_id}','{$color}','{$set}','{$player['player_canal']}','".addslashes($player['player_name'])."','".addslashes($player['player_avatar'])."')";
         }
@@ -108,7 +117,7 @@ class PaladinsShipped extends Table
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // TODO: setup the initial game situation here
-        $this->createAllDecks($picked_sets);
+        $this->createAllDecks();
         // $this->createDefaultGamePieces($players);
         $this->setNextFirstPlayer();
 
@@ -135,12 +144,7 @@ class PaladinsShipped extends Table
 
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $player_sql = "SELECT player_id id, player_score score, white_worker,
-                        green_worker, red_worker, blue_worker,
-                        black_worker, purple_worker, coin, provision,
-                        unpaid_debt, paid_debt, parchment, develop_qty,
-                        commission_qty, garrison_qty, strength, faith,
-                        influence, paladin_board FROM player";
+        $player_sql = "SELECT player_id id, player_score score,".implode(",", self::PLAYER_RESOURCES)." FROM player";
         $result['players'] = self::getCollectionFromDb($player_sql);
 
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
@@ -188,7 +192,7 @@ class PaladinsShipped extends Table
         self::notifyAllPlayers("moveParchment", '', array("player_id" => $player_id));
     }
 
-    public function createAllDecks($paladin_sets)
+    public function createAllDecks()
     {
         $os_cards = array();
         foreach ($this->os_cards_material as $os_card_id => $os_card_type) {
@@ -244,6 +248,7 @@ class PaladinsShipped extends Table
         $this->deck->createCards($kingsfavour_cards, 'kingsfavour_deck');
         $this->deck->shuffle('kingsfavour_deck');
 
+        $paladin_sets = self::getObjectListFromDB("SELECT paladin_board FROM player", true);
         foreach($paladin_sets as $paladin_set) {
             $my_set = array_filter(
                 $this->paladins_cards_material,
