@@ -89,13 +89,17 @@
   display: flex;
 }
 
-.piece.panel_parchment
+.panel_parchment
 {
-    background-image: url('img/Provisions.png');
+    background-image: url('img/scroll_small.png');
     background-repeat: no-repeat;
-    /* width: 36px; */
-    /* height: 60px; */
+    transform-origin: 0px 0px;
     position: absolute;
+    right: -175px;
+    bottom: -262px;
+    width: 211px;
+    height: 284px;
+    transform: scale(0.15);
 }
 
 /*
