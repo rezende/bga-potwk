@@ -115,6 +115,28 @@
     transform: scale(0.15);
 }
 
+.townsfolk {
+  min-width: 160px;
+  min-height: 250px;
+  border-radius: 15px;
+  background: url("img/sprite_townsfolk.png");
+  background-color: white;
+  transform: scale(0.57);
+  transform-origin: 0px 0px;
+}
+
+.townsfolk_box {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+#townsfolk_cards {
+  width: 50%;
+  max-width: 50%;
+  display: flex;
+}
+
 /*
     Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
 
