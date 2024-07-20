@@ -31,57 +31,55 @@ $this->card_types = array(
 
 */
 
-if (!defined("ATTR_FAITH")) {
+if (!defined("RESOURCE_COIN")) {
     // guard since this included multiple times
-    define("RESOURCE_COIN", "RESOURCE_COIN");
-    define("RESOURCE_PROVISION", "RESOURCE_PROVISION");
-    define("RESOURCE_DEBT", "RESOURCE_DEBT");
-    define("RESOURCE_SUSPICION", "RESOURCE_SUSPICION");
-    define("RESOURCE_PAID_DEBT", "RESOURCE_PAID_DEBT");
-    define("RESOURCE_UNPAID_DEBT", "RESOURCE_UNPAID_DEBT");
-
-    define("ATTR_FAITH", "ATTR_FAITH");
-    define("ATTR_STRENGTH", "ATTR_STRENGTH");
-    define("ATTR_INFLUENCE", "ATTR_INFLUENCE");
-
-    define("ACTION_DEVELOP", "ACTION_DEVELOP");
-    define("ACTION_HUNT", "ACTION_HUNT");
-    define("ACTION_TRADE", "ACTION_TRADE");
-    define("ACTION_RECRUIT", "ACTION_RECRUIT");
-    define("ACTION_PRAY", "ACTION_PRAY");
-    define("ACTION_CONSPIRE", "ACTION_CONSPIRE");
-    define("ACTION_COMMISSION", "ACTION_COMMISSION");
-    define("ACTION_FORTIFY", "ACTION_FORTIFY");
-    define("ACTION_GARRISON", "ACTION_GARRISON");
     define("ACTION_ABSOLVE", "ACTION_ABSOLVE");
     define("ACTION_ATTACK", "ACTION_ATTACK");
+    define("ACTION_COMMISSION", "ACTION_COMMISSION");
+    define("ACTION_CONSPIRE", "ACTION_CONSPIRE");
     define("ACTION_CONVERT", "ACTION_CONVERT");
-    define("ACTION_USE_KINGS_FAVOR", "USE_KINGS_FAVOR");
+    define("ACTION_DEVELOP", "ACTION_DEVELOP");
+    define("ACTION_FORTIFY", "ACTION_FORTIFY");
+    define("ACTION_GARRISON", "ACTION_GARRISON");
+    define("ACTION_HUNT", "ACTION_HUNT");
     define("ACTION_PASS", "ACTION_PASS");
-
-    define("WORKER_WHITE", "WORKER_WHITE");
-    define("WORKER_RED", "WORKER_RED");
-    define("WORKER_GREEN", "WORKER_GREEN");
-    define("WORKER_BLACK", "WORKER_BLACK");
-    define("WORKER_BLUE", "WORKER_BLUE");
-    define("WORKER_PURPLE", "WORKER_PURPLE");
-
+    define("ACTION_PRAY", "ACTION_PRAY");
+    define("ACTION_RECRUIT", "ACTION_RECRUIT");
+    define("ACTION_TRADE", "ACTION_TRADE");
+    define("ACTION_USE_KINGS_FAVOR", "USE_KINGS_FAVOR");
+    define("ATTR_FAITH", "ATTR_FAITH");
+    define("ATTR_INFLUENCE", "ATTR_INFLUENCE");
+    define("ATTR_STRENGTH", "ATTR_STRENGTH");
+    define("BLUE_SUIT", "BLUE_SUIT");
+    define('CARD_TYPE_KINGS_FAVOUR', 'kings_favour');
+    define('CARD_TYPE_KINGS_ORDER', 'kings_order');
+    define('CARD_TYPE_PALADIN', 'paladin');
+    define('CARD_TYPE_SUSPICION', 'suspicion');
     define("COST_ANY_WORKER", "COST_ANY_WORKER");
-
-    define("EVENT_INQUISITION", "EVENT_INQUISITION");
-
-    define("EFFECT_TAKE_TAX", "EFFECT_TAKE_TAX");
-    define("EFFECT_RMV_SUSPICION", "EFFECT_RMV_SUSPICION");
-    define("EFFECT_RMV_DEBT", "EFFECT_RMV_DEBT");
+    define("EFFECT_FREE_DEVELOPMENT", "EFFECT_FREE_DEVELOPMENT");
+    define("EFFECT_FREE_RECRUIT", "EFFECT_FREE_RECRUIT");
     define("EFFECT_PAY_DEBT", "EFFECT_PAY_DEBT");
     define("EFFECT_PRAY", "EFFECT_PRAY");
-    define("EFFECT_FREE_RECRUIT", "EFFECT_FREE_RECRUIT");
-    define("EFFECT_FREE_DEVELOPMENT", "EFFECT_FREE_DEVELOPMENT");
-
-    define("YELLOW_SUIT", "YELLOW_SUIT");
-    define("BLUE_SUIT", "BLUE_SUIT");
+    define("EFFECT_RMV_DEBT", "EFFECT_RMV_DEBT");
+    define("EFFECT_RMV_SUSPICION", "EFFECT_RMV_SUSPICION");
+    define("EFFECT_TAKE_TAX", "EFFECT_TAKE_TAX");
+    define("EVENT_INQUISITION", "EVENT_INQUISITION");
     define("GREEN_SUIT", "GREEN_SUIT");
+    define("RESOURCE_COIN", "coin");
+    define("RESOURCE_DEBT", "RESOURCE_DEBT");
+    define("RESOURCE_PAID_DEBT", "RESOURCE_PAID_DEBT");
+    define('RESOURCE_PROVISION', 'provision');
+    define("RESOURCE_SUSPICION", "RESOURCE_SUSPICION");
+    define("RESOURCE_UNPAID_DEBT", "RESOURCE_UNPAID_DEBT");
+    define("WORKER_BLACK", "WORKER_BLACK");
+    define("WORKER_BLUE", "WORKER_BLUE");
+    define("WORKER_GREEN", "WORKER_GREEN");
+    define("WORKER_PURPLE", "WORKER_PURPLE");
+    define("WORKER_RED", "WORKER_RED");
+    define("WORKER_WHITE", "WORKER_WHITE");
+    define("YELLOW_SUIT", "YELLOW_SUIT");
 }
+
 
 // Always give 1 strength
 $this->wall_cards_material = [

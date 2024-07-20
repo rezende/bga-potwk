@@ -23,15 +23,10 @@ define([
     function (dojo, declare) {
         return declare("bgagame.paladinsshipped", ebg.core.gamegui, {
             constructor: function () {
-                console.log('paladinsshipped constructor');
-
                 // Here, you can init the global variables of your user interface
                 // Example:
                 // this.myGlobalValue = 0;
                 this.uiItems = [];
-                this.townsfolk_display = [];
-                this.outsider_display = [];
-
             },
 
             attachFunctionsToUiItems: function () {
@@ -40,10 +35,12 @@ define([
 
                 this.uiItems.itemConfig = {
                     "outsider": { cssClass: "outsider" },
+                    "townsfolk": { cssClass: "townsfolk" },
                 }
 
                 this.uiItems.itemBackgroundConfig = {
                     "outsider": { items_per_row: 8, width: 160, height: 250, type_property: "type_arg" },
+                    "townsfolk": { items_per_row: 6, width: 160, height: 250, type_property: "type_arg" },
                 };
 
                 this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
@@ -155,17 +152,20 @@ define([
             },
 
             setup: function (gamedatas) {
+                console.log("gameDatas", gamedatas);
                 this.min_width_viewport = gamedatas.game_interface_width.min;
                 this.max_width_viewport = gamedatas.game_interface_width.max;
                 this.onScreenWidthChange();
 
                 console.log("Starting game setup");
-                console.log("uiItems", this.uiItems);
                 this.outsider_display = gamedatas.outsider_display;
                 this.townsfolk_display = gamedatas.townsfolk_display;
+                this.townsfolk_material = gamedatas.townsfolk_material;
+                this.paladin_material = gamedatas.paladin_material;
+                this.paladin_hand = gamedatas.player_paladin_hand;
                 this.attachFunctionsToUiItems();
                 this.uiItems.createItems("outsider", this.getValuesFromObject(this.outsider_display));
-                console.log("uiItemsAfterCreation", this.uiItems);
+                this.uiItems.createItems("townsfolk", this.getValuesFromObject(this.townsfolk_display));
                 this.setupNotifications();
                 this.drawUi();
 
@@ -183,8 +183,6 @@ define([
                 }
 
                 // TODO: Set up your game interface here, according to "gamedatas"
-                console.log(gamedatas);
-
                 // Setup game notifications to handle (see "setupNotifications" method below)
                 this.addTooltipToClass('.panel_parchment', _("Parchment, indicates the first player of each round"), "");
                 console.log("Ending game setup");
@@ -274,14 +272,29 @@ define([
                             break;
                     */
                         case 'hireInitialTownsfolk':
-                            for (const [key, value] of Object.entries(this.townsfolk_display)) {
-                                townsfolk_id = value.id;
+                            for (const [tf_id, value] of Object.entries(this.townsfolk_display)) {
+                                const tf_name = this.townsfolk_material[value.type_arg].name
                                 this.addActionButton(
-                                    'btnHire_' + townsfolk_id,
-                                    _('Hire ' + townsfolk_id),
-                                    dojo.hitch(this, dojo.partial(this.onClickConfirmTownsfolk, townsfolk_id))
+                                    `btnHire_${tf_id}`,
+                                    _(`Hire ${tf_name} (${tf_id})`),
+                                    dojo.hitch(this, dojo.partial(this.onClickConfirmTownsfolk, tf_id))
                                 );
                             }
+                            break;
+                        case 'pickPaladins':
+                            const cards = Object.entries(this.paladin_hand);
+                            console.log("my paladin hand", cards);
+                            const paladin_1_id = cards[0][0];
+                            const paladin_2_id = cards[1][0];
+                            const paladin_3_id = cards[2][0];
+                            const paladin_1_name = this.paladin_material[cards[0][1].type_arg].name;
+                            const paladin_2_name = this.paladin_material[cards[1][1].type_arg].name;
+                            const paladin_3_name = this.paladin_material[cards[2][1].type_arg].name;
+                            this.addActionButton(
+                                `btnPickPaladin_${paladin_1_id}`,
+                                _(`Bottom: ${paladin_1_name} Chosen: ${paladin_2_name} Top: ${paladin_3_name}`),
+                                dojo.hitch(this, dojo.partial(this.onClickConfirmPaladins, paladin_1_id, paladin_2_id, paladin_3_id))
+                            );
                             break;
                     }
                 }
@@ -321,6 +334,9 @@ define([
                 var containerName = "";
                 if (uiItem.uiType == "outsider") {
                     containerName = "outsider_cards"
+                }
+                if (uiItem.uiType == "townsfolk") {
+                    containerName = "townsfolk_cards"
                 }
                 return containerName;
             },
@@ -393,12 +409,33 @@ define([
 
             onClickConfirmTownsfolk: function (townsfolk_card_id) {
                 this.checkAction('hireInitialTownsfolk');
-                this.ajaxcall("/paladinsshipped/paladinsshipped/hireInitialTownsfolk.html", { lock: true, "townsfolk_card_id": townsfolk_card_id }, this,
+                this.ajaxcall(
+                    "/paladinsshipped/paladinsshipped/hireInitialTownsfolk.html",
+                    {
+                        lock: true,
+                        "townsfolk_card_id": townsfolk_card_id
+                    },
+                    this,
                     function (result) { },
                     function (error) { }
                 );
             },
 
+            onClickConfirmPaladins: function (bottom_id, chosen_id, top_id) {
+                this.checkAction('pickPaladins');
+                this.ajaxcall(
+                    "/paladinsshipped/paladinsshipped/pickPaladins.html",
+                    {
+                        lock: true,
+                        "bottom_id": bottom_id,
+                        "chosen_id": chosen_id,
+                        "top_id": top_id
+                    },
+                    this,
+                    function (result) { },
+                    function (error) { }
+                );
+            },
 
             ///////////////////////////////////////////////////
             //// Reaction to cometD notifications
