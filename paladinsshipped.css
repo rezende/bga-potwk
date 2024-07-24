@@ -45,47 +45,60 @@
 /* Note: you must not use any @import directive */
 
 /********* You can start writing your CSS below this line: **********/
-
-.container {
-  display: grid;
-  max-width: 1500px;
+.main_container {
+  height: 2000px;
 }
 
-.mainboard {
+.mainboard_box {
   display: flex;
   flex-wrap: wrap;
-  align-self: center;
-  justify-content: center;
+  width: 100%;
+  height: 380px;
+  max-height: 100%;
 }
 
-#mainboard_1 {
-  width: 734px;
-  height: 180px;
+#mainboard_left {
+  width: 50%;
+  min-height: 90%;
   background-image: url("img/main_board_1.png");
   background-repeat: no-repeat;
-  background-size: 734px 180px;
+  background-size: 100%;
 }
 
-#mainboard_2 {
-  width: 734px;
-  height: 180px;
+#mainboard_right {
+  display: flex;
+  width: 50%;
+  min-height: 90%;
   background-image: url("img/main_board_2.png");
   background-repeat: no-repeat;
-  background-size: 734px 180px;
+  background-size: 100%;
+}
+
+@media (min-width: 2600px) {
+  .mainboard_box {
+    height: 900px;
+  }
 }
 
 .outsider {
-  width: 160px;
-  height: 250px;
+  min-width: 160px;
+  min-height: 250px;
   border-radius: 15px;
   background: url("img/sprite_outsiders.png");
   background-color: white;
-  position: relative;
-  transform: scale(0.58);
+  transform: scale(0.57);
   transform-origin: 0px 0px;
 }
 
+.outsider_box {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
 #outsider_cards {
+  width: 50%;
+  max-width: 50%;
   display: flex;
 }
 

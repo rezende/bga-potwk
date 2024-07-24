@@ -138,7 +138,11 @@ class PaladinsShipped extends Table
 
     protected function getAllDatas()
     {
+
+        $gameinfos = self::getGameinfos();        
         $result = array();
+
+        $result['game_interface_width'] = $gameinfos['game_interface_width'];
 
         $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
 
