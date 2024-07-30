@@ -42,8 +42,10 @@ if (!defined("RESOURCE_COIN")) {
     define("BLUE_SUIT", "BLUE_SUIT");
     define('CARD_TYPE_KINGS_FAVOUR', 'kings_favour');
     define('CARD_TYPE_KINGS_ORDER', 'kings_order');
+    define('CARD_TYPE_OUTSIDER', 'outsider');
     define('CARD_TYPE_PALADIN', 'paladin');
     define('CARD_TYPE_SUSPICION', 'suspicion');
+    define('CARD_TYPE_TOWNSFOLK', 'townsfolk');
     define("COST_ANY_WORKER", "COST_ANY_WORKER");
     define("EFFECT_FREE_DEVELOPMENT", "EFFECT_FREE_DEVELOPMENT");
     define("EFFECT_FREE_RECRUIT", "EFFECT_FREE_RECRUIT");
@@ -228,6 +230,14 @@ class PaladinsShipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
+    public function refillDisplays($next_round) {
+        if ($next_round < 2) {
+            $this->placeNewCardsOnDisplay(CARD_TYPE_TOWNSFOLK, 'new_round', false);
+            return;
+        }
+        $this->placeNewCardsOnDisplay(CARD_TYPE_TOWNSFOLK, 'new_round');
+        $this->placeNewCardsOnDisplay(CARD_TYPE_OUTSIDER, 'new_round');
+    }
     public function dealPaladinCards($players) {
         self::notifyAllPlayers("message", clienttranslate('Each player draws their top 3 paladin cards'), array());
         foreach ($players as $player_id => $player) {
@@ -339,20 +349,31 @@ class PaladinsShipped extends Table
         }
     }
 
-    // public function placeNewOutsidersOutOnBoard($num_of, $trigger_by = "")
-    // {
-    //     $outsider_display = $this->deck->getCardsInLocation('outsider_display');
-    //     $oldest_outsider = array_filter(
-    //         $outsider_display,
-    //         function ($el) { return $el['location_arg'] == 0; }
-    //     );
-    //     if ($oldest_outsider) {
-    //         $this->deck->moveCard($oldest_outsider[0]['id'], 'discard');
-    //     }
-    //     $this->deck->pickCardsForLocation(6 - count($outsider_display), 'outsider_deck', 'outsider_display');
-    //     $this->slideCards('outsider', $trigger_by);
-    // }
-    public function slideCards(string $card_type, string $trigger_by = "")
+    public function placeNewCardsOnDisplay($card_type, $trigger_by = "", $remove_oldest = true)
+    {
+        $display = $this->deck->getCardsInLocation("{$card_type}_display");
+        if ($remove_oldest) {
+            $oldest_card = array_filter(
+                $display,
+                function ($el) { return $el['location_arg'] == 0; }
+            );
+            if ($oldest_card) {
+                $this->deck->moveCard($oldest_card[0]['id'], 'discard');
+            }
+        }
+        if ($card_type == CARD_TYPE_OUTSIDER) {
+            $nbr = 6;
+        }
+        if ($card_type == CARD_TYPE_TOWNSFOLK) {
+            $nbr = 5;
+        }
+        $this->deck->pickCardsForLocation(
+            $nbr - count($display), "{$card_type}_deck", "{$card_type}_display", $nbr + 1
+        );
+        $this->slideCards($card_type, $trigger_by);
+    }
+
+    public function slideCards($card_type, $trigger_by)
     {
         $display = $this->deck->getCardsInLocation("{$card_type}_display", null, 'card_location_arg');
         $position = 0;
@@ -510,9 +531,9 @@ class PaladinsShipped extends Table
         }
         if ($new_round >= 2) {
             $this->setNextFirstPlayer();
-            $this->refillDisplays(); // TODO, need to refill tf on round 1
         }
         self::setGameStateValue('current_round', $new_round);
+        $this->refillDisplays($next_round);
         $this->revealTaverns();
         $this->gamestate->nextState('done');
     }

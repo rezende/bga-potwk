@@ -53,8 +53,10 @@ if (!defined("RESOURCE_COIN")) {
     define("BLUE_SUIT", "BLUE_SUIT");
     define('CARD_TYPE_KINGS_FAVOUR', 'kings_favour');
     define('CARD_TYPE_KINGS_ORDER', 'kings_order');
+    define('CARD_TYPE_OUTSIDER', 'outsider');
     define('CARD_TYPE_PALADIN', 'paladin');
     define('CARD_TYPE_SUSPICION', 'suspicion');
+    define('CARD_TYPE_TOWNSFOLK', 'townsfolk');
     define("COST_ANY_WORKER", "COST_ANY_WORKER");
     define("EFFECT_FREE_DEVELOPMENT", "EFFECT_FREE_DEVELOPMENT");
     define("EFFECT_FREE_RECRUIT", "EFFECT_FREE_RECRUIT");
