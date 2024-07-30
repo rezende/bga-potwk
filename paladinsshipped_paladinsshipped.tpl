@@ -2,6 +2,9 @@
 
 <div class="main_container">
   <div class="mainboard_box">
+    <div class="townsfolk_box">
+      <div id="townsfolk_cards"></div>
+    </div>
     <div id="mainboard_left"></div>
     <div id="mainboard_right"></div>
     <div class="outsider_box">

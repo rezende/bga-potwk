@@ -20,13 +20,54 @@
 
 require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
 
-
-if (!defined("CARD_TYPE_KINGS_ORDER")) {
-    define('CARD_TYPE_KINGS_ORDER', 'CARD_TYPE_KINGS_ORDER');
-    define('CARD_TYPE_KINGS_FAVOUR', 'CARD_TYPE_KINGS_FAVOUR');
-    define('CARD_TYPE_PALADIN', 'CARD_TYPE_PALADIN');
+if (!defined("RESOURCE_COIN")) {
+    // guard since this included multiple times
+    define("ACTION_ABSOLVE", "ACTION_ABSOLVE");
+    define("ACTION_ATTACK", "ACTION_ATTACK");
+    define("ACTION_COMMISSION", "ACTION_COMMISSION");
+    define("ACTION_CONSPIRE", "ACTION_CONSPIRE");
+    define("ACTION_CONVERT", "ACTION_CONVERT");
+    define("ACTION_DEVELOP", "ACTION_DEVELOP");
+    define("ACTION_FORTIFY", "ACTION_FORTIFY");
+    define("ACTION_GARRISON", "ACTION_GARRISON");
+    define("ACTION_HUNT", "ACTION_HUNT");
+    define("ACTION_PASS", "ACTION_PASS");
+    define("ACTION_PRAY", "ACTION_PRAY");
+    define("ACTION_RECRUIT", "ACTION_RECRUIT");
+    define("ACTION_TRADE", "ACTION_TRADE");
+    define("ACTION_USE_KINGS_FAVOR", "USE_KINGS_FAVOR");
+    define("ATTR_FAITH", "ATTR_FAITH");
+    define("ATTR_INFLUENCE", "ATTR_INFLUENCE");
+    define("ATTR_STRENGTH", "ATTR_STRENGTH");
+    define("BLUE_SUIT", "BLUE_SUIT");
+    define('CARD_TYPE_KINGS_FAVOUR', 'kings_favour');
+    define('CARD_TYPE_KINGS_ORDER', 'kings_order');
+    define('CARD_TYPE_PALADIN', 'paladin');
+    define('CARD_TYPE_SUSPICION', 'suspicion');
+    define("COST_ANY_WORKER", "COST_ANY_WORKER");
+    define("EFFECT_FREE_DEVELOPMENT", "EFFECT_FREE_DEVELOPMENT");
+    define("EFFECT_FREE_RECRUIT", "EFFECT_FREE_RECRUIT");
+    define("EFFECT_PAY_DEBT", "EFFECT_PAY_DEBT");
+    define("EFFECT_PRAY", "EFFECT_PRAY");
+    define("EFFECT_RMV_DEBT", "EFFECT_RMV_DEBT");
+    define("EFFECT_RMV_SUSPICION", "EFFECT_RMV_SUSPICION");
+    define("EFFECT_TAKE_TAX", "EFFECT_TAKE_TAX");
+    define("EVENT_INQUISITION", "EVENT_INQUISITION");
+    define("GREEN_SUIT", "GREEN_SUIT");
+    define('RESOURCE_COIN', 'coin');
+    define("RESOURCE_DEBT", "RESOURCE_DEBT");
+    define("RESOURCE_PAID_DEBT", "RESOURCE_PAID_DEBT");
+    define("RESOURCE_PROVISION", "provision");
+    define("RESOURCE_SUSPICION", "RESOURCE_SUSPICION");
+    define("RESOURCE_UNPAID_DEBT", "RESOURCE_UNPAID_DEBT");
+    define("WORKER_BLACK", "WORKER_BLACK");
+    define("WORKER_BLUE", "WORKER_BLUE");
+    define("WORKER_GREEN", "WORKER_GREEN");
+    define("WORKER_PURPLE", "WORKER_PURPLE");
+    define("WORKER_RED", "WORKER_RED");
+    define("WORKER_WHITE", "WORKER_WHITE");
+    define("YELLOW_SUIT", "YELLOW_SUIT");
 }
-
 
 
 class PaladinsShipped extends Table
@@ -139,7 +180,7 @@ class PaladinsShipped extends Table
     protected function getAllDatas()
     {
 
-        $gameinfos = self::getGameinfos();        
+        $gameinfos = self::getGameinfos();
         $result = array();
 
         $result['game_interface_width'] = $gameinfos['game_interface_width'];
@@ -156,9 +197,9 @@ class PaladinsShipped extends Table
 
         $result['outsider_display'] = $this->deck->getCardsInLocation("outsider_display");
         $result['townsfolk_display'] = $this->deck->getCardsInLocation("townsfolk_display");
-
-        // TODO: Gather all information about current game situation (visible by player $current_player_id).
-
+        $result['townsfolk_material'] = $this->tf_cards_material;
+        $result['paladin_material'] = $this->paladins_cards_material;
+        $result['player_paladin_hand'] = $this->deck->getCardsInLocation('paladin_hand', $current_player_id);
         return $result;
     }
 
@@ -187,6 +228,37 @@ class PaladinsShipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
+    public function dealPaladinCards($players) {
+        self::notifyAllPlayers("message", clienttranslate('Each player draws their top 3 paladin cards'), array());
+        foreach ($players as $player_id => $player) {
+            $cards = $this->deck->pickCardsForLocation(3, "paladin_deck_{$player_id}", 'paladin_hand', $player_id);
+            // self::notifyPlayer($player_id, "paladinCards", '', array("cards" => $cards));
+        }
+    }
+
+    public function resolveEffectForPlayer($effect, $player_id, $qty = 1)
+    {
+        $resource = "";
+        if ($effect == EFFECT_RMV_SUSPICION) {
+            $suspicion_cards = $this->deck->countCardInLocation("suspicion_deck_$player_id");
+            if ($suspicion_cards) {
+                $top_suspicion_location = $this->deck->getExtremePosition(true, "suspicion_deck_$player_id");
+                $this->dump($top_suspicion_location);
+                // TODO: discard top player suspicion to the top of discard
+            }
+            else {
+                // no suspicion to discard
+            }
+        }
+        if ($effect == RESOURCE_PROVISION || $effect == RESOURCE_COIN) {
+            $resource = $effect;
+        }
+        if ($resource) {
+            $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
+            self::DbQuery($sql);
+        }
+    }
+
     public function setNextFirstPlayer()
     {
         $this->activeNextPlayer();
@@ -205,7 +277,7 @@ class PaladinsShipped extends Table
         $this->deck->createCards($os_cards, 'outsider_deck');
         $this->deck->shuffle('outsider_deck');
         $this->deck->pickCardsForLocation(6, 'outsider_deck', 'outsider_display');
-        $this->slideCards(card_type: 'outsider', trigger_by: 'game_setup');
+        $this->slideCards('outsider', 'game_setup');
 
         $tf_cards = array();
         foreach ($this->tf_cards_material as $tf_card_id => $tf_card_type) {
@@ -214,7 +286,7 @@ class PaladinsShipped extends Table
         $this->deck->createCards($tf_cards, 'townsfolk_deck');
         $this->deck->shuffle('townsfolk_deck');
         $this->deck->pickCardsForLocation(5, 'townsfolk_deck', 'townsfolk_display');
-        $this->slideCards(card_type: 'townsfolk', trigger_by: 'game_setup');
+        $this->slideCards('townsfolk', 'game_setup');
 
         $tavern_cards = array();
         foreach ($this->tavern_cards_material as $tavern_card_id => $tavern_card_type) {
@@ -233,7 +305,7 @@ class PaladinsShipped extends Table
 
         $suspicion_cards = array();
         foreach ($this->suspicion_cards_material as $suspicion_card_id => $suspicion_card_qty) {
-            $suspicion_cards[] = array('type' => 'suspicion', 'type_arg' => $suspicion_card_id, 'nbr' => $suspicion_card_qty);
+            $suspicion_cards[] = array('type' => CARD_TYPE_SUSPICION, 'type_arg' => $suspicion_card_id, 'nbr' => $suspicion_card_qty);
         }
         $this->deck->createCards($suspicion_cards, 'suspicion_deck');
         $this->deck->shuffle('suspicion_deck');
@@ -252,18 +324,18 @@ class PaladinsShipped extends Table
         $this->deck->createCards($kingsfavour_cards, 'kingsfavour_deck');
         $this->deck->shuffle('kingsfavour_deck');
 
-        $paladin_sets = self::getObjectListFromDB("SELECT paladin_board FROM player", true);
-        foreach($paladin_sets as $paladin_set) {
-            $my_set = array_filter(
+        $paladin_sets = $this->getCollectionFromDB("SELECT player_id, paladin_board FROM player", true);
+        foreach($paladin_sets as $player_id => $set_name) {
+            $cards_from_set = array_filter(
                 $this->paladins_cards_material,
-                function ($card_type) use ($paladin_set) {return $card_type['set'] == $paladin_set;}
+                function ($card_type) use ($set_name) {return $card_type['set'] == $set_name;}
             );
-            foreach($my_set as $paladin_card_id => $paladin_card_type) {
-                $paladin_cards = [];
+            $paladin_cards = [];
+            foreach($cards_from_set as $paladin_card_id => $paladin_card_type) {
                 $paladin_cards[] = ['type' => CARD_TYPE_PALADIN, 'type_arg' => $paladin_card_id, 'nbr' => 1];
-                $this->deck->createCards($paladin_cards, "paladin_{$paladin_set}_deck");
-                $this->deck->shuffle("paladin_{$paladin_set}_deck");
             }
+            $this->deck->createCards($paladin_cards, "paladin_deck_{$player_id}");
+            $this->deck->shuffle("paladin_deck_{$player_id}");
         }
     }
 
@@ -350,6 +422,12 @@ class PaladinsShipped extends Table
         $player_id = self::getCurrentPlayerId();
         $townsfolk_card_info = $this->getCardInfoByGlobalId($townsfolk_card_id);
         $this->deck->moveCard($townsfolk_card_id, "hand", $player_id);
+        if (isset($townsfolk_card_info['purchase_bonus'])) {
+            $this->resolveEffectForPlayer(
+                $townsfolk_card_info['purchase_bonus'],
+                $player_id
+            );
+        }
         self::notifyAllPlayers(
             "message",
             clienttranslate('${player_name} hires ${townsfolk_name}'),
@@ -365,7 +443,11 @@ class PaladinsShipped extends Table
     {
         self::checkAction('pickPaladins');
         $player_id = self::getCurrentPlayerId();
-        // TODO: WIP
+        self::notifyAllPlayers("pickedPaladins", clienttranslate('${player_name} has picked their Paladins'), array(
+            'player_id' => $player_id,
+            'player_name' => $this->getPlayerNameById($player_id)
+        ));
+        $this->gamestate->setPlayerNonMultiactive($player_id, "done");
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -426,16 +508,25 @@ class PaladinsShipped extends Table
         }
         if ($new_round >= 2) {
             $this->setNextFirstPlayer();
-            $this->refillDisplays();
+            $this->refillDisplays(); // TODO, need to refill tf on round 1
         }
         self::setGameStateValue('current_round', $new_round);
         $this->revealTaverns();
         $this->gamestate->nextState('done');
     }
 
-    public function stGameChoosePaladins()
+    public function stGamePickPaladins()
     {
+        $players = self::loadPlayersBasicInfos();
+        $first_player_id = self::getNextPlayerTable()[0];
+        $this->gamestate->changeActivePlayer($first_player_id);       //change back to first player
 
+        $this->dealPaladinCards($players);
+        foreach ($players as $player_id => $player) {
+            $this->giveExtraTime($player_id);
+        }
+        $this->gamestate->setAllPlayersMultiactive();
+        $this->gamestate->nextState("transPickPaladins");
     }
     //////////////////////////////////////////////////////////////////////////////
     //////////// Zombie
