@@ -246,9 +246,6 @@ class PaladinsShipped extends Table
                 $this->dump($top_suspicion_location);
                 // TODO: discard top player suspicion to the top of discard
             }
-            else {
-                // no suspicion to discard
-            }
         }
         if ($effect == RESOURCE_PROVISION || $effect == RESOURCE_COIN) {
             $resource = $effect;
@@ -404,9 +401,7 @@ class PaladinsShipped extends Table
     public function getCardInfoByGlobalId($card_id)
     {
         $card = $this->deck->getCard($card_id);
-        if ($card['type'] == 'outsider') {
-            return $this->os_cards_material[$card['type_arg']];
-        } elseif ($card['type'] == 'townsfolk') {
+        if ($card['type'] == CARD_TYPE_TOWNSFOLK ) {
             return $this->tf_cards_material[$card['type_arg']];
         }
         return new stdClass();
@@ -487,30 +482,30 @@ class PaladinsShipped extends Table
         if (!$this->deck->getPlayerHand($next_player_id)) {
             $this->gamestate->changeActivePlayer($next_player_id);
             $this->gamestate->nextState('transHireInitialTownsfolk');
-        } else {
-            $this->gamestate->nextState('transStartGame');
+            return;
         }
+        $this->gamestate->nextState('transStartGame');
     }
 
     // wonder how to test this
     public function stGameSetupNewRound()
     {
-        $new_round = intval(self::getGameStateValue('current_round')) + 1;
-        if ($new_round > 7) {
+        $next_round = intval(self::getGameStateValue('current_round')) + 1;
+        if ($next_round > 7) {
             $this->gamestate->nextState('calculateScores');
             return; //bye
         }
-        if ($new_round <= 3) {
-            $this->revealKingsOrder($new_round);
+        if ($next_round <= 3) {
+            $this->revealKingsOrder($next_round);
         }
-        if ($new_round >= 3) {
-            $this->revealKingsFavour($new_round);
+        if ($next_round >= 3) {
+            $this->revealKingsFavour($next_round);
         }
-        if ($new_round >= 2) {
+        if ($next_round >= 2) {
             $this->setNextFirstPlayer();
             $this->refillDisplays(); // TODO, need to refill tf on round 1
         }
-        self::setGameStateValue('current_round', $new_round);
+        self::setGameStateValue('current_round', $next_round);
         $this->revealTaverns();
         $this->gamestate->nextState('done');
     }
