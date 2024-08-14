@@ -35,6 +35,8 @@ class action_paladinsshipped extends APP_GameAction
             self::trace("Complete reinitialization of board game");
         }
     }
+
+    // TODO: defines your action entry points there
     public function hireInitialTownsfolk()
     {
         self::setAjaxMode();
@@ -42,9 +44,15 @@ class action_paladinsshipped extends APP_GameAction
         $this->game->hireInitialTownsfolk($townsfolk_card_id);
         self::ajaxResponse();
     }
-
-    // TODO: defines your action entry points there
-
+    public function pickPaladins()
+    {
+        self::setAjaxMode();
+        $bottom_paladin = self::getArg("bottom_id", AT_int, true);
+        $chosen_paladin = self::getArg("chosen_id", AT_int, true);
+        $top_paladin = self::getArg("top_id", AT_int, true);
+        $this->game->pickPaladins($bottom_paladin, $chosen_paladin, $top_paladin);
+        self::ajaxResponse();
+    }
 
     // SETUP
 
@@ -65,26 +73,4 @@ class action_paladinsshipped extends APP_GameAction
     // actionRecruit (worker1, worker2?, assistantPos, assistantID, debt:[True, False])
 
     // actionTrade (worker1, worker2)
-
-    /*
-
-    Example:
-
-    public function myAction()
-    {
-        self::setAjaxMode();
-
-        // Retrieve arguments
-        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
-        $arg1 = self::getArg( "myArgument1", AT_posint, true );
-        $arg2 = self::getArg( "myArgument2", AT_posint, true );
-
-        // Then, call the appropriate method in your game logic, like "playCard" or "myAction"
-        $this->game->myAction( $arg1, $arg2 );
-
-        self::ajaxResponse( );
-    }
-
-    */
-
 }

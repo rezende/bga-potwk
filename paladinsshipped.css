@@ -46,20 +46,48 @@
 
 /********* You can start writing your CSS below this line: **********/
 .main_container {
-  height: 2000px;
+  height: 1000px;
 }
 
-.mainboard_box {
+.mainboard {
   display: flex;
   flex-wrap: wrap;
   width: 100%;
-  height: 380px;
-  max-height: 100%;
+}
+
+/* I removed the transform() because it didnt change the heigth and width of the cards, just their sized, making difficult to adapt in the layout */
+
+.townsfolk {
+  min-width: 160px;
+  min-height: 250px;
+  border-radius: 15px;
+  background: url("img/sprite_townsfolk.png");
+  background-color: white;
+  transform-origin: 0px 0px;
+}
+
+.townsfolk_box {
+  display: flex;
+  width: 100%;
+  height: 130px;
+}
+
+#townsfolk_cards {
+  display: flex;
+  width: 100%;
+  max-width: 50%;
+}
+
+.mainboard_box_background {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  height: 22vh;
 }
 
 #mainboard_left {
   width: 50%;
-  min-height: 90%;
+  min-height: 100%;
   background-image: url("img/main_board_1.png");
   background-repeat: no-repeat;
   background-size: 100%;
@@ -68,16 +96,10 @@
 #mainboard_right {
   display: flex;
   width: 50%;
-  min-height: 90%;
+  min-height: 100%;
   background-image: url("img/main_board_2.png");
   background-repeat: no-repeat;
   background-size: 100%;
-}
-
-@media (min-width: 2600px) {
-  .mainboard_box {
-    height: 900px;
-  }
 }
 
 .outsider {
@@ -86,28 +108,29 @@
   border-radius: 15px;
   background: url("img/sprite_outsiders.png");
   background-color: white;
-  transform: scale(0.57);
   transform-origin: 0px 0px;
 }
 
 .outsider_box {
   display: flex;
   width: 100%;
-  justify-content: flex-end;
 }
 
 #outsider_cards {
-  width: 50%;
-  max-width: 50%;
   display: flex;
+  gap: 10px;
 }
 
-.piece.panel_parchment {
-  background-image: url("img/Provisions.png");
+.panel_parchment {
+  background-image: url("img/scroll_small.png");
   background-repeat: no-repeat;
-  /* width: 36px; */
-  /* height: 60px; */
+  transform-origin: 0px 0px;
   position: absolute;
+  right: -175px;
+  bottom: -262px;
+  width: 211px;
+  height: 284px;
+  transform: scale(0.15);
 }
 
 /*
