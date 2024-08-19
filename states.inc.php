@@ -73,7 +73,7 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must hire an initial assistant'),
         "descriptionmyturn" => clienttranslate('${you} must hire your initial assistant'),
         "type" => "activeplayer",
-        "possibleactions" => array( "hireInitialTownsfolk" ),
+        "possibleactions" => array("hireInitialTownsfolk"),
         "transitions" => array( "" => 2)
     ),
 
@@ -81,17 +81,16 @@ $machinestates = array(
         "name" => "newRound",
         "type" => "game",
         "action" => "stGameSetupNewRound",
-        "transitions" => array( "done" => 6, "calculateScores" => 98)
+        "transitions" => array( "done" => 10, "calculateScores" => 98)
     ),
 
     6 => array(
-        "name" => "choosePaladins",
-        "description" => clienttranslate("All players need to choose their Paladin for the round"),
-        "descriptionmyturn" => clienttranslate('${you} need to choose your Paladin for the round'),
+        "name" => "pickPaladins",
+        "description" => clienttranslate("All players need to choose their Paladins"),
+        "descriptionmyturn" => clienttranslate('${you} need to choose your Paladins'),
         "type" => "multipleactiveplayer",
-        "action" => "stChoosePaladins",
-        "possibleactions" => ['pickPaladins'],
-        "transitions" => array( "allDone" => 7)
+        "possibleactions" => array('pickPaladins'),
+        "transitions" => array("done" => 7)
     ),
 
     7 => array(
@@ -121,6 +120,15 @@ $machinestates = array(
         "type" => "game",
         "action" => "stPerformInquisition",
         "transitions" => array("" => 8)
+    ),
+
+    10 => array(
+        "name" => "gamePickPaladins",
+        "type" => "game",
+        "action" => "stGamePickPaladins",
+        "transitions" => array(
+            "transPickPaladins" => 6,
+        ),
     ),
 
     98 => array(
