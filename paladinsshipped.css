@@ -41,18 +41,96 @@
      Note: on the production platform, this file will be compressed and comments will be removed.
            Consequently, don't hesitate to put as many comments as necessary.
 */
+@import url(../../../css/csslayer.css);
 
 /* Note: you must not use any @import directive */
 
 /********* You can start writing your CSS below this line: **********/
-.main_container {
-  height: 1700px;
+
+@keyframes border_pulsate {
+  0% {
+    border-color: rgba(0, 255, 255, 1);
+    animation-timing-function: ease-in;
+  }
+  50% {
+    border-color: rgba(0, 0, 255, 1);
+    animation-timing-function: linear;
+  }
+  100% {
+    border-color: rgba(0, 255, 255, 1);
+    animation-timing-function: ease-out;
+  }
 }
 
-.mainboard {
+@keyframes grow_shrink {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(2) rotate(180deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+  }
+}
+
+/* Board container */
+#boardContainer {
   display: flex;
+  justify-content: center;
+  margin-top: 10px;
   flex-wrap: wrap;
-  width: 100%;
+}
+
+#mainBoardContainer {
+  padding: 5px;
+  padding-top: 10px;
+}
+
+#board {
+  position: relative;
+  width: 1468px;
+  height: 180px;
+}
+
+#boardLeft {
+  position: relative;
+  width: 734px;
+  height: 180px;
+  background-image: url("img/main_board_1.png");
+  background-size: 734px 180px;
+}
+
+#boardRight {
+  position: relative;
+  width: 734px;
+  height: 180px;
+  background-image: url("img/main_board_2.png");
+  background-size: 734px 180px;
+}
+
+/* select cards area */
+#townsfolkSelection {
+  position: relative;
+  text-align: center;
+  display: none;
+}
+
+#mainboard_left {
+  width: 50%;
+  min-height: 100%;
+  background-image: url("img/main_board_1.png");
+  background-repeat: no-repeat;
+  background-size: 100%;
+}
+
+#mainboard_right {
+  display: flex;
+  width: 50%;
+  min-height: 100%;
+  background-image: url("img/main_board_2.png");
+  background-repeat: no-repeat;
+  background-size: 100%;
 }
 
 /* I removed the transform() because it didnt change the heigth and width of the cards, just their sized, making difficult to adapt in the layout */
@@ -93,23 +171,6 @@
   height: 22vh;
 }
 
-#mainboard_left {
-  width: 50%;
-  min-height: 100%;
-  background-image: url("img/main_board_1.png");
-  background-repeat: no-repeat;
-  background-size: 100%;
-}
-
-#mainboard_right {
-  display: flex;
-  width: 50%;
-  min-height: 100%;
-  background-image: url("img/main_board_2.png");
-  background-repeat: no-repeat;
-  background-size: 100%;
-}
-
 /*mainboard middle end*/
 /*mainboard bottom start*/
 
@@ -140,17 +201,19 @@
   width: 100%;
   display: flex;
   flex-wrap: wrap;
+  margin-bottom: 100px;
   justify-content: space-between;
 }
 
 .playerboard {
-  width: 48%;
+  background-color: rgba(255, 255, 255, 0.3);
+  width: 100%;
   margin-top: 15px;
   margin-left: 10px;
 }
 
 .playerboard_box {
-  width: 100%;
+  width: 50%;
   height: 45vh;
   background-image: url("img/Playerboard.png");
   background-repeat: no-repeat;
