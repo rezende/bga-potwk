@@ -47,7 +47,7 @@ class view_paladinsshipped_paladinsshipped extends game_view
         $this->page->begin_block( "paladinsshipped_paladinsshipped", "playerboard" );
 
         foreach( $players as $player_id => $player )
-                {
+        {
             $this->page->insert_block( 'playerboard', array( 'PLAYER_ID' => $player_id ));
         }
 

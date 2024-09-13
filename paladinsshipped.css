@@ -41,7 +41,7 @@
      Note: on the production platform, this file will be compressed and comments will be removed.
            Consequently, don't hesitate to put as many comments as necessary.
 */
-@import url(../../../css/csslayer.css);
+@import url(modules/bga-zoom.css);
 
 /* Note: you must not use any @import directive */
 
@@ -82,15 +82,15 @@
   flex-wrap: wrap;
 }
 
-#mainBoardContainer {
-  padding: 5px;
-  padding-top: 10px;
-}
-
 #board {
-  position: relative;
-  width: 1468px;
-  height: 180px;
+  width: 100%;
+  margin-bottom: 15px;
+  padding: 5px;
+  background-color: rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
 }
 
 #boardLeft {
@@ -107,6 +107,45 @@
   height: 180px;
   background-image: url("img/main_board_2.png");
   background-size: 734px 180px;
+}
+
+#playersBoardContainer {
+  width: 100%;
+}
+
+.players_area {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 100px;
+  justify-content: space-between;
+}
+
+.playerboard {
+  background-color: rgba(255, 255, 255, 0.3);
+  margin-top: 15px;
+  margin-left: 10px;
+  width: 100%;
+}
+
+.playerboard_box {
+  position: relative;
+  width: 50%;
+  height: 680px;
+  background-image: url("img/Playerboard.png");
+  background-repeat: no-repeat;
+  background-size: 100%;
+}
+
+.panel_parchment {
+  background-image: url("img/scroll_small.png");
+  background-repeat: no-repeat;
+  transform-origin: 0px 0px;
+  position: absolute;
+  right: -175px;
+  bottom: -262px;
+  width: 211px;
+  height: 284px;
+  transform: scale(0.15);
 }
 
 /* select cards area */
@@ -196,41 +235,6 @@
 
 /*mainboard bottom end*/
 /* playerboard */
-
-.players_area {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  margin-bottom: 100px;
-  justify-content: space-between;
-}
-
-.playerboard {
-  background-color: rgba(255, 255, 255, 0.3);
-  width: 100%;
-  margin-top: 15px;
-  margin-left: 10px;
-}
-
-.playerboard_box {
-  width: 50%;
-  height: 45vh;
-  background-image: url("img/Playerboard.png");
-  background-repeat: no-repeat;
-  background-size: 100%;
-}
-
-.panel_parchment {
-  background-image: url("img/scroll_small.png");
-  background-repeat: no-repeat;
-  transform-origin: 0px 0px;
-  position: absolute;
-  right: -175px;
-  bottom: -262px;
-  width: 211px;
-  height: 284px;
-  transform: scale(0.15);
-}
 
 /*
     Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):

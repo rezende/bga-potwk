@@ -19,41 +19,23 @@
   <!-- boardContainer contains both the player boards and the main board -->
   <div id="boardContainer">
     <!-- mainBoardContainer contains the main board -->
-    <div id="mainBoardContainer">
-      <div id="board">
-        <div id="boardLeft"></div>
-        <div id="boardRight"></div>
-      </div>
-
-      <!-- mainBoardContainer contains the players board -->
-      <div id="playersBoardContainer">
-        <!-- BEGIN playerboard -->
-        <div class="playerboard" id="playerboard_{player_ID}">
-          <div class="playerboard_box_top">
-            <!-- walls on the left + suspicion stack on the right -->
-          </div>
-
-          <div class="playerboard_box_middle">
-            <!-- pointmarkers on the left -->
-            <!-- townsfolk marker on top left -->
-            <!-- buy markers on mid/bottom left -->
-
-            <!-- outsider defeated marker on top right (left) -->
-            <!-- converted outsider marker on top right (right) -->
-            <!-- advanced buy markers on mid right -->
-            <!-- walls marker / jars on bottom right -->
-
-            <div class="playerboard_box"></div>
-          </div>
-          <div class="playerboard_box_bottom">
-            <!-- converted outsider card -->
-          </div>
-        </div>
-        <!-- END playerboard -->
-        <div id="townsfolk_cards"></div>
-        <div id="outsider_cards"></div>
-      </div>
+    <div id="board">
+      <div id="boardLeft"></div>
+      <div id="boardRight"></div>
     </div>
+
+    <!-- mainBoardContainer contains the players board -->
+    <div id="playersBoardContainer">
+      <!-- BEGIN playerboard -->
+      <div class="playerboard" id="playerboard_{player_ID}">
+        <div class="playerboard_box_middle">
+          <div class="playerboard_box"></div>
+        </div>
+      </div>
+      <!-- END playerboard -->
+    </div>
+    <div id="townsfolk_cards" style="visibility: hidden"></div>
+    <div id="outsider_cards" style="visibility: hidden"></div>
   </div>
 </div>
 

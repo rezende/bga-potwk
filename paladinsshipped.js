@@ -18,15 +18,29 @@
 define([
   "dojo",
   "dojo/_base/declare",
+  "dojo/debounce",
   "ebg/core/gamegui",
   "ebg/counter",
-], function (dojo, declare) {
-  return declare("bgagame.paladinsshipped", ebg.core.gamegui, {
+  g_gamethemeurl + "modules/bga-zoom.js",
+], function (dojo, declare, debounce, gamegui, bgaZoom) {
+  return declare("bgagame.paladinsshipped", gamegui, {
     constructor: function () {
       // Here, you can init the global variables of your user interface
       // Example:
       // this.myGlobalValue = 0;
+
       this.uiItems = [];
+
+      this.zoomManager = new ZoomManager({
+        element: document.getElementById("zoomBox"),
+        localStorageZoomKey: "paladinsshipped-zoom",
+        defaultZoom: 1,
+
+        zoomLevels: [0.75, 1, 1.25],
+        autoZoom: {
+          expectedWidth: 1500,
+        },
+      });
     },
 
     attachFunctionsToUiItems: function () {
