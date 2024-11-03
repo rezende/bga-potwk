@@ -10,127 +10,163 @@
  * paladinsshipped.js
  *
  * PaladinsShipped user interface script
- * 
+ *
  * In this file, you are describing the logic of your user interface, in Javascript language.
  *
  */
 
 define([
-    "dojo", "dojo/_base/declare",
-    "ebg/core/gamegui",
-    "ebg/counter"
-],
-    function (dojo, declare) {
-        return declare("bgagame.paladinsshipped", ebg.core.gamegui, {
-            constructor: function () {
-                // Here, you can init the global variables of your user interface
-                // Example:
-                // this.myGlobalValue = 0;
-                this.uiItems = [];
-            },
+  "dojo",
+  "dojo/_base/declare",
+  "dojo/debounce",
+  "ebg/core/gamegui",
+  "ebg/counter",
+  g_gamethemeurl + "modules/bga-zoom.js",
+], function (dojo, declare, debounce, gamegui, bgaZoom) {
+  return declare("bgagame.paladinsshipped", gamegui, {
+    constructor: function () {
+      // Here, you can init the global variables of your user interface
+      // Example:
+      // this.myGlobalValue = 0;
 
-            attachFunctionsToUiItems: function () {
-                const _self = this;
-                this.uiItems._lastUid = 0;
+      this.uiItems = [];
 
-                this.uiItems.itemConfig = {
-                    "outsider": { cssClass: "outsider" },
-                    "townsfolk": { cssClass: "townsfolk" },
-                }
+      this.zoomManager = new ZoomManager({
+        element: document.getElementById("zoomBox"),
+        localStorageZoomKey: "paladinsshipped-zoom",
+        defaultZoom: 1,
 
-                this.uiItems.itemBackgroundConfig = {
-                    "outsider": { items_per_row: 8, width: 160, height: 250, type_property: "type_arg" },
-                    "townsfolk": { items_per_row: 6, width: 160, height: 250, type_property: "type_arg" },
-                };
+        zoomLevels: [0.75, 1, 1.25],
+        autoZoom: {
+          expectedWidth: 1500,
+        },
+      });
+    },
 
-                this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
-                    var background = { x: 0, y: 0 };
-                    background.x = (typeArg % this.itemBackgroundConfig[uiType].items_per_row) * -1 * this.itemBackgroundConfig[uiType]["width"];
-                    background.y = Math.floor(typeArg / this.itemBackgroundConfig[uiType].items_per_row) * -1 * this.itemBackgroundConfig[uiType]["height"];
-                    return background;
-                }
+    attachFunctionsToUiItems: function () {
+      const _self = this;
+      this.uiItems._lastUid = 0;
 
-                this.uiItems.getBackgroundPositionForUiItem = function (uiItem) {
-                    var background = { x: 0, y: 0 };
-                    if (this.itemBackgroundConfig[uiItem.uiType] != undefined) {
-                        var propertyName = this.itemBackgroundConfig[uiItem.uiType]["type_property"];
-                        var typeArg = parseInt(uiItem.data[propertyName]);
-                        background = this.getBackgroundPosition(uiItem.uiType, typeArg);
-                    }
-                    return background;
-                }
+      this.uiItems.itemConfig = {
+        outsider: { cssClass: "outsider" },
+        townsfolk: { cssClass: "townsfolk" },
+      };
 
-                this.uiItems.setBackgroundUiItem = function (uiItem) {
-                    const background = this.getBackgroundPositionForUiItem(uiItem);
-                    dojo.setStyle(
-                        uiItem.htmlNode,
-                        "background-position",
-                        background.x + "px" + " " + background.y + "px"
-                    );
-                }
+      this.uiItems.itemBackgroundConfig = {
+        outsider: {
+          items_per_row: 8,
+          width: 160,
+          height: 250,
+          type_property: "type_arg",
+        },
+        townsfolk: {
+          items_per_row: 6,
+          width: 160,
+          height: 250,
+          type_property: "type_arg",
+        },
+      };
 
-                this.uiItems.createAndAddItem = function (uiType, params) {
-                    this._lastUid++;
-                    var htmlNode = null;
+      this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
+        var background = { x: 0, y: 0 };
+        background.x =
+          (typeArg % this.itemBackgroundConfig[uiType].items_per_row) *
+          -1 *
+          this.itemBackgroundConfig[uiType]["width"];
+        background.y =
+          Math.floor(
+            typeArg / this.itemBackgroundConfig[uiType].items_per_row
+          ) *
+          -1 *
+          this.itemBackgroundConfig[uiType]["height"];
+        return background;
+      };
 
-                    htmlNode = dojo.create("div", { "class": this.itemConfig[uiType].cssClass });
-                    dojo.setAttr(htmlNode, "id", "uid-" + this._lastUid);
+      this.uiItems.getBackgroundPositionForUiItem = function (uiItem) {
+        var background = { x: 0, y: 0 };
+        if (this.itemBackgroundConfig[uiItem.uiType] != undefined) {
+          var propertyName =
+            this.itemBackgroundConfig[uiItem.uiType]["type_property"];
+          var typeArg = parseInt(uiItem.data[propertyName]);
+          background = this.getBackgroundPosition(uiItem.uiType, typeArg);
+        }
+        return background;
+      };
 
-                    dojo.setAttr(htmlNode, "data-uid", "uid-" + this._lastUid);
+      this.uiItems.setBackgroundUiItem = function (uiItem) {
+        const background = this.getBackgroundPositionForUiItem(uiItem);
+        dojo.setStyle(
+          uiItem.htmlNode,
+          "background-position",
+          background.x + "px" + " " + background.y + "px"
+        );
+      };
 
-                    const item = {
-                        "uid": this._lastUid,
-                        "uiType": uiType,
-                        "data": params,
-                        "htmlNode": htmlNode,
-                        uiPosition: 0
-                    };
-                    this.setBackgroundUiItem(item);
-                    this.push(item);
-                    return item;
-                }
+      this.uiItems.createAndAddItem = function (uiType, params) {
+        this._lastUid++;
+        var htmlNode = null;
 
-                this.uiItems.createItems = function (uiType, dataArray) {
-                    this.createItemsViaCallback(function (d) { return uiType; }, dataArray);
-                }
+        htmlNode = dojo.create("div", {
+          class: this.itemConfig[uiType].cssClass,
+        });
+        dojo.setAttr(htmlNode, "id", "uid-" + this._lastUid);
 
-                this.uiItems.createItemsViaCallback = function (dataCallback, dataArray) {
-                    for (var i = 0; i < dataArray.length; i++) {
-                        var data = dataArray[i];
-                        this.createAndAddItem(dataCallback(data), data);
-                    }
-                }
-            },
+        dojo.setAttr(htmlNode, "data-uid", "uid-" + this._lastUid);
 
-            // onMainboardZoomPlus: function() {
-            //     this.setZoom(this.zoom + 0.1);
-            // },
-            // onMainboardZoomMinus: function() {
-            //     this.setZoom(this.zoom - 0.1);
-            // },
+        const item = {
+          uid: this._lastUid,
+          uiType: uiType,
+          data: params,
+          htmlNode: htmlNode,
+          uiPosition: 0,
+        };
+        this.setBackgroundUiItem(item);
+        this.push(item);
+        return item;
+      };
 
-            // setMainboardZoom: function (zoom) {
-            //    zoom = parseInt(zoom) || 0;
-            //    if (zoom === 0 || zoom < 0.1 || zoom > 10) {
-            //      zoom = 1;
-            //    }
-            //    this.zoom = zoom;
-            //    var inner = document.getElementById("mainboard_box");
+      this.uiItems.createItems = function (uiType, dataArray) {
+        this.createItemsViaCallback(function (d) {
+          return uiType;
+        }, dataArray);
+      };
 
-            //    if (zoom == 1) {
-            //      inner.style.removeProperty("transform");
-            //      inner.style.removeProperty("width");
-            //    } else {
-            //      inner.style.transform = "scale(" + zoom + ")";
-            //      inner.style.transformOrigin = "0 0";
-            //      inner.style.width = 200 / zoom + "%";
-            //    }
-            //    localStorage.setItem(`${this.game_name}_zoom`, "" + this.zoom);
-            //    this.onScreenWidthChange();
-            // },
+      this.uiItems.createItemsViaCallback = function (dataCallback, dataArray) {
+        for (var i = 0; i < dataArray.length; i++) {
+          var data = dataArray[i];
+          this.createAndAddItem(dataCallback(data), data);
+        }
+      };
+    },
 
+    // onMainboardZoomPlus: function() {
+    //     this.setZoom(this.zoom + 0.1);
+    // },
+    // onMainboardZoomMinus: function() {
+    //     this.setZoom(this.zoom - 0.1);
+    // },
 
-            /*
+    // setMainboardZoom: function (zoom) {
+    //    zoom = parseInt(zoom) || 0;
+    //    if (zoom === 0 || zoom < 0.1 || zoom > 10) {
+    //      zoom = 1;
+    //    }
+    //    this.zoom = zoom;
+    //    var inner = document.getElementById("mainboard_box");
+
+    //    if (zoom == 1) {
+    //      inner.style.removeProperty("transform");
+    //      inner.style.removeProperty("width");
+    //    } else {
+    //      inner.style.transform = "scale(" + zoom + ")";
+    //      inner.style.transformOrigin = "0 0";
+    //      inner.style.width = 200 / zoom + "%";
+    //    }
+    //    localStorage.setItem(`${this.game_name}_zoom`, "" + this.zoom);
+    //    this.onScreenWidthChange();
+    // },
+
+    /*
                 setup:
                 
                 This method must set up the game user interface according to current game situation specified
@@ -143,78 +179,89 @@ define([
                 "gamedatas" argument contains all datas retrieved by your "getAllDatas" PHP method.
             */
 
-            getValuesFromObject: function (data) {
-                var values = [];
-                for (var key in data) {
-                    values.push(data[key]);
-                }
-                return values;
-            },
+    getValuesFromObject: function (data) {
+      var values = [];
+      for (var key in data) {
+        values.push(data[key]);
+      }
+      return values;
+    },
 
-            setup: function (gamedatas) {
-                console.log("gameDatas", gamedatas);
-                this.min_width_viewport = gamedatas.game_interface_width.min;
-                this.max_width_viewport = gamedatas.game_interface_width.max;
-                this.onScreenWidthChange();
+    setup: function (gamedatas) {
+      console.log("gameDatas", gamedatas);
+      this.min_width_viewport = gamedatas.game_interface_width.min;
+      this.max_width_viewport = gamedatas.game_interface_width.max;
+      this.onScreenWidthChange();
 
-                console.log("Starting game setup");
-                this.outsider_display = gamedatas.outsider_display;
-                this.townsfolk_display = gamedatas.townsfolk_display;
-                this.townsfolk_material = gamedatas.townsfolk_material;
-                this.paladin_material = gamedatas.paladin_material;
-                this.paladin_hand = gamedatas.player_paladin_hand;
-                this.attachFunctionsToUiItems();
-                this.uiItems.createItems("outsider", this.getValuesFromObject(this.outsider_display));
-                this.uiItems.createItems("townsfolk", this.getValuesFromObject(this.townsfolk_display));
-                this.setupNotifications();
-                this.drawUi();
+      console.log("Starting game setup");
+      this.outsider_display = gamedatas.outsider_display;
+      this.townsfolk_display = gamedatas.townsfolk_display;
+      this.townsfolk_material = gamedatas.townsfolk_material;
+      this.paladin_material = gamedatas.paladin_material;
+      this.paladin_hand = gamedatas.player_paladin_hand;
+      this.attachFunctionsToUiItems();
 
-                // Setting up player boards
-                for (const player_id in gamedatas.players) {
-                    const player = gamedatas.players[player_id];
-                    // TODO: Setting up players boards if needed
-                    dojo.place(this.format_block(
-                        'jstpl_player_panel_extension', { player_id: player_id }),
-                        $('player_board_' + player_id)
-                    );
-                    if (player.parchment == "1") {
-                        this.updateParchment(player_id);
-                    }
-                }
+      this.uiItems.createItems(
+        "outsider",
+        this.getValuesFromObject(this.outsider_display)
+      );
+      this.uiItems.createItems(
+        "townsfolk",
+        this.getValuesFromObject(this.townsfolk_display)
+      );
+      this.setupNotifications();
+      this.drawUi();
 
-                // TODO: Set up your game interface here, according to "gamedatas"
-                // Setup game notifications to handle (see "setupNotifications" method below)
-                this.addTooltipToClass('.panel_parchment', _("Parchment, indicates the first player of each round"), "");
-                console.log("Ending game setup");
-            },
+      // Setting up player boards
+      for (const player_id in gamedatas.players) {
+        const player = gamedatas.players[player_id];
+        // TODO: Setting up players boards if needed
+        dojo.place(
+          this.format_block("jstpl_player_panel_extension", {
+            player_id: player_id,
+          }),
+          $("player_board_" + player_id)
+        );
+        if (player.parchment == "1") {
+          this.updateParchment(player_id);
+        }
+      }
 
+      // TODO: Set up your game interface here, according to "gamedatas"
+      // Setup game notifications to handle (see "setupNotifications" method below)
+      this.addTooltipToClass(
+        ".panel_parchment",
+        _("Parchment, indicates the first player of each round"),
+        ""
+      );
+      console.log("Ending game setup");
+    },
 
-            // To be overrided by games
-            onScreenWidthChange: function () {
-            // Remove broken "zoom" property added by BGA framework
-                this.gameinterface_zoomFactor = 1;
-                $("page-content").style.removeProperty("zoom");
-                $("page-title").style.removeProperty("zoom");
-                $("right-side-first-part").style.removeProperty("zoom");     
-                
-                            
-                var viewport = document.querySelector('meta[name="viewport"]');
-                if (viewport) {
-                   viewport.content = this.default_viewport;
-                }
-            },
+    // To be overrided by games
+    onScreenWidthChange: function () {
+      // Remove broken "zoom" property added by BGA framework
+      this.gameinterface_zoomFactor = 1;
+      $("page-content").style.removeProperty("zoom");
+      $("page-title").style.removeProperty("zoom");
+      $("right-side-first-part").style.removeProperty("zoom");
 
-            ///////////////////////////////////////////////////
-            //// Game & client states
+      var viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.content = this.default_viewport;
+      }
+    },
 
-            // onEnteringState: this method is called each time we are entering into a new game state.
-            //                  You can use this method to perform some user interface changes at this moment.
-            //
-            onEnteringState: function (stateName, args) {
-                console.log('Entering state: ' + stateName);
+    ///////////////////////////////////////////////////
+    //// Game & client states
 
-                switch (stateName) {
-                    /* Example:
+    // onEnteringState: this method is called each time we are entering into a new game state.
+    //                  You can use this method to perform some user interface changes at this moment.
+    //
+    onEnteringState: function (stateName, args) {
+      console.log("Entering state: " + stateName);
+
+      switch (stateName) {
+        /* Example:
                     
                     case 'myGameState':
                     
@@ -224,21 +271,19 @@ define([
                         break;
                    */
 
+        case "dummmy":
+          break;
+      }
+    },
 
-                    case 'dummmy':
-                        break;
-                }
-            },
+    // onLeavingState: this method is called each time we are leaving a game state.
+    //                 You can use this method to perform some user interface changes at this moment.
+    //
+    onLeavingState: function (stateName) {
+      console.log("Leaving state: " + stateName);
 
-            // onLeavingState: this method is called each time we are leaving a game state.
-            //                 You can use this method to perform some user interface changes at this moment.
-            //
-            onLeavingState: function (stateName) {
-                console.log('Leaving state: ' + stateName);
-
-                switch (stateName) {
-
-                    /* Example:
+      switch (stateName) {
+        /* Example:
                     
                     case 'myGameState':
                     
@@ -248,21 +293,20 @@ define([
                         break;
                    */
 
+        case "dummmy":
+          break;
+      }
+    },
 
-                    case 'dummmy':
-                        break;
-                }
-            },
+    // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
+    //                        action status bar (ie: the HTML links in the status bar).
+    //
+    onUpdateActionButtons: function (stateName, args) {
+      console.log("onUpdateActionButtons: " + stateName);
 
-            // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
-            //                        action status bar (ie: the HTML links in the status bar).
-            //        
-            onUpdateActionButtons: function (stateName, args) {
-                console.log('onUpdateActionButtons: ' + stateName);
-
-                if (this.isCurrentPlayerActive()) {
-                    switch (stateName) {
-                    /*               
+      if (this.isCurrentPlayerActive()) {
+        switch (stateName) {
+          /*               
                         Example:
                         case 'myGameState':
                             // Add 3 action buttons in the action status bar:
@@ -271,97 +315,115 @@ define([
                             this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
                             break;
                     */
-                        case 'hireInitialTownsfolk':
-                            for (const [tf_id, value] of Object.entries(this.townsfolk_display)) {
-                                const tf_name = this.townsfolk_material[value.type_arg].name
-                                this.addActionButton(
-                                    `btnHire_${tf_id}`,
-                                    _(`Hire ${tf_name} (${tf_id})`),
-                                    dojo.hitch(this, dojo.partial(this.onClickConfirmTownsfolk, tf_id))
-                                );
-                            }
-                            break;
-                        case 'pickPaladins':
-                            const cards = Object.entries(this.paladin_hand);
-                            console.log("my paladin hand", cards);
-                            const paladin_1_id = cards[0][0];
-                            const paladin_2_id = cards[1][0];
-                            const paladin_3_id = cards[2][0];
-                            const paladin_1_name = this.paladin_material[cards[0][1].type_arg].name;
-                            const paladin_2_name = this.paladin_material[cards[1][1].type_arg].name;
-                            const paladin_3_name = this.paladin_material[cards[2][1].type_arg].name;
-                            this.addActionButton(
-                                `btnPickPaladin_${paladin_1_id}`,
-                                _(`Bottom: ${paladin_1_name} Chosen: ${paladin_2_name} Top: ${paladin_3_name}`),
-                                dojo.hitch(this, dojo.partial(this.onClickConfirmPaladins, paladin_1_id, paladin_2_id, paladin_3_id))
-                            );
-                            break;
-                    }
-                }
-            },
+          case "hireInitialTownsfolk":
+            for (const [tf_id, value] of Object.entries(
+              this.townsfolk_display
+            )) {
+              const tf_name = this.townsfolk_material[value.type_arg].name;
+              this.addActionButton(
+                `btnHire_${tf_id}`,
+                _(`Hire ${tf_name} (${tf_id})`),
+                dojo.hitch(
+                  this,
+                  dojo.partial(this.onClickConfirmTownsfolk, tf_id)
+                )
+              );
+            }
+            break;
+          case "pickPaladins":
+            const cards = Object.entries(this.paladin_hand);
+            console.log("my paladin hand", cards);
+            const paladin_1_id = cards[0][0];
+            const paladin_2_id = cards[1][0];
+            const paladin_3_id = cards[2][0];
+            const paladin_1_name =
+              this.paladin_material[cards[0][1].type_arg].name;
+            const paladin_2_name =
+              this.paladin_material[cards[1][1].type_arg].name;
+            const paladin_3_name =
+              this.paladin_material[cards[2][1].type_arg].name;
+            this.addActionButton(
+              `btnPickPaladin_${paladin_1_id}`,
+              _(
+                `Bottom: ${paladin_1_name} Chosen: ${paladin_2_name} Top: ${paladin_3_name}`
+              ),
+              dojo.hitch(
+                this,
+                dojo.partial(
+                  this.onClickConfirmPaladins,
+                  paladin_1_id,
+                  paladin_2_id,
+                  paladin_3_id
+                )
+              )
+            );
+            break;
+        }
+      }
+    },
 
-            ///////////////////////////////////////////////////
-            //// Utility methods
+    ///////////////////////////////////////////////////
+    //// Utility methods
 
-            /*
+    /*
             
                 Here, you can defines some utility methods that you can use everywhere in your javascript
                 script.
             
             */
-           
-            getPositionForUiItem: function (uiItem) {
-                var position = { top: null, left: null };
-                return position;
-            },
-           
-            positionUiItem: function (uiItem) {
-                var position = this.getPositionForUiItem(uiItem);
-                if (position.top != null && position.left != null) {
-                    dojo.setStyle(uiItem.htmlNode, "top", position.top + "px");
-                    dojo.setStyle(uiItem.htmlNode, "left", position.left + "px");
-                }
-            },
 
-            moveUiItemToParentContainer: function (uiItem, parentContainer) {
-                if (parentContainer != null) {
-                    dojo.place(uiItem.htmlNode, parentContainer);
-                    this.positionUiItem(uiItem);
-                }
-            },
+    getPositionForUiItem: function (uiItem) {
+      var position = { top: null, left: null };
+      return position;
+    },
 
-            getParentContainerForUiItem: function (uiItem) {
-                var containerName = "";
-                if (uiItem.uiType == "outsider") {
-                    containerName = "outsider_cards"
-                }
-                if (uiItem.uiType == "townsfolk") {
-                    containerName = "townsfolk_cards"
-                }
-                return containerName;
-            },
+    positionUiItem: function (uiItem) {
+      var position = this.getPositionForUiItem(uiItem);
+      if (position.top != null && position.left != null) {
+        dojo.setStyle(uiItem.htmlNode, "top", position.top + "px");
+        dojo.setStyle(uiItem.htmlNode, "left", position.left + "px");
+      }
+    },
 
-            drawUiItem: function (uiItem) {
-                var parentContainer = this.getParentContainerForUiItem(uiItem);
-                this.moveUiItemToParentContainer(uiItem, parentContainer);
-            },
+    moveUiItemToParentContainer: function (uiItem, parentContainer) {
+      if (parentContainer != null) {
+        dojo.place(uiItem.htmlNode, parentContainer);
+        this.positionUiItem(uiItem);
+      }
+    },
 
-            drawUi: function () {
-                for (var i = 0; i < this.uiItems.length; i++) {
-                    var uiItem = this.uiItems[i];
-                    this.drawUiItem(uiItem);
-                }
-            },
+    getParentContainerForUiItem: function (uiItem) {
+      var containerName = "";
+      if (uiItem.uiType == "outsider") {
+        containerName = "outsider_cards";
+      }
+      if (uiItem.uiType == "townsfolk") {
+        containerName = "townsfolk_cards";
+      }
+      return containerName;
+    },
 
-            updateParchment: function (playerId) {
-                dojo.query('.panel_parchment').style("display", "none");
-                dojo.setStyle($('panel_parchment_' + playerId), "display", "inline");
-            },
+    drawUiItem: function (uiItem) {
+      var parentContainer = this.getParentContainerForUiItem(uiItem);
+      this.moveUiItemToParentContainer(uiItem, parentContainer);
+    },
 
-            ///////////////////////////////////////////////////
-            //// Player's action
+    drawUi: function () {
+      for (var i = 0; i < this.uiItems.length; i++) {
+        var uiItem = this.uiItems[i];
+        this.drawUiItem(uiItem);
+      }
+    },
 
-            /*
+    updateParchment: function (playerId) {
+      dojo.query(".panel_parchment").style("display", "none");
+      dojo.setStyle($("panel_parchment_" + playerId), "display", "inline");
+    },
+
+    ///////////////////////////////////////////////////
+    //// Player's action
+
+    /*
             
                 Here, you are defining methods to handle player's action (ex: results of mouse click on 
                 game objects).
@@ -372,7 +434,7 @@ define([
             
             */
 
-            /* Example:
+    /* Example:
             
             onMyMethodToCall1: function( evt )
             {
@@ -406,41 +468,40 @@ define([
             
             */
 
+    onClickConfirmTownsfolk: function (townsfolk_card_id) {
+      this.checkAction("hireInitialTownsfolk");
+      this.ajaxcall(
+        "/paladinsshipped/paladinsshipped/hireInitialTownsfolk.html",
+        {
+          lock: true,
+          townsfolk_card_id: townsfolk_card_id,
+        },
+        this,
+        function (result) {},
+        function (error) {}
+      );
+    },
 
-            onClickConfirmTownsfolk: function (townsfolk_card_id) {
-                this.checkAction('hireInitialTownsfolk');
-                this.ajaxcall(
-                    "/paladinsshipped/paladinsshipped/hireInitialTownsfolk.html",
-                    {
-                        lock: true,
-                        "townsfolk_card_id": townsfolk_card_id
-                    },
-                    this,
-                    function (result) { },
-                    function (error) { }
-                );
-            },
+    onClickConfirmPaladins: function (bottom_id, chosen_id, top_id) {
+      this.checkAction("pickPaladins");
+      this.ajaxcall(
+        "/paladinsshipped/paladinsshipped/pickPaladins.html",
+        {
+          lock: true,
+          bottom_id: bottom_id,
+          chosen_id: chosen_id,
+          top_id: top_id,
+        },
+        this,
+        function (result) {},
+        function (error) {}
+      );
+    },
 
-            onClickConfirmPaladins: function (bottom_id, chosen_id, top_id) {
-                this.checkAction('pickPaladins');
-                this.ajaxcall(
-                    "/paladinsshipped/paladinsshipped/pickPaladins.html",
-                    {
-                        lock: true,
-                        "bottom_id": bottom_id,
-                        "chosen_id": chosen_id,
-                        "top_id": top_id
-                    },
-                    this,
-                    function (result) { },
-                    function (error) { }
-                );
-            },
+    ///////////////////////////////////////////////////
+    //// Reaction to cometD notifications
 
-            ///////////////////////////////////////////////////
-            //// Reaction to cometD notifications
-
-            /*
+    /*
                 setupNotifications:
                 
                 In this method, you associate each of your game notifications with your local method to handle it.
@@ -449,26 +510,26 @@ define([
                       your paladinsshipped.game.php file.
             
             */
-            setupNotifications: function () {
-                console.log('notifications subscriptions setup');
-                dojo.subscribe('moveParchment', this, "notif_moveParchment");
+    setupNotifications: function () {
+      console.log("notifications subscriptions setup");
+      dojo.subscribe("moveParchment", this, "notif_moveParchment");
 
-                // TODO: here, associate your game notifications with local methods
+      // TODO: here, associate your game notifications with local methods
 
-                // Example 1: standard notification handling
-                // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
+      // Example 1: standard notification handling
+      // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
 
-                // Example 2: standard notification handling + tell the user interface to wait
-                //            during 3 seconds after calling the method in order to let the players
-                //            see what is happening in the game.
-                // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-                // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
-                // 
-            },
+      // Example 2: standard notification handling + tell the user interface to wait
+      //            during 3 seconds after calling the method in order to let the players
+      //            see what is happening in the game.
+      // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
+      // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
+      //
+    },
 
-            // TODO: from this point and below, you can write your game notifications handling methods
+    // TODO: from this point and below, you can write your game notifications handling methods
 
-            /*
+    /*
             Example:
             
             notif_cardPlayed: function( notif )
@@ -483,9 +544,8 @@ define([
             
             */
 
-            notif_moveParchment: function (notif) {
-                this.updateParchment(notif.args.player_id);
-            },
-
-        });
-    });
+    notif_moveParchment: function (notif) {
+      this.updateParchment(notif.args.player_id);
+    },
+  });
+});
