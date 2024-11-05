@@ -533,6 +533,7 @@ define([
     setupNotifications: function () {
       console.log("notifications subscriptions setup");
       dojo.subscribe("moveParchment", this, "notif_moveParchment");
+      dojo.subscribe("paladinCards", this, "notif_paladinCards");
 
       // TODO: here, associate your game notifications with local methods
 
@@ -566,6 +567,16 @@ define([
 
     notif_moveParchment: function (notif) {
       this.updateParchment(notif.args.player_id);
+    },
+
+    notif_paladinCards: function (notif) {
+      for (const cardId in notif.args.cards) {
+        const card = notif.args.cards[cardId];
+        card.location = "paladinSelection";
+        const uiType = "paladin"
+        const params = card
+        this.uiItems.createAndAddItem(uiType, params);
+      }
     },
 
     onPaladinCardClick: function(uid) {
