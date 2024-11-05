@@ -465,11 +465,34 @@ class PaladinsShipped extends Table
         self::checkAction('pickPaladins');
         $player_id = self::getCurrentPlayerId();
 
-        self::notifyAllPlayers("pickedPaladins", clienttranslate('${player_name} has picked their Paladins'), array(
+        // Verify the cards belong to the player
+        $player_cards = $this->deck->getCardsInLocation('paladin_hand', $player_id);
+        $player_card_ids = array_map(function($card) { return $card['id']; }, $player_cards);
+        
+        if (!in_array($id_bottom, $player_card_ids) || 
+            !in_array($id_chosen, $player_card_ids) || 
+            !in_array($id_top, $player_card_ids)) {
+            throw new BgaUserException(self::_("You can only select from your own cards"));
+        }
+
+        // Move cards to their new locations
+        $this->deck->moveCard($id_bottom, "paladin_deck_{$player_id}", 0); // Bottom
+        $this->deck->moveCard($id_chosen, "paladin_hand", $player_id);     // Keep
+        $this->deck->moveCard($id_top, "paladin_deck_{$player_id}", 2);    // Top
+
+        // Notify players
+        self::notifyAllPlayers("pickedPaladins", clienttranslate('${player_name} has arranged their Paladins'), array(
             'player_id' => $player_id,
             'player_name' => $this->getPlayerNameById($player_id)
         ));
 
+        // Notify the specific player about their chosen card
+        $chosen_card = $this->deck->getCard($id_chosen);
+        self::notifyPlayer($player_id, "keepPaladin", '', array(
+            'card' => $chosen_card
+        ));
+
+        // Mark this player as done
         $this->gamestate->setPlayerNonMultiactive($player_id, "done");
     }
 
@@ -533,7 +556,7 @@ class PaladinsShipped extends Table
             $this->setNextFirstPlayer();
         }
         self::setGameStateValue('current_round', $new_round);
-        $this->refillDisplays($next_round);
+        $this->refillDisplays($new_round);
         $this->revealTaverns();
         $this->gamestate->nextState('done');
     }
@@ -542,12 +565,22 @@ class PaladinsShipped extends Table
     {
         $players = self::loadPlayersBasicInfos();
         $first_player_id = self::getNextPlayerTable()[0];
-        $this->gamestate->changeActivePlayer($first_player_id);       //change back to first player
+        $this->gamestate->changeActivePlayer($first_player_id);  // change back to first player
 
-        $this->dealPaladinCards($players);
+        // Deal 3 paladin cards to each player
         foreach ($players as $player_id => $player) {
+            $cards = $this->deck->pickCardsForLocation(3, "paladin_deck_{$player_id}", 'paladin_hand', $player_id);
+            // Notify only the specific player about their cards
+            self::notifyPlayer($player_id, "paladinCards", '', array(
+                'cards' => $cards
+            ));
             $this->giveExtraTime($player_id);
         }
+
+        // Notify all players that cards have been dealt
+        self::notifyAllPlayers("message", clienttranslate('Each player draws their top 3 paladin cards'), array());
+
+        // Set up the multiactive state for all players
         $this->gamestate->setAllPlayersMultiactive();
         $this->gamestate->nextState("transPickPaladins");
     }

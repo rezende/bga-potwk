@@ -13,7 +13,10 @@
       "
     ></div>
   </div>
-  <div id="paladinsSelection" class="whiteblock"></div>
+  <div id="paladinsSelection" class="whiteblock">
+    <div id="paladinsSelectionDescription" style="background-color: white; border-radius: 10px; padding: 20px; display: none;"></div>
+    <div id="paladin_cards" class="paladin_cards_container"></div>
+  </div>
   <div style="clear: both"></div>
 
   <!-- boardContainer contains both the player boards and the main board -->

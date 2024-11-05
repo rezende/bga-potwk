@@ -253,3 +253,29 @@
         background-repeat: none;
     }
 */
+
+.paladin {
+  min-width: 160px;
+  min-height: 250px;
+  border-radius: 15px;
+  background: url("img/sprite_paladins.png");
+  background-color: white;
+  transform-origin: 0px 0px;
+  cursor: pointer;
+}
+
+.paladin.selected {
+  box-shadow: 0 0 10px 5px gold;
+}
+
+.paladin_cards_container {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 10px;
+}
+
+#paladinsSelection {
+  position: relative;
+  text-align: center;
+}

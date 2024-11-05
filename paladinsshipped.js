@@ -50,6 +50,7 @@ define([
       this.uiItems.itemConfig = {
         outsider: { cssClass: "outsider" },
         townsfolk: { cssClass: "townsfolk" },
+        paladin: { cssClass: "paladin" }
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -65,6 +66,12 @@ define([
           height: 250,
           type_property: "type_arg",
         },
+        paladin: {
+          items_per_row: 8,
+          width: 160,
+          height: 250,
+          type_property: "type_arg"
+        }
       };
 
       this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
@@ -251,6 +258,51 @@ define([
       }
     },
 
+    setupPaladinSelection: function() {
+      dojo.style('paladinsSelection', 'display', 'block');
+      dojo.style('paladinsSelectionDescription', 'display', 'block');
+      
+      // Create paladin cards
+      this.uiItems.createItems('paladin', this.getValuesFromObject(this.paladin_hand));
+      
+      // Add click handlers
+      const paladinCards = dojo.query('.paladin');
+      paladinCards.forEach((card) => {
+        dojo.connect(card, 'onclick', this, (evt) => {
+          const uid = dojo.attr(evt.currentTarget, 'data-uid');
+          this.onPaladinCardClick(uid);
+        });
+      });
+    },
+
+    onPaladinCardClick: function (uid) {
+      const card = this.uiItems.find(item => item.uid === parseInt(uid));
+      if (!card) return;
+
+      // Toggle selection
+      const isSelected = dojo.hasClass(card.htmlNode, 'selected');
+      if (!isSelected) {
+        // Only allow selecting if less than 3 cards are selected
+        const selectedCards = dojo.query('.paladin.selected');
+        if (selectedCards.length >= 3) return;
+      }
+
+      dojo.toggleClass(card.htmlNode, 'selected');
+
+      // Check if we have exactly 3 cards selected
+      const selectedCards = dojo.query('.paladin.selected');
+      if (selectedCards.length === 3) {
+        // Get the IDs of selected cards in order
+        const selectedIds = Array.from(selectedCards).map(node => {
+          const uid = dojo.attr(node, 'data-uid');
+          const item = this.uiItems.find(item => item.uid === parseInt(uid));
+          return item.data.id;
+        });
+
+        this.onClickConfirmPaladins(selectedIds[0], selectedIds[1], selectedIds[2]);
+      }
+    },   
+
     ///////////////////////////////////////////////////
     //// Game & client states
 
@@ -261,16 +313,9 @@ define([
       console.log("Entering state: " + stateName);
 
       switch (stateName) {
-        /* Example:
-                    
-                    case 'myGameState':
-                    
-                        // Show some HTML block at this game state
-                        dojo.style( 'my_html_block_id', 'display', 'block' );
-                        
-                        break;
-                   */
-
+        case 'pickPaladins':
+          this.setupPaladinSelection();
+          break;
         case "dummmy":
           break;
       }
@@ -330,34 +375,6 @@ define([
               );
             }
             break;
-          case "pickPaladins":
-            const cards = Object.entries(this.paladin_hand);
-            console.log("my paladin hand", cards);
-            const paladin_1_id = cards[0][0];
-            const paladin_2_id = cards[1][0];
-            const paladin_3_id = cards[2][0];
-            const paladin_1_name =
-              this.paladin_material[cards[0][1].type_arg].name;
-            const paladin_2_name =
-              this.paladin_material[cards[1][1].type_arg].name;
-            const paladin_3_name =
-              this.paladin_material[cards[2][1].type_arg].name;
-            this.addActionButton(
-              `btnPickPaladin_${paladin_1_id}`,
-              _(
-                `Bottom: ${paladin_1_name} Chosen: ${paladin_2_name} Top: ${paladin_3_name}`
-              ),
-              dojo.hitch(
-                this,
-                dojo.partial(
-                  this.onClickConfirmPaladins,
-                  paladin_1_id,
-                  paladin_2_id,
-                  paladin_3_id
-                )
-              )
-            );
-            break;
         }
       }
     },
@@ -399,6 +416,9 @@ define([
       }
       if (uiItem.uiType == "townsfolk") {
         containerName = "townsfolk_cards";
+      }
+      if (uiItem.uiType == "paladin") {
+        containerName = "paladin_cards";
       }
       return containerName;
     },
@@ -546,6 +566,34 @@ define([
 
     notif_moveParchment: function (notif) {
       this.updateParchment(notif.args.player_id);
+    },
+
+    onPaladinCardClick: function(uid) {
+      const card = this.uiItems.find(item => item.uid === parseInt(uid));
+      if (!card) return;
+      
+      // Toggle selection
+      const isSelected = dojo.hasClass(card.htmlNode, 'selected');
+      if (!isSelected) {
+        // Only allow selecting if less than 3 cards are selected
+        const selectedCards = dojo.query('.paladin.selected');
+        if (selectedCards.length >= 3) return;
+      }
+      
+      dojo.toggleClass(card.htmlNode, 'selected');
+      
+      // Check if we have exactly 3 cards selected
+      const selectedCards = dojo.query('.paladin.selected');
+      if (selectedCards.length === 3) {
+        // Get the IDs of selected cards in order
+        const selectedIds = Array.from(selectedCards).map(node => {
+          const uid = dojo.attr(node, 'data-uid');
+          const item = this.uiItems.find(item => item.uid === parseInt(uid));
+          return item.data.id;
+        });
+        
+        this.onClickConfirmPaladins(selectedIds[0], selectedIds[1], selectedIds[2]);
+      }
     },
   });
 });
