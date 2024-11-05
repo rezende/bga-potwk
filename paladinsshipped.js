@@ -43,6 +43,7 @@ define([
       });
     },
 
+    // uiItems functions
     attachFunctionsToUiItems: function () {
       const _self = this;
       this.uiItems._lastUid = 0;
@@ -50,7 +51,7 @@ define([
       this.uiItems.itemConfig = {
         outsider: { cssClass: "outsider" },
         townsfolk: { cssClass: "townsfolk" },
-        paladin: { cssClass: "paladin" }
+        paladin_card: { cssClass: "paladin_card" }
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -66,12 +67,16 @@ define([
           height: 250,
           type_property: "type_arg",
         },
-        paladin: {
+        paladin_card: {
           items_per_row: 8,
           width: 160,
           height: 250,
           type_property: "type_arg"
         }
+      };
+
+      this.uiItems.getByUiType = function (uiType) {
+        return this.filter(function (u) { return u.uiType == uiType });
       };
 
       this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
@@ -194,6 +199,7 @@ define([
       return values;
     },
 
+    // page load
     setup: function (gamedatas) {
       console.log("gameDatas", gamedatas);
       this.min_width_viewport = gamedatas.game_interface_width.min;
@@ -216,6 +222,9 @@ define([
         "townsfolk",
         this.getValuesFromObject(this.townsfolk_display)
       );
+      if (this.paladin_hand) {
+        this.createPaladinUiItems(this.paladin_hand);
+      }
       this.setupNotifications();
       this.drawUi();
 
@@ -258,21 +267,30 @@ define([
       }
     },
 
-    setupPaladinSelection: function() {
-      dojo.style('paladinsSelection', 'display', 'block');
-      dojo.style('paladinsSelectionDescription', 'display', 'block');
-      
-      // Create paladin cards
-      this.uiItems.createItems('paladin', this.getValuesFromObject(this.paladin_hand));
-      
-      // Add click handlers
-      const paladinCards = dojo.query('.paladin');
-      paladinCards.forEach((card) => {
-        dojo.connect(card, 'onclick', this, (evt) => {
-          const uid = dojo.attr(evt.currentTarget, 'data-uid');
-          this.onPaladinCardClick(uid);
-        });
-      });
+    setupPaladinSelection: function () {
+        if (this.isCurrentPlayerActive()) {
+            const paladinCards = this.uiItems.getByUiType("paladin_card");
+            console.log("paladinCards", paladinCards);
+            for (const paladinCard of paladinCards) {
+                dojo.place(paladinCard.htmlNode, "paladinsSelection");
+                this.uiItems.setBackgroundUiItem(paladinCard);
+                dojo.setStyle(paladinCard.htmlNode, "top", "");
+                dojo.setStyle(paladinCard.htmlNode, "left", "");
+                // this.removeTooltip(dojo.getAttr(paladinCard.htmlNode, "id"));
+            }
+            dojo.setStyle("paladinsSelection", "display", "block");
+            // this.uiItems.makeSelectable(paladinCards);
+        }
+    },
+
+    createPaladinUiItems: function (cards) {
+      for (const cardId in cards) {
+        const card = cards[cardId];
+        card.location = "paladinsSelection";
+        const uiType = "paladin_card"
+        const params = card
+        this.uiItems.createAndAddItem(uiType, params);
+      }
     },
 
     onPaladinCardClick: function (uid) {
@@ -417,7 +435,7 @@ define([
       if (uiItem.uiType == "townsfolk") {
         containerName = "townsfolk_cards";
       }
-      if (uiItem.uiType == "paladin") {
+      if (uiItem.uiType == "paladin_card") {
         containerName = "paladin_cards";
       }
       return containerName;
@@ -570,41 +588,8 @@ define([
     },
 
     notif_paladinCards: function (notif) {
-      for (const cardId in notif.args.cards) {
-        const card = notif.args.cards[cardId];
-        card.location = "paladinSelection";
-        const uiType = "paladin"
-        const params = card
-        this.uiItems.createAndAddItem(uiType, params);
-      }
+      this.createPaladinUiItems(notif.args.cards);
     },
 
-    onPaladinCardClick: function(uid) {
-      const card = this.uiItems.find(item => item.uid === parseInt(uid));
-      if (!card) return;
-      
-      // Toggle selection
-      const isSelected = dojo.hasClass(card.htmlNode, 'selected');
-      if (!isSelected) {
-        // Only allow selecting if less than 3 cards are selected
-        const selectedCards = dojo.query('.paladin.selected');
-        if (selectedCards.length >= 3) return;
-      }
-      
-      dojo.toggleClass(card.htmlNode, 'selected');
-      
-      // Check if we have exactly 3 cards selected
-      const selectedCards = dojo.query('.paladin.selected');
-      if (selectedCards.length === 3) {
-        // Get the IDs of selected cards in order
-        const selectedIds = Array.from(selectedCards).map(node => {
-          const uid = dojo.attr(node, 'data-uid');
-          const item = this.uiItems.find(item => item.uid === parseInt(uid));
-          return item.data.id;
-        });
-        
-        this.onClickConfirmPaladins(selectedIds[0], selectedIds[1], selectedIds[2]);
-      }
-    },
   });
 });

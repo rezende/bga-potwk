@@ -254,7 +254,7 @@
     }
 */
 
-.paladin {
+.paladin_card {
   min-width: 160px;
   min-height: 250px;
   border-radius: 15px;
@@ -264,7 +264,7 @@
   cursor: pointer;
 }
 
-.paladin.selected {
+.paladin_card.selected {
   box-shadow: 0 0 10px 5px gold;
 }
 
