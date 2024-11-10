@@ -289,7 +289,11 @@ define([
         card.location = "paladinsSelection";
         const uiType = "paladin_card"
         const params = card
-        this.uiItems.createAndAddItem(uiType, params);
+        const cardElement = this.uiItems.createAndAddItem(uiType, params);
+        
+        dojo.connect(cardElement, 'onclick', this, function() {
+          this.onPaladinCardClick(cardElement.uid);
+        });
       }
     },
 
