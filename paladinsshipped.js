@@ -68,7 +68,7 @@ define([
           type_property: "type_arg",
         },
         paladin_card: {
-          items_per_row: 8,
+          items_per_row: 7,
           width: 160,
           height: 250,
           type_property: "type_arg"
@@ -270,7 +270,6 @@ define([
     setupPaladinSelection: function () {
         if (this.isCurrentPlayerActive()) {
             const paladinCards = this.uiItems.getByUiType("paladin_card");
-            console.log("paladinCards", paladinCards);
             for (const paladinCard of paladinCards) {
                 dojo.place(paladinCard.htmlNode, "paladinsSelection");
                 this.uiItems.setBackgroundUiItem(paladinCard);
@@ -278,7 +277,8 @@ define([
                 dojo.setStyle(paladinCard.htmlNode, "left", "");
                 // this.removeTooltip(dojo.getAttr(paladinCard.htmlNode, "id"));
             }
-            dojo.setStyle("paladinsSelection", "display", "block");
+            dojo.setStyle("paladinsSelection", "display", "flex");
+            dojo.setStyle("paladinsSelection", "justify-content", "center");
             // this.uiItems.makeSelectable(paladinCards);
         }
     },

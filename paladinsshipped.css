@@ -256,23 +256,16 @@
 
 .paladin_card {
   min-width: 160px;
+  height: 130px;
   min-height: 250px;
   border-radius: 15px;
   background: url("img/sprite_paladins.png");
-  background-color: white;
-  transform-origin: 0px 0px;
-  cursor: pointer;
+  margin: 23px;
+  /* transform-origin: 0px 0px; */
 }
 
 .paladin_card.selected {
   box-shadow: 0 0 10px 5px gold;
-}
-
-.paladin_cards_container {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin: 10px;
 }
 
 #paladinsSelection {
