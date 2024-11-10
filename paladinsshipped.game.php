@@ -131,7 +131,7 @@ class PaladinsShipped extends Table
         shuffle($sets);
         $sql = "INSERT INTO player (player_id, player_color, paladin_board, player_canal, player_name, player_avatar) VALUES ";
         $values = array();
-        foreach($players as $player_id => $player) {
+        foreach ($players as $player_id => $player) {
             $set = array_shift($sets);
             $color = array_shift($default_colors);
             $values[] = "('{$player_id}','{$color}','{$set}','{$player['player_canal']}','".addslashes($player['player_name'])."','".addslashes($player['player_avatar'])."')";
@@ -230,7 +230,8 @@ class PaladinsShipped extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
-    public function refillDisplays($next_round) {
+    public function refillDisplays($next_round)
+    {
         if ($next_round < 2) {
             $this->placeNewCardsOnDisplay(CARD_TYPE_TOWNSFOLK, 'new_round', false);
             return;
@@ -238,7 +239,8 @@ class PaladinsShipped extends Table
         $this->placeNewCardsOnDisplay(CARD_TYPE_TOWNSFOLK, 'new_round');
         $this->placeNewCardsOnDisplay(CARD_TYPE_OUTSIDER, 'new_round');
     }
-    public function dealPaladinCards($players) {
+    public function dealPaladinCards($players)
+    {
         self::notifyAllPlayers("message", clienttranslate('Each player draws their top 3 paladin cards'), array());
         foreach ($players as $player_id => $player) {
             $cards = $this->deck->pickCardsForLocation(3, "paladin_deck_{$player_id}", 'paladin_hand', $player_id);
@@ -255,8 +257,7 @@ class PaladinsShipped extends Table
                 $top_suspicion_location = $this->deck->getExtremePosition(true, "suspicion_deck_$player_id");
                 $this->dump($top_suspicion_location);
                 // TODO: discard top player suspicion to the top of discard
-            }
-            else {
+            } else {
                 // no suspicion to discard
             }
         }
@@ -335,13 +336,13 @@ class PaladinsShipped extends Table
         $this->deck->shuffle('kingsfavour_deck');
 
         $paladin_sets = $this->getCollectionFromDB("SELECT player_id, paladin_board FROM player", true);
-        foreach($paladin_sets as $player_id => $set_name) {
+        foreach ($paladin_sets as $player_id => $set_name) {
             $cards_from_set = array_filter(
                 $this->paladins_cards_material,
                 function ($card_type) use ($set_name) {return $card_type['set'] == $set_name;}
             );
             $paladin_cards = [];
-            foreach($cards_from_set as $paladin_card_id => $paladin_card_type) {
+            foreach ($cards_from_set as $paladin_card_id => $paladin_card_type) {
                 $paladin_cards[] = ['type' => CARD_TYPE_PALADIN, 'type_arg' => $paladin_card_id, 'nbr' => 1];
             }
             $this->deck->createCards($paladin_cards, "paladin_deck_{$player_id}");
@@ -368,7 +369,10 @@ class PaladinsShipped extends Table
             $nbr = 5;
         }
         $this->deck->pickCardsForLocation(
-            $nbr - count($display), "{$card_type}_deck", "{$card_type}_display", $nbr + 1
+            $nbr - count($display),
+            "{$card_type}_deck",
+            "{$card_type}_display",
+            $nbr + 1
         );
         $this->slideCards($card_type, $trigger_by);
     }
@@ -467,10 +471,10 @@ class PaladinsShipped extends Table
 
         // Verify the cards belong to the player
         $player_cards = $this->deck->getCardsInLocation('paladin_hand', $player_id);
-        $player_card_ids = array_map(function($card) { return $card['id']; }, $player_cards);
-        
-        if (!in_array($id_bottom, $player_card_ids) || 
-            !in_array($id_chosen, $player_card_ids) || 
+        $player_card_ids = array_map(function ($card) { return $card['id']; }, $player_cards);
+
+        if (!in_array($id_bottom, $player_card_ids) ||
+            !in_array($id_chosen, $player_card_ids) ||
             !in_array($id_top, $player_card_ids)) {
             throw new BgaUserException(self::_("You can only select from your own cards"));
         }

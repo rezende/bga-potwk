@@ -42,13 +42,12 @@ class view_paladinsshipped_paladinsshipped extends game_view
 
         /*********** Place your code below:  ************/
 
-           /* FOR FUTURE ME: NESTED BLOCKS NEEDS TO BE DECLARED BEFORE THE PARENT */
+        /* FOR FUTURE ME: NESTED BLOCKS NEEDS TO BE DECLARED BEFORE THE PARENT */
 
-        $this->page->begin_block( "paladinsshipped_paladinsshipped", "playerboard" );
+        $this->page->begin_block("paladinsshipped_paladinsshipped", "playerboard");
 
-        foreach( $players as $player_id => $player )
-        {
-            $this->page->insert_block( 'playerboard', array( 'PLAYER_ID' => $player_id ));
+        foreach ($players as $player_id => $player) {
+            $this->page->insert_block('playerboard', array( 'PLAYER_ID' => $player_id ));
         }
 
         /*
