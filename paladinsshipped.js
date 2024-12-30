@@ -554,6 +554,11 @@ define([
         case "dummmy":
           break;
       }
+
+      if (this.isCurrentPlayerActive() && ["pickPaladins"].includes(stateName)) {
+        this.uiItems.resetAllSelectable();
+        this[stateName]();
+      }
     },
 
     // onLeavingState: this method is called each time we are leaving a game state.
@@ -585,6 +590,7 @@ define([
               this.townsfolk_display,
             )) {
               const tf_name = this.townsfolk_material[value.type_arg].name;
+              console.log(tf_name);
               this.addActionButton(
                 `btnHire_${tf_id}`,
                 _(`Hire ${tf_name} (${tf_id})`),
@@ -698,6 +704,17 @@ define([
           this[this.currentMove](uiItem);
         }
       }
+    },
+
+    onClickUiItem: function (evt) {
+        if (evt != null) {
+            var uid = dojo.getAttr(evt.currentTarget, "data-uid").replace("uid-", "");
+            var uiItem = this.uiItems.getByUid(uid);
+            if (uiItem.isSelectable && this[this.currentMove] != undefined) {
+                this.uiItems.toggleSelection(uiItem);
+                this[this.currentMove](uiItem);
+            }
+        }
     },
 
     onClickConfirmTownsfolk: function (townsfolk_card_id) {
