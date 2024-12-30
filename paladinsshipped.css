@@ -264,9 +264,16 @@
   /* transform-origin: 0px 0px; */
 }
 
-.paladin_card.selected {
-  box-shadow: 0 0 10px 5px gold;
+.paladin_card.selectable
+{
+    border: 6px solid cyan;
 }
+
+.paladin_card.selected
+{
+    border: 6px solid red;
+}
+
 
 #paladinsSelection {
   position: relative;

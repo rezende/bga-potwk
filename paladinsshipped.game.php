@@ -480,9 +480,9 @@ class PaladinsShipped extends Table
         }
 
         // Move cards to their new locations
-        $this->deck->moveCard($id_bottom, "paladin_deck_{$player_id}", 0); // Bottom
-        $this->deck->moveCard($id_chosen, "paladin_hand", $player_id);     // Keep
-        $this->deck->moveCard($id_top, "paladin_deck_{$player_id}", 2);    // Top
+        $this->deck->insertCardOnExtremePosition($id_bottom, "paladin_deck_{$player_id}", true); // Bottom
+        // $this->deck->moveCard($id_chosen, "paladin_hand", $player_id);     // Keep
+        $this->deck->insertCardOnExtremePosition($id_top, "paladin_deck_{$player_id}", false);    // Top
 
         // Notify players
         self::notifyAllPlayers("pickedPaladins", clienttranslate('${player_name} has arranged their Paladins'), array(

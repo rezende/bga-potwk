@@ -79,6 +79,10 @@ define([
         return this.filter(function (u) { return u.uiType == uiType });
       };
 
+      this.uiItems.getByUid = function (uid) {
+        return this.find(function (u) { return u.uid == uid });
+      }
+
       this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
         var background = { x: 0, y: 0 };
         background.x =
@@ -117,13 +121,14 @@ define([
       this.uiItems.createAndAddItem = function (uiType, params) {
         this._lastUid++;
         var htmlNode = null;
-
+        var clickHandler = null;
         htmlNode = dojo.create("div", {
           class: this.itemConfig[uiType].cssClass,
         });
         dojo.setAttr(htmlNode, "id", "uid-" + this._lastUid);
 
         dojo.setAttr(htmlNode, "data-uid", "uid-" + this._lastUid);
+        clickHandler = dojo.connect(htmlNode, "onclick", _self, "onClickUiItem");
 
         const item = {
           uid: this._lastUid,
@@ -145,10 +150,68 @@ define([
 
       this.uiItems.createItemsViaCallback = function (dataCallback, dataArray) {
         for (var i = 0; i < dataArray.length; i++) {
-          var data = dataArray[i];
+          const data = dataArray[i];
           this.createAndAddItem(dataCallback(data), data);
         }
       };
+
+      this.uiItems.resetAllSelectable = function () {
+        this.resetSelectable(this);
+      };
+
+      this.uiItems.resetSelectable = function (items) {
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          dojo.removeClass(item.htmlNode, "selectable");
+          dojo.removeClass(item.htmlNode, "selected");
+          item.isSelected = false;
+          item.isSelectable = false;
+        }
+      };
+
+      this.uiItems.makeSelectable = function (items) {
+        debugger
+        for (var i = 0; i < items.length; i++) {
+          items[i].isSelectable = true;
+          dojo.addClass(items[i].htmlNode, "selectable");
+        }
+        this.resetSelectableAnimation();
+      };
+
+      this.uiItems.resetSelectableAnimation = function ()          //need code to restart it - https://css-tricks.com/restart-css-animation/
+      {
+        const items = this.getSelectableItems(false);
+        for (var i = 0; i < items.length; i++) {
+          items[i].htmlNode.classList.remove("selectable");
+          void items[i].htmlNode.offsetWidth;
+          items[i].htmlNode.classList.add("selectable");
+        }
+      };
+
+      this.uiItems.getSelectedItems = function () {
+        return this.filter(function (u) { return u.isSelected; });
+      };
+
+      this.uiItems.getSelectableItems = function (includeSelected) {
+        if (includeSelected)
+          return this.filter(function (u) { return u.isSelectable; });
+        return this.filter(function (u) { return u.isSelectable && !u.isSelected; });
+      };
+
+      this.uiItems.toggleSelection = function (uiItem) {
+        if (uiItem.isSelectable) {
+          if (uiItem.isSelected) {
+            dojo.addClass(uiItem.htmlNode, "selectable");
+            dojo.removeClass(uiItem.htmlNode, "selected");
+          }
+          else {
+            dojo.removeClass(uiItem.htmlNode, "selectable")
+            dojo.addClass(uiItem.htmlNode, "selected");
+          }
+          uiItem.isSelected = !uiItem.isSelected;
+        }
+      };
+
     },
 
     // onMainboardZoomPlus: function() {
@@ -229,7 +292,7 @@ define([
       this.drawUi();
 
       // Setting up player boards
-      for (const player_id in gamedatas.players) {
+      for (var player_id in gamedatas.players) {
         const player = gamedatas.players[player_id];
         // TODO: Setting up players boards if needed
         dojo.place(
@@ -268,35 +331,51 @@ define([
     },
 
     setupPaladinSelection: function () {
-        if (this.isCurrentPlayerActive()) {
-            const paladinCards = this.uiItems.getByUiType("paladin_card");
-            for (const paladinCard of paladinCards) {
-                dojo.place(paladinCard.htmlNode, "paladinsSelection");
-                this.uiItems.setBackgroundUiItem(paladinCard);
-                dojo.setStyle(paladinCard.htmlNode, "top", "");
-                dojo.setStyle(paladinCard.htmlNode, "left", "");
-                // this.removeTooltip(dojo.getAttr(paladinCard.htmlNode, "id"));
-            }
-            dojo.setStyle("paladinsSelection", "display", "flex");
-            dojo.setStyle("paladinsSelection", "justify-content", "center");
-            // this.uiItems.makeSelectable(paladinCards);
+      if (this.isCurrentPlayerActive()) {
+        const paladinCards = this.uiItems.getByUiType("paladin_card");
+        for (var paladinCard of paladinCards) {
+          dojo.place(paladinCard.htmlNode, "paladinsSelection");
+          this.uiItems.setBackgroundUiItem(paladinCard);
+          dojo.setStyle(paladinCard.htmlNode, "top", "");
+          dojo.setStyle(paladinCard.htmlNode, "left", "");
+          // this.removeTooltip(dojo.getAttr(paladinCard.htmlNode, "id"));
         }
+        dojo.setStyle("paladinsSelection", "display", "flex");
+        dojo.setStyle("paladinsSelection", "justify-content", "center");
+        this.uiItems.makeSelectable(paladinCards);
+      }
     },
 
     createPaladinUiItems: function (cards) {
-      for (const cardId in cards) {
+      for (var cardId in cards) {
         const card = cards[cardId];
         card.location = "paladinsSelection";
+        card.isSelectable = true;
         const uiType = "paladin_card"
         const params = card
         const cardElement = this.uiItems.createAndAddItem(uiType, params);
-        
-        dojo.connect(cardElement, 'onclick', this, function() {
+
+        dojo.connect(cardElement, 'onclick', this, function () {
           this.onPaladinCardClick(cardElement.uid);
         });
       }
     },
 
+    // State functions
+    pickPaladins: function () {
+      var playerId = this.player_id;
+      var selectedPaladins = this.uiItems.getSelectedItems();
+
+      if (selectedPaladins.length < 3) {
+        const paladin_cards = this.uiItems.getByUiType("paladin_card").filter(function (c) { return c.data.location == "paladin_hand" && c.data.location_arg == playerId; });
+        this.uiItems.makeSelectable(paladin_cards);
+      }
+      else if (selectedPaladins.length == 3) {
+        this.sendPaladins(selectedPaladins[0].data.id, selectedPaladins[1].data.id, selectedPaladins[2].data.id);
+      }
+    },
+
+    // onClick functions
     onPaladinCardClick: function (uid) {
       const card = this.uiItems.find(item => item.uid === parseInt(uid));
       if (!card) return;
@@ -323,7 +402,7 @@ define([
 
         this.onClickConfirmPaladins(selectedIds[0], selectedIds[1], selectedIds[2]);
       }
-    },   
+    },
 
     ///////////////////////////////////////////////////
     //// Game & client states
@@ -332,6 +411,8 @@ define([
     //                  You can use this method to perform some user interface changes at this moment.
     //
     onEnteringState: function (stateName, args) {
+      this.currentMove = stateName;
+      this.currentMoveArgs = args.args;
       console.log("Entering state: " + stateName);
 
       switch (stateName) {
@@ -365,7 +446,7 @@ define([
       }
     },
 
-    // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
+    // nUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
     //                        action status bar (ie: the HTML links in the status bar).
     //
     onUpdateActionButtons: function (stateName, args) {
@@ -373,15 +454,6 @@ define([
 
       if (this.isCurrentPlayerActive()) {
         switch (stateName) {
-          /*               
-                        Example:
-                        case 'myGameState':
-                            // Add 3 action buttons in the action status bar:
-                            this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
-                            this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
-                            this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
-                            break;
-                    */
           case "hireInitialTownsfolk":
             for (const [tf_id, value] of Object.entries(
               this.townsfolk_display
@@ -510,6 +582,17 @@ define([
             
             */
 
+    onClickUiItem: function (evt) {
+      if (evt != null) {
+        var uid = dojo.getAttr(evt.currentTarget, "data-uid").replace("uid-", "");
+        var uiItem = this.uiItems.getByUid(uid);
+        if (uiItem.isSelectable && this[this.currentMove] != undefined) {
+          this.uiItems.toggleSelection(uiItem);
+          this[this.currentMove](uiItem);
+        }
+      }
+    },
+
     onClickConfirmTownsfolk: function (townsfolk_card_id) {
       this.checkAction("hireInitialTownsfolk");
       this.ajaxcall(
@@ -519,12 +602,12 @@ define([
           townsfolk_card_id: townsfolk_card_id,
         },
         this,
-        function (result) {},
-        function (error) {}
+        function (result) { },
+        function (error) { }
       );
     },
 
-    onClickConfirmPaladins: function (bottom_id, chosen_id, top_id) {
+    sendPaladins: function (bottom_id, chosen_id, top_id) {
       this.checkAction("pickPaladins");
       this.ajaxcall(
         "/paladinsshipped/paladinsshipped/pickPaladins.html",
@@ -535,8 +618,8 @@ define([
           top_id: top_id,
         },
         this,
-        function (result) {},
-        function (error) {}
+        function (result) { },
+        function (error) { }
       );
     },
 
