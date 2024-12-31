@@ -1,4 +1,5 @@
 <?php
+
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
@@ -58,14 +59,14 @@ $machinestates = array(
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
+        "transitions" => array("" => 2)
     ),
 
     2 => array(
         "name" => "prepareTownsfolk",
         "type" => "game",
         "action" => "stGameHireInitialTownsfolk",
-        "transitions" => array( "transHireInitialTownsfolk" => 3, "transStartGame" => 5)
+        "transitions" => array("transHireInitialTownsfolk" => 3, "transStartGame" => 5)
     ),
 
     3 => array(
@@ -74,14 +75,14 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must hire your initial assistant'),
         "type" => "activeplayer",
         "possibleactions" => array("hireInitialTownsfolk"),
-        "transitions" => array( "" => 2)
+        "transitions" => array("" => 2)
     ),
 
     5 => array(
         "name" => "newRound",
         "type" => "game",
         "action" => "stGameSetupNewRound",
-        "transitions" => array( "done" => 10, "calculateScores" => 98)
+        "transitions" => array("done" => 10, "calculateScores" => 98)
     ),
 
     6 => array(
@@ -98,8 +99,8 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must choose a tavern card'),
         "descriptionmyturn" => clienttranslate('${you} must choose your tavern card'),
         "type" => "activeplayer",
-        "possibleactions" => array( "pickTavern" ),
-        "transitions" => array( "" => 8)
+        "possibleactions" => array("pickTavern"),
+        "transitions" => array("" => 11)
     ),
 
     8 => array(
@@ -108,11 +109,23 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose a board action or pass'),
         "type" => "activeplayer",
         "possibleactions" => array(
-            "pass", "pray", "recruitDiscard", "recruitHire", "develop", "hunt",
-            "trade", "conspire", "commission", "fortify", "garrison", "absolve",
-            "attack", "convert", "kingsFavor"
+            "pass",
+            "pray",
+            "recruitDiscard",
+            "recruitHire",
+            "develop",
+            "hunt",
+            "trade",
+            "conspire",
+            "commission",
+            "fortify",
+            "garrison",
+            "absolve",
+            "attack",
+            "convert",
+            "kingsFavor"
         ),
-        "transitions" => array( "nextPlayer" => 8, "endOfRound" => 5, "inquisition" => 9)
+        "transitions" => array("nextPlayer" => 8, "endOfRound" => 5, "inquisition" => 9)
     ),
 
     9 => array(
@@ -131,12 +144,34 @@ $machinestates = array(
         ),
     ),
 
+    11 => [
+        "name" => "prepareTaverns",
+        "type" => "game",
+        "action" => "stGamePickTaverns",
+        "transitions" => array("nextPlayer" => 7, "cleanupTaverns" => 8)
+
+    ],
+
+    12 => [
+        "name" => "actionPhaseManager",
+        "type" => "game",
+        "action" => "stGameActionPhaseManager",
+        "transitions" => ["nextPlayer" => 8, "endOfRound" => 5, "inquisition" => 9]
+    ],
+
+    13 => [
+        "name" => "cleanupTaverns",
+        "type" => "game",
+        "action" => "stGameCleanupTaverns",
+        "transitions" => ["" => 8]
+    ],
+
     98 => array(
         "name" => "calculateScores",
         "description" => clienttranslate("End of game"),
         "type" => "game",
         "action" => "stCalculateScores",
-        "transitions" => array( "endGame" => 99)
+        "transitions" => array("endGame" => 99)
     ),
 
 

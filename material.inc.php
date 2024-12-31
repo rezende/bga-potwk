@@ -73,12 +73,12 @@ if (!defined("RESOURCE_COIN")) {
     define('RESOURCE_PROVISION', 'provision');
     define("RESOURCE_SUSPICION", "RESOURCE_SUSPICION");
     define("RESOURCE_UNPAID_DEBT", "RESOURCE_UNPAID_DEBT");
-    define("WORKER_BLACK", "WORKER_BLACK");
-    define("WORKER_BLUE", "WORKER_BLUE");
-    define("WORKER_GREEN", "WORKER_GREEN");
-    define("WORKER_PURPLE", "WORKER_PURPLE");
-    define("WORKER_RED", "WORKER_RED");
-    define("WORKER_WHITE", "WORKER_WHITE");
+    define("WORKER_BLACK", "black_worker");
+    define("WORKER_BLUE", "blue_worker");
+    define("WORKER_GREEN", "green_worker");
+    define("WORKER_PURPLE", "purple_worker");
+    define("WORKER_RED", "red_worker");
+    define("WORKER_WHITE", "white_worker");
     define("YELLOW_SUIT", "YELLOW_SUIT");
 }
 

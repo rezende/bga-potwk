@@ -18,7 +18,7 @@
  */
 
 
-require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
+require_once(APP_GAMEMODULE_PATH . 'module/table/table.game.php');
 
 if (!defined("RESOURCE_COIN")) {
     // guard since this included multiple times
@@ -62,28 +62,57 @@ if (!defined("RESOURCE_COIN")) {
     define("RESOURCE_PROVISION", "provision");
     define("RESOURCE_SUSPICION", "RESOURCE_SUSPICION");
     define("RESOURCE_UNPAID_DEBT", "RESOURCE_UNPAID_DEBT");
-    define("WORKER_BLACK", "WORKER_BLACK");
-    define("WORKER_BLUE", "WORKER_BLUE");
-    define("WORKER_GREEN", "WORKER_GREEN");
-    define("WORKER_PURPLE", "WORKER_PURPLE");
-    define("WORKER_RED", "WORKER_RED");
-    define("WORKER_WHITE", "WORKER_WHITE");
+    define("WORKER_BLACK", "black_worker");
+    define("WORKER_BLUE", "blue_worker");
+    define("WORKER_GREEN", "green_worker");
+    define("WORKER_PURPLE", "purple_worker");
+    define("WORKER_RED", "red_worker");
+    define("WORKER_WHITE", "white_worker");
     define("YELLOW_SUIT", "YELLOW_SUIT");
 }
 
 
 class PaladinsShipped extends Table
 {
+    public $kingsfavour_cards_material;
+    public $kingsorder_cards_material;
+    public $card_types;
+    public $wall_cards_material;
+    public $player_spaces_material;
+    public $tf_cards_material;
+    public $os_cards_material;
+    public $board_positions_material;
+    public $tavern_cards_material;
+    public $suspicion_cards_material;
+    public $paladins_cards_material;
+    public Deck $deck;
+
     public const PLAYER_RESOURCES = array(
-        'white_worker', 'green_worker', 'red_worker', 'blue_worker',
-        'black_worker', 'purple_worker', 'coin', 'provision', 'unpaid_debt',
-        'paid_debt', 'parchment', 'develop_qty',
-        'commission_qty', 'garrison_qty', 'strength', 'faith',
-        'influence', 'paladin_board'
+        'white_worker',
+        'green_worker',
+        'red_worker',
+        'blue_worker',
+        'black_worker',
+        'purple_worker',
+        'coin',
+        'provision',
+        'unpaid_debt',
+        'paid_debt',
+        'parchment',
+        'develop_qty',
+        'commission_qty',
+        'garrison_qty',
+        'strength',
+        'faith',
+        'influence',
+        'paladin_board'
     );
 
     public const PALADIN_SETS = array(
-        'tower', 'fountain', 'barracks', 'castle'
+        'tower',
+        'fountain',
+        'barracks',
+        'castle'
     );
 
     public function __construct()
@@ -134,7 +163,7 @@ class PaladinsShipped extends Table
         foreach ($players as $player_id => $player) {
             $set = array_shift($sets);
             $color = array_shift($default_colors);
-            $values[] = "('{$player_id}','{$color}','{$set}','{$player['player_canal']}','".addslashes($player['player_name'])."','".addslashes($player['player_avatar'])."')";
+            $values[] = "('{$player_id}','{$color}','{$set}','{$player['player_canal']}','" . addslashes($player['player_name']) . "','" . addslashes($player['player_avatar']) . "')";
         }
         $sql .= implode(',', $values);
         self::DbQuery($sql);
@@ -191,7 +220,7 @@ class PaladinsShipped extends Table
 
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $player_sql = "SELECT player_id id, player_score score,".implode(",", self::PLAYER_RESOURCES)." FROM player";
+        $player_sql = "SELECT player_id id, player_score score," . implode(",", self::PLAYER_RESOURCES) . " FROM player";
         $result['players'] = self::getCollectionFromDb($player_sql);
 
         // $piece_sql = "SELECT piece_id id, piece_type type, piece_type_arg type_arg, piece_player_id player_id, piece_location location, piece_location_arg location_arg, piece_location_position location_position FROM piece WHERE piece_location <> 'box'";
@@ -202,6 +231,8 @@ class PaladinsShipped extends Table
         $result['townsfolk_material'] = $this->tf_cards_material;
         $result['paladin_material'] = $this->paladins_cards_material;
         $result['player_paladin_hand'] = $this->deck->getCardsInLocation('paladin_hand', $current_player_id);
+        $result['tavern_display'] = $this->deck->getCardsInLocation('tavern_display');
+        $result['tavern_cards_material'] = $this->tavern_cards_material;
         return $result;
     }
 
@@ -248,6 +279,12 @@ class PaladinsShipped extends Table
         }
     }
 
+    public function addResource($player_id, $resource, $qty = 1)
+    {
+        $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
+        self::DbQuery($sql);
+    }
+
     public function resolveEffectForPlayer($effect, $player_id, $qty = 1)
     {
         $resource = "";
@@ -255,20 +292,20 @@ class PaladinsShipped extends Table
             $suspicion_cards = $this->deck->countCardInLocation("suspicion_deck_$player_id");
             if ($suspicion_cards) {
                 $top_suspicion_location = $this->deck->getExtremePosition(true, "suspicion_deck_$player_id");
-                $this->dump($top_suspicion_location);
                 // TODO: discard top player suspicion to the top of discard
             } else {
                 // no suspicion to discard
             }
         }
-        if ($effect == RESOURCE_PROVISION || $effect == RESOURCE_COIN) {
+        if ($effect == RESOURCE_PROVISION || $effect == RESOURCE_COIN || strpos($effect, 'worker') === 0) {
             $resource = $effect;
         }
         if ($resource) {
-            $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
-            self::DbQuery($sql);
+            $this->addResource($player_id, $resource, $qty);
         }
+        // TODO: message: player gets ${num} of ${resource}
     }
+
 
     public function setNextFirstPlayer()
     {
@@ -339,7 +376,9 @@ class PaladinsShipped extends Table
         foreach ($paladin_sets as $player_id => $set_name) {
             $cards_from_set = array_filter(
                 $this->paladins_cards_material,
-                function ($card_type) use ($set_name) {return $card_type['set'] == $set_name;}
+                function ($card_type) use ($set_name) {
+                    return $card_type['set'] == $set_name;
+                }
             );
             $paladin_cards = [];
             foreach ($cards_from_set as $paladin_card_id => $paladin_card_type) {
@@ -356,7 +395,9 @@ class PaladinsShipped extends Table
         if ($remove_oldest) {
             $oldest_card = array_filter(
                 $display,
-                function ($el) { return $el['location_arg'] == 0; }
+                function ($el) {
+                    return $el['location_arg'] == 0;
+                }
             );
             if ($oldest_card) {
                 $this->deck->moveCard($oldest_card[0]['id'], 'discard');
@@ -393,7 +434,9 @@ class PaladinsShipped extends Table
     public function getBoardCardsByType($card_type)
     {
         $cards_revealed = $this->deck->getCardsInLocation('board');
-        return array_filter($cards_revealed, function ($card) use ($card_type) {return $card['type'] == $card_type;});
+        return array_filter($cards_revealed, function ($card) use ($card_type) {
+            return $card['type'] == $card_type;
+        });
     }
 
     public function revealKingsOrder($round)
@@ -423,7 +466,7 @@ class PaladinsShipped extends Table
     public function revealTaverns()
     {
         $num_of_players = sizeof(self::loadPlayersBasicInfos());
-        $this->deck->pickCardForLocation($num_of_players + 1, 'tavern_deck', 'tavern_display');
+        return $this->deck->pickCardsForLocation($num_of_players + 1, 'tavern_deck', 'tavern_display');
     }
 
     public function getCardInfoByGlobalId($card_id)
@@ -461,7 +504,7 @@ class PaladinsShipped extends Table
                 "townsfolk_name" => $townsfolk_card_info['name']
             ]
         );
-        $this->gamestate->nextState();
+        $this->gamestate->nextState("");
     }
 
     public function pickPaladins($id_bottom, $id_chosen, $id_top)
@@ -471,11 +514,15 @@ class PaladinsShipped extends Table
 
         // Verify the cards belong to the player
         $player_cards = $this->deck->getCardsInLocation('paladin_hand', $player_id);
-        $player_card_ids = array_map(function ($card) { return $card['id']; }, $player_cards);
+        $player_card_ids = array_map(function ($card) {
+            return $card['id'];
+        }, $player_cards);
 
-        if (!in_array($id_bottom, $player_card_ids) ||
+        if (
+            !in_array($id_bottom, $player_card_ids) ||
             !in_array($id_chosen, $player_card_ids) ||
-            !in_array($id_top, $player_card_ids)) {
+            !in_array($id_top, $player_card_ids)
+        ) {
             throw new BgaUserException(self::_("You can only select from your own cards"));
         }
 
@@ -498,6 +545,28 @@ class PaladinsShipped extends Table
 
         // Mark this player as done
         $this->gamestate->setPlayerNonMultiactive($player_id, "done");
+    }
+
+    public function pickTavern($tavern_id)
+    {
+        self::checkAction('pickTavern');
+        $player_id = self::getCurrentPlayerId();
+        $tavern_card = $this->deck->getCard($tavern_id);
+        $tavern_card_info = $this->tavern_cards_material[$tavern_card['type_arg']];
+        $this->deck->moveCard($tavern_id, 'tavern_discard');
+        foreach ($tavern_card_info as $worker) {
+            $this->resolveEffectForPlayer($worker, $player_id);
+        }
+        $tavern_name = implode(", ", $tavern_card_info);
+        self::notifyAllPlayers(
+            "message",
+            clienttranslate('${player_name} picks tavern containing {tavern_name}'),
+            [
+                "player_name" => self::getPlayerNameById($player_id),
+                "tavern_name" => $tavern_name,
+            ]
+        );
+        $this->gamestate->nextState("");
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -561,7 +630,6 @@ class PaladinsShipped extends Table
         }
         self::setGameStateValue('current_round', $new_round);
         $this->refillDisplays($new_round);
-        $this->revealTaverns();
         $this->gamestate->nextState('done');
     }
 
@@ -580,14 +648,37 @@ class PaladinsShipped extends Table
             ));
             $this->giveExtraTime($player_id);
         }
+        $new_taverns = $this->revealTaverns();
 
         // Notify all players that cards have been dealt
         self::notifyAllPlayers("message", clienttranslate('Each player draws their top 3 paladin cards'), array());
+        self::notifyAllPlayers("revealTaverns", clienttranslate('New tavern cards are revealed'), array(
+            'cards' => $new_taverns
+        ));
 
         // Set up the multiactive state for all players
         $this->gamestate->setAllPlayersMultiactive();
         $this->gamestate->nextState("transPickPaladins");
     }
+
+    public function stGamePickTaverns()
+    {
+        $nextState = "nextPlayer";
+        if ($this->deck->countCardInLocation('tavern_display') == 1) {
+            $nextState = "cleanupTaverns";
+        }
+        $this->activeNextPlayer();
+        $this->gamestate->nextState($nextState);
+    }
+
+
+    public function stGameCleanupTaverns()
+    {
+        $this->deck->moveAllCardsInLocation("tavern_display", "tavern_discard");
+        self::notifyAllPlayers("cleanupTaverns", clienttranslate('Cleaning up tavern cards'), []);
+        $this->gamestate->nextState("");
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     //////////// Zombie
     ////////////
@@ -626,7 +717,7 @@ class PaladinsShipped extends Table
             return;
         }
 
-        throw new feException("Zombie mode not supported at this game state: ".$statename);
+        throw new feException("Zombie mode not supported at this game state: " . $statename);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////:
