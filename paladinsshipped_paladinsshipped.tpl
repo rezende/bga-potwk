@@ -14,8 +14,13 @@
     ></div>
   </div>
   <div id="paladinsSelection" class="whiteblock">
-    <div id="paladinsSelectionDescription" style="background-color: white; border-radius: 10px; padding: 20px; display: none;"></div>
+    <div id="paladinsSelectionDescription"></div>
     <div id="paladin_cards" class="paladin_cards_container"></div>
+  </div>
+  <div style="clear: both"></div>
+  <div id="tavernsSelection" class="whiteblock">
+    <div id="tavernsSelectionDescription"></div>
+    <div id="tavern_cards" class="tavern_cards_container"></div>
   </div>
   <div style="clear: both"></div>
 

@@ -53,6 +53,12 @@ class action_paladinsshipped extends APP_GameAction
         $this->game->pickPaladins($bottom_paladin, $chosen_paladin, $top_paladin);
         self::ajaxResponse();
     }
+    public function pickTavern()
+    {
+        self::setAjaxMode();
+        $this->game->pickTavern(self::getArg("tavern_card_id", AT_int, true));
+        self::ajaxResponse();
+    }
 
     // SETUP
 

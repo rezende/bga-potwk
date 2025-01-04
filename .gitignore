@@ -2,3 +2,4 @@
 img/
 .php-cs-fixer.cache
 tools/
+node_modules/

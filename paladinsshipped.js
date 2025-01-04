@@ -51,7 +51,8 @@ define([
       this.uiItems.itemConfig = {
         outsider: { cssClass: "outsider" },
         townsfolk: { cssClass: "townsfolk" },
-        paladin_card: { cssClass: "paladin_card" }
+        paladin_card: { cssClass: "paladin_card" },
+        tavern_card: { cssClass: "tavern_card" },
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -71,6 +72,12 @@ define([
           items_per_row: 7,
           width: 160,
           height: 250,
+          type_property: "type_arg"
+        },
+        tavern_card: {
+          items_per_row: 5,
+          width: 127,
+          height: 198,
           type_property: "type_arg"
         }
       };
@@ -121,14 +128,13 @@ define([
       this.uiItems.createAndAddItem = function (uiType, params) {
         this._lastUid++;
         var htmlNode = null;
-        var clickHandler = null;
         htmlNode = dojo.create("div", {
           class: this.itemConfig[uiType].cssClass,
         });
         dojo.setAttr(htmlNode, "id", "uid-" + this._lastUid);
 
         dojo.setAttr(htmlNode, "data-uid", "uid-" + this._lastUid);
-        clickHandler = dojo.connect(htmlNode, "onclick", _self, "onClickUiItem");
+        dojo.connect(htmlNode, "onclick", _self, "onClickUiItem");
 
         const item = {
           uid: this._lastUid,
@@ -139,6 +145,7 @@ define([
         };
         this.setBackgroundUiItem(item);
         this.push(item);
+        console.log("created item", item);
         return item;
       };
 
@@ -170,7 +177,6 @@ define([
       };
 
       this.uiItems.makeSelectable = function (items) {
-        debugger
         for (var i = 0; i < items.length; i++) {
           items[i].isSelectable = true;
           dojo.addClass(items[i].htmlNode, "selectable");
@@ -275,6 +281,8 @@ define([
       this.townsfolk_material = gamedatas.townsfolk_material;
       this.paladin_material = gamedatas.paladin_material;
       this.paladin_hand = gamedatas.player_paladin_hand;
+      this.tavern_display = gamedatas.tavern_display;
+      this.tavern_cards_material = gamedatas.tavern_cards_material;
       this.attachFunctionsToUiItems();
 
       this.uiItems.createItems(
@@ -287,6 +295,9 @@ define([
       );
       if (this.paladin_hand) {
         this.createPaladinUiItems(this.paladin_hand);
+      }
+      if (this.tavern_display) {
+        this.createTavernUiItems(this.tavern_display);
       }
       this.setupNotifications();
       this.drawUi();
@@ -343,6 +354,40 @@ define([
         dojo.setStyle("paladinsSelection", "display", "flex");
         dojo.setStyle("paladinsSelection", "justify-content", "center");
         this.uiItems.makeSelectable(paladinCards);
+        
+        const tavernCards = this.uiItems.getByUiType("tavern_card");
+        for (var tavernCard of tavernCards) {
+          dojo.place(tavernCard.htmlNode, "tavernsSelection");
+          this.uiItems.setBackgroundUiItem(tavernCard);
+          dojo.setStyle(tavernCard.htmlNode, "top", "");
+          dojo.setStyle(tavernCard.htmlNode, "left", "");
+          // this.removeTooltip(dojo.getAttr(tavernCard.htmlNode, "id"));
+        }
+        this.displayTaverns();
+        // this.uiItems.makeSelectable(tavernCards);
+      }
+    },
+
+    setupTavernSelection: function () {
+      this.displayTaverns();
+      if (this.isCurrentPlayerActive()) {
+        this.uiItems.makeSelectable(this.uiItems.getByUiType("tavern_card"));
+      }
+    },
+
+    displayTaverns: function () {
+        dojo.setStyle("tavernsSelection", "display", "flex");
+        dojo.setStyle("tavernsSelection", "justify-content", "center");
+    },
+
+    createTavernUiItems: function (cards) {
+      for (var cardId in cards) {
+        const card = cards[cardId];
+        // card.location = "tavernDisplay";
+        card.isSelectable = false;
+        const uiType = "tavern_card"
+        const params = card
+        this.uiItems.createAndAddItem(uiType, params);
       }
     },
 
@@ -353,11 +398,7 @@ define([
         card.isSelectable = true;
         const uiType = "paladin_card"
         const params = card
-        const cardElement = this.uiItems.createAndAddItem(uiType, params);
-
-        dojo.connect(cardElement, 'onclick', this, function () {
-          this.onPaladinCardClick(cardElement.uid);
-        });
+        this.uiItems.createAndAddItem(uiType, params);
       }
     },
 
@@ -372,6 +413,13 @@ define([
       }
       else if (selectedPaladins.length == 3) {
         this.sendPaladins(selectedPaladins[0].data.id, selectedPaladins[1].data.id, selectedPaladins[2].data.id);
+      }
+    },
+
+    pickTavern: function (uiItem) {
+      if (uiItem.data.id) {
+        debugger
+        this.onClickConfirmTavern(uiItem.data.id);
       }
     },
 
@@ -419,6 +467,14 @@ define([
         case 'pickPaladins':
           this.setupPaladinSelection();
           break;
+
+        case 'pickTavern':
+          this.setupTavernSelection();
+          break;
+
+        case 'cleanupTaverns':
+          dojo.setStyle("tavernsSelection", "display", "none");
+
         case "dummmy":
           break;
       }
@@ -431,16 +487,10 @@ define([
       console.log("Leaving state: " + stateName);
 
       switch (stateName) {
-        /* Example:
-                    
-                    case 'myGameState':
-                    
-                        // Hide the HTML block we are displaying only during this game state
-                        dojo.style( 'my_html_block_id', 'display', 'none' );
-                        
-                        break;
-                   */
-
+        case 'pickPaladins':
+          dojo.setStyle("paladinsSelection", "display", "none");
+          this.uiItems.resetAllSelectable();
+          break;
         case "dummmy":
           break;
       }
@@ -514,6 +564,9 @@ define([
       if (uiItem.uiType == "paladin_card") {
         containerName = "paladin_cards";
       }
+      if (uiItem.uiType == "tavern_card") {
+        containerName = "tavern_cards";
+      }
       return containerName;
     },
 
@@ -548,39 +601,6 @@ define([
             
             */
 
-    /* Example:
-            
-            onMyMethodToCall1: function( evt )
-            {
-                console.log( 'onMyMethodToCall1' );
-                
-                // Preventing default browser reaction
-                dojo.stopEvent( evt );
-    
-                // Check that this action is possible (see "possibleactions" in states.inc.php)
-                if( ! this.checkAction( 'myAction' ) )
-                {   return; }
-    
-                this.ajaxcall( "/paladinsshipped/paladinsshipped/myAction.html", { 
-                                                                        lock: true, 
-                                                                        myArgument1: arg1, 
-                                                                        myArgument2: arg2,
-                                                                        ...
-                                                                     }, 
-                             this, function( result ) {
-                                
-                                // What to do after the server call if it succeeded
-                                // (most of the time: nothing)
-                                
-                             }, function( is_error) {
-    
-                                // What to do after the server call in anyway (success or failure)
-                                // (most of the time: nothing)
-    
-                             } );        
-            },        
-            
-            */
 
     onClickUiItem: function (evt) {
       if (evt != null) {
@@ -588,6 +608,7 @@ define([
         var uiItem = this.uiItems.getByUid(uid);
         if (uiItem.isSelectable && this[this.currentMove] != undefined) {
           this.uiItems.toggleSelection(uiItem);
+          // calls stateName()(uiItem)
           this[this.currentMove](uiItem);
         }
       }
@@ -600,6 +621,20 @@ define([
         {
           lock: true,
           townsfolk_card_id: townsfolk_card_id,
+        },
+        this,
+        function (result) { },
+        function (error) { }
+      );
+    },
+
+    onClickConfirmTavern: function (tavern_card_id) {
+      this.checkAction("pickTavern");
+      this.ajaxcall(
+        "/paladinsshipped/paladinsshipped/pickTavern.html",
+        {
+          lock: true,
+          tavern_card_id: tavern_card_id,
         },
         this,
         function (result) { },
@@ -639,6 +674,9 @@ define([
       console.log("notifications subscriptions setup");
       dojo.subscribe("moveParchment", this, "notif_moveParchment");
       dojo.subscribe("paladinCards", this, "notif_paladinCards");
+      dojo.subscribe("revealTaverns", this, "notif_revealTaverns");
+      dojo.subscribe("cleanupTaverns", this, "notif_cleanupTaverns");
+
 
       // TODO: here, associate your game notifications with local methods
 
@@ -677,6 +715,14 @@ define([
     notif_paladinCards: function (notif) {
       this.createPaladinUiItems(notif.args.cards);
     },
+
+    notif_revealTaverns: function (notif) {
+      this.createTavernUiItems(notif.args.cards);
+    },
+
+    notif_cleanupTaverns: function (notif) {
+      dojo.setStyle("tavernsSelection", "display", "none");
+    }
 
   });
 });
