@@ -30,7 +30,7 @@
     <div id="board">
       <div id="boardLeft">
         <div id="townsfolk_cards"></div>
-        <div id="tower_deck"></div>
+        <div id="wall_deck"></div>
       </div>
     </div>
 

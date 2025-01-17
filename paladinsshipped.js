@@ -53,6 +53,7 @@ define([
         townsfolk: { cssClass: "townsfolk" },
         paladin_card: { cssClass: "paladin_card" },
         tavern_card: { cssClass: "tavern_card" },
+        wall_card: { cssClass: "wall_card" },
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -75,6 +76,12 @@ define([
           type_property: "type_arg"
         },
         tavern_card: {
+          items_per_row: 5,
+          width: 127,
+          height: 198,
+          type_property: "type_arg"
+        },
+        wall_card: {
           items_per_row: 5,
           width: 127,
           height: 198,
@@ -150,15 +157,8 @@ define([
       };
 
       this.uiItems.createItems = function (uiType, dataArray) {
-        this.createItemsViaCallback(function (d) {
-          return uiType;
-        }, dataArray);
-      };
-
-      this.uiItems.createItemsViaCallback = function (dataCallback, dataArray) {
-        for (var i = 0; i < dataArray.length; i++) {
-          const data = dataArray[i];
-          this.createAndAddItem(dataCallback(data), data);
+        for (const data of dataArray) {
+          this.createAndAddItem(uiType, data);
         }
       };
 
@@ -283,6 +283,7 @@ define([
       this.paladin_hand = gamedatas.player_paladin_hand;
       this.tavern_display = gamedatas.tavern_display;
       this.tavern_cards_material = gamedatas.tavern_cards_material;
+      this.wall_cards = gamedatas.wall_cards;
       this.attachFunctionsToUiItems();
 
       // this.uiItems.createItems(
@@ -299,6 +300,8 @@ define([
       if (this.tavern_display) {
         this.createTavernUiItems(this.tavern_display);
       }
+      // TODO: so far, it only creates the deck background, not the cards
+      this.setupWallCards(this.getValuesFromObject(this.wall_cards));
       this.setupNotifications();
       this.drawUi();
 
@@ -400,6 +403,11 @@ define([
         const params = card
         this.uiItems.createAndAddItem(uiType, params);
       }
+    },
+
+    setupWallCards: function (cards) {
+      const deckBackground = { type: 24, type_arg: 24};
+      this.uiItems.createAndAddItem("wall_card", deckBackground);
     },
 
     // State functions
@@ -566,6 +574,9 @@ define([
       }
       if (uiItem.uiType == "tavern_card") {
         containerName = "tavern_cards";
+      }
+      if (uiItem.uiType == "wall_card" && uiItem.data.type_arg == 24) {
+        containerName = "wall_deck";
       }
       return containerName;
     },

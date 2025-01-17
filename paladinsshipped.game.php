@@ -233,6 +233,8 @@ class PaladinsShipped extends Table
         $result['player_paladin_hand'] = $this->deck->getCardsInLocation('paladin_hand', $current_player_id);
         $result['tavern_display'] = $this->deck->getCardsInLocation('tavern_display');
         $result['tavern_cards_material'] = $this->tavern_cards_material;
+        $result['wall_cards'] = [];
+        // $result['wall_cards'] = $this->deck->getCardsInLocation("wall_hand", $current_player_id);
         return $result;
     }
 
