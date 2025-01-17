@@ -54,6 +54,8 @@ define([
         paladin_card: { cssClass: "paladin_card" },
         tavern_card: { cssClass: "tavern_card" },
         wall_card: { cssClass: "wall_card" },
+        kingsorder_card: { cssClass: "kingsorder_card" },
+        kingsfavour_card: { cssClass: "kingsfavour_card" },
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -82,6 +84,18 @@ define([
           type_property: "type_arg"
         },
         wall_card: {
+          items_per_row: 5,
+          width: 127,
+          height: 198,
+          type_property: "type_arg"
+        },
+        kingsorder_card: {
+          items_per_row: 4,
+          width: 127,
+          height: 198,
+          type_property: "type_arg"
+        },
+        kingsfavour_card: {
           items_per_row: 5,
           width: 127,
           height: 198,
@@ -284,6 +298,8 @@ define([
       this.tavern_display = gamedatas.tavern_display;
       this.tavern_cards_material = gamedatas.tavern_cards_material;
       this.wall_cards = gamedatas.wall_cards;
+      this.kingsorder_display = gamedatas.kingsorder_display;
+      this.kingsfavour_display = gamedatas.kingsfavour_display;
       this.attachFunctionsToUiItems();
 
       // this.uiItems.createItems(
@@ -302,6 +318,8 @@ define([
       }
       // TODO: so far, it only creates the deck background, not the cards
       this.setupWallCards(this.getValuesFromObject(this.wall_cards));
+      this.setupKingsOrderCards(this.getValuesFromObject(this.kingsorder_display));
+      this.setupKingsFavourCards(this.getValuesFromObject(this.kingsfavour_display));
       this.setupNotifications();
       this.drawUi();
 
@@ -408,6 +426,30 @@ define([
     setupWallCards: function (cards) {
       const deckBackground = { type: 24, type_arg: 24};
       this.uiItems.createAndAddItem("wall_card", deckBackground);
+    },
+
+    setupKingsOrderCards: function (cards) {
+      /*
+        There will always be 3 king's order cards.
+        If there are less than 3 cards, the missing cards are replaced by a background card.
+      */
+      const deckBackground = { type: 6, type_arg: 6 };
+      const uiItems = Array(3).fill(deckBackground).map((background, i) =>
+        cards[i] || background
+      );
+      this.uiItems.createItems("kingsorder_card", uiItems);
+    },
+
+    setupKingsFavourCards: function (cards) {
+      /*
+        There will always be 5 king's favour cards.
+        If there are less than 5 cards, the missing cards are replaced by a background card.
+      */
+      const deckBackground = { type: 10, type_arg: 10 };
+      const uiItems = Array(5).fill(deckBackground).map((background, i) =>
+        cards[i] || background
+      );
+      this.uiItems.createItems("kingsfavour_card", uiItems);
     },
 
     // State functions
@@ -577,6 +619,12 @@ define([
       }
       if (uiItem.uiType == "wall_card" && uiItem.data.type_arg == 24) {
         containerName = "wall_deck";
+      }
+      if (uiItem.uiType == "kingsorder_card") {
+        containerName = "kingsorder_cards";
+      }
+      if (uiItem.uiType == "kingsfavour_card") {
+        containerName = "kingsfavour_cards";
       }
       return containerName;
     },

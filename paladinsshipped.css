@@ -192,13 +192,6 @@
   transform-origin: 0px 0px;
 }
 
-#wall_deck {
-  display: flex;
-  position: relative;
-  top: -253px;
-  left: 648px;
-}
-
 .wall_card {
   min-width: 127px;
   min-height: 198px;
@@ -207,6 +200,32 @@
   background-color: white;
   transform-origin: 0px 0px;
 }
+
+.kingsorder_card {
+  min-width: 127px;
+  min-height: 198px;
+  border-radius: 15px;
+  background: url("img/sprite_kingsorders.png");
+  background-color: white;
+  transform-origin: 0px 0px;
+}
+
+.kingsfavour_card {
+  min-width: 127px;
+  min-height: 198px;
+  border-radius: 15px;
+  background: url("img/sprite_kingsfavours.png");
+  background-color: white;
+  transform-origin: 0px 0px;
+}
+
+#wall_deck {
+  display: flex;
+  position: relative;
+  top: -253px;
+  left: 648px;
+}
+
 
 #wall_deck .wall_card {
   transform: scale(0.59);
@@ -232,6 +251,39 @@
   transform-origin: top left;
   margin-right: -52px;
   margin-bottom: -108px;
+  position: relative;
+}
+
+#kingsorder_cards {
+  display: flex;
+  gap: 15px;
+  width: 50%;
+  left: 11px;
+  position: relative;
+  top: -296px;
+}
+
+#kingsorder_cards .kingsorder_card {
+  transform: scale(0.58);
+  transform-origin: top left;
+  margin-right: -52px;
+  margin-bottom: -108px;
+  position: relative;
+}
+
+#kingsfavour_cards {
+  display: flex;
+  gap: 15px;
+  width: 50%;
+  left: 287px;
+  position: relative;
+  top: -386px;
+}
+
+#kingsfavour_cards .kingsfavour_card {
+  transform: scale(0.58);
+  transform-origin: top left;
+  margin-right: -52px;
   position: relative;
 }
 

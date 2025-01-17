@@ -31,6 +31,8 @@
       <div id="boardLeft">
         <div id="townsfolk_cards"></div>
         <div id="wall_deck"></div>
+        <div id="kingsorder_cards"></div>
+        <div id="kingsfavour_cards"></div>
       </div>
     </div>
 
