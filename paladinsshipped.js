@@ -285,10 +285,10 @@ define([
       this.tavern_cards_material = gamedatas.tavern_cards_material;
       this.attachFunctionsToUiItems();
 
-      this.uiItems.createItems(
-        "outsider",
-        this.getValuesFromObject(this.outsider_display)
-      );
+      // this.uiItems.createItems(
+      //   "outsider",
+      //   this.getValuesFromObject(this.outsider_display)
+      // );
       this.uiItems.createItems(
         "townsfolk",
         this.getValuesFromObject(this.townsfolk_display)

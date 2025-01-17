@@ -28,8 +28,10 @@
   <div id="boardContainer">
     <!-- mainBoardContainer contains the main board -->
     <div id="board">
-      <div id="boardLeft"></div>
-      <div id="boardRight"></div>
+      <div id="boardLeft">
+        <div id="townsfolk_cards"></div>
+        <div id="tower_deck"></div>
+      </div>
     </div>
 
     <!-- mainBoardContainer contains the players board -->
@@ -42,8 +44,6 @@
       </div>
       <!-- END playerboard -->
     </div>
-    <div id="townsfolk_cards" style="visibility: hidden"></div>
-    <div id="outsider_cards" style="visibility: hidden"></div>
   </div>
 </div>
 

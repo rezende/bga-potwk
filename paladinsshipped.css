@@ -75,7 +75,7 @@
 }
 
 /* Board container */
-#boardContainer {
+#mainBoardContainer {
   display: flex;
   justify-content: center;
   margin-top: 10px;
@@ -99,15 +99,17 @@
   height: 180px;
   background-image: url("img/main_board_1.png");
   background-size: 734px 180px;
+  margin-top: 167px;
+  margin-bottom: 167px;
 }
 
-#boardRight {
+/* #boardRight {
   position: relative;
   width: 734px;
   height: 180px;
   background-image: url("img/main_board_2.png");
   background-size: 734px 180px;
-}
+} */
 
 #playersBoardContainer {
   width: 100%;
@@ -197,9 +199,21 @@
 
 #townsfolk_cards {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   width: 50%;
+  left: 18px;
+  position: relative;
 }
+
+#townsfolk_cards .townsfolk {
+  transform: scale(0.58);
+  transform-origin: top left;
+  margin-right: -52px;
+  margin-bottom: -108px;
+  top: -140px;
+  position: relative;
+}
+
 /*maiboard top end*/
 /*mainboard middle start*/
 
