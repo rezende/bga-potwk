@@ -226,11 +226,9 @@
   left: 648px;
 }
 
-
 #wall_deck .wall_card {
   transform: scale(0.59);
 }
-
 
 .townsfolk_box {
   width: 100%;
@@ -351,21 +349,17 @@
   /* transform-origin: 0px 0px; */
 }
 
-
 .selectable {
   border: 6px solid cyan;
 }
 
-.paladin_card.selectable
-{
-    border: 6px solid cyan;
+.paladin_card.selectable {
+  border: 6px solid cyan;
 }
 
-.paladin_card.selected
-{
-    border: 6px solid red;
+.paladin_card.selected {
+  border: 6px solid red;
 }
-
 
 #paladinsSelection {
   position: relative;
@@ -386,16 +380,13 @@
   /* transform-origin: 0px 0px; */
 }
 
-.tavern_card.selectable
-{
-    border: 6px solid cyan;
+.tavern_card.selectable {
+  border: 6px solid cyan;
 }
 
-.paladin_card.selected
-{
-    border: 6px solid red;
+.paladin_card.selected {
+  border: 6px solid red;
 }
-
 
 #tavernsSelection {
   position: relative;

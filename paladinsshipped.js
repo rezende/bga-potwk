@@ -509,7 +509,6 @@ define([
       }
     },
 
-
     // call game actions
     ///////////////////////////////////////////////////
     //// Game & client states
@@ -710,7 +709,6 @@ define([
         function (error) {},
       );
     },
-
 
     ///////////////////////////////////////////////////
     //// Reaction to cometD notifications
