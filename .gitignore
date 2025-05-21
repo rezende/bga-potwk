@@ -3,3 +3,5 @@ img/
 .php-cs-fixer.cache
 tools/
 node_modules/
+modules/common/
+modules/table/
