@@ -50,7 +50,7 @@ define([
 
       this.uiItems.itemConfig = {
         outsider: { cssClass: "outsider" },
-        townsfolk: { cssClass: "townsfolk" },
+        townsfolk_uiitem: { cssClass: "townsfolk" },
         paladin_card: { cssClass: "paladin_card" },
         tavern_card: { cssClass: "tavern_card" },
         wall_card: { cssClass: "wall_card" },
@@ -65,7 +65,7 @@ define([
           height: 250,
           type_property: "type_arg",
         },
-        townsfolk: {
+        townsfolk_uiitem: {
           items_per_row: 6,
           width: 160,
           height: 250,
@@ -292,7 +292,6 @@ define([
 
     // page load
     setup: function (gamedatas) {
-      console.log("gameDatas", gamedatas);
       this.min_width_viewport = gamedatas.game_interface_width.min;
       this.max_width_viewport = gamedatas.game_interface_width.max;
       this.onScreenWidthChange();
@@ -315,7 +314,7 @@ define([
       //   this.getValuesFromObject(this.outsider_display)
       // );
       this.uiItems.createItems(
-        "townsfolk",
+        "townsfolk_uiitem",
         this.getValuesFromObject(this.townsfolk_display),
       );
       if (this.paladin_hand) {
@@ -401,6 +400,14 @@ define([
       }
     },
 
+    setupTownsfolkSelection: function () {
+      if (this.isCurrentPlayerActive()) {
+        const townsfolkCards = this.uiItems.getByUiType("townsfolk_uiitem");
+        this.uiItems.makeSelectable(townsfolkCards);
+        this.uiItems.resetSelectableAnimation();
+      }
+    },
+
     setupTavernSelection: function () {
       this.displayTaverns();
       if (this.isCurrentPlayerActive()) {
@@ -465,6 +472,7 @@ define([
     },
 
     // State functions
+    // they are called by onClickUiItem when in the respective state
     pickPaladins: function () {
       var playerId = this.player_id;
       var selectedPaladins = this.uiItems.getSelectedItems();
@@ -495,39 +503,14 @@ define([
       }
     },
 
-    // onClick functions
-    onPaladinCardClick: function (uid) {
-      const card = this.uiItems.find((item) => item.uid === parseInt(uid));
-      if (!card) return;
-
-      // Toggle selection
-      const isSelected = dojo.hasClass(card.htmlNode, "selected");
-      if (!isSelected) {
-        // Only allow selecting if less than 3 cards are selected
-        const selectedCards = dojo.query(".paladin.selected");
-        if (selectedCards.length >= 3) return;
-      }
-
-      dojo.toggleClass(card.htmlNode, "selected");
-
-      // Check if we have exactly 3 cards selected
-      const selectedCards = dojo.query(".paladin.selected");
-      if (selectedCards.length === 3) {
-        // Get the IDs of selected cards in order
-        const selectedIds = Array.from(selectedCards).map((node) => {
-          const uid = dojo.attr(node, "data-uid");
-          const item = this.uiItems.find((item) => item.uid === parseInt(uid));
-          return item.data.id;
-        });
-
-        this.onClickConfirmPaladins(
-          selectedIds[0],
-          selectedIds[1],
-          selectedIds[2],
-        );
+    hireInitialTownsfolk: function (uiItem) {
+      if (uiItem.data.id) {
+        this.sendHireTownsfolk(uiItem.data.id);
       }
     },
 
+
+    // call game actions
     ///////////////////////////////////////////////////
     //// Game & client states
 
@@ -546,6 +529,10 @@ define([
 
         case "pickTavern":
           this.setupTavernSelection();
+          break;
+
+        case "hireInitialTownsfolk":
+          this.setupTownsfolkSelection();
           break;
 
         case "cleanupTaverns":
@@ -577,26 +564,6 @@ define([
     //
     onUpdateActionButtons: function (stateName, args) {
       console.log("onUpdateActionButtons: " + stateName);
-
-      if (this.isCurrentPlayerActive()) {
-        switch (stateName) {
-          case "hireInitialTownsfolk":
-            for (const [tf_id, value] of Object.entries(
-              this.townsfolk_display,
-            )) {
-              const tf_name = this.townsfolk_material[value.type_arg].name;
-              this.addActionButton(
-                `btnHire_${tf_id}`,
-                _(`Hire ${tf_name} (${tf_id})`),
-                dojo.hitch(
-                  this,
-                  dojo.partial(this.onClickConfirmTownsfolk, tf_id),
-                ),
-              );
-            }
-            break;
-        }
-      }
     },
 
     ///////////////////////////////////////////////////
@@ -634,7 +601,7 @@ define([
       if (uiItem.uiType == "outsider") {
         containerName = "outsider_cards";
       }
-      if (uiItem.uiType == "townsfolk") {
+      if (uiItem.uiType == "townsfolk_uiitem") {
         containerName = "townsfolk_cards";
       }
       if (uiItem.uiType == "paladin_card") {
@@ -677,14 +644,14 @@ define([
 
     /*
             
-                Here, you are defining methods to handle player's action (ex: results of mouse click on 
-                game objects).
-                
-                Most of the time, these methods:
-                _ check the action is possible at this game state.
-                _ make a call to the game server
-            
-            */
+        Here, you are defining methods to handle player's action (ex: results of mouse click on 
+        game objects).
+        
+        Most of the time, these methods:
+        _ check the action is possible at this game state.
+        _ make a call to the game server
+    
+    */
 
     onClickUiItem: function (evt) {
       if (evt != null) {
@@ -694,24 +661,10 @@ define([
         var uiItem = this.uiItems.getByUid(uid);
         if (uiItem.isSelectable && this[this.currentMove] != undefined) {
           this.uiItems.toggleSelection(uiItem);
-          // calls stateName()(uiItem)
+          // calls State function for the respective state
           this[this.currentMove](uiItem);
         }
       }
-    },
-
-    onClickConfirmTownsfolk: function (townsfolk_card_id) {
-      this.checkAction("hireInitialTownsfolk");
-      this.ajaxcall(
-        "/paladinsshipped/paladinsshipped/hireInitialTownsfolk.html",
-        {
-          lock: true,
-          townsfolk_card_id: townsfolk_card_id,
-        },
-        this,
-        function (result) {},
-        function (error) {},
-      );
     },
 
     onClickConfirmTavern: function (tavern_card_id) {
@@ -743,6 +696,21 @@ define([
         function (error) {},
       );
     },
+
+    sendHireTownsfolk: function (townsfolk_card_id) {
+      this.checkAction("hireInitialTownsfolk");
+      this.ajaxcall(
+        "/paladinsshipped/paladinsshipped/hireInitialTownsfolk.html",
+        {
+          lock: true,
+          townsfolk_card_id: townsfolk_card_id,
+        },
+        this,
+        function (result) {},
+        function (error) {},
+      );
+    },
+
 
     ///////////////////////////////////////////////////
     //// Reaction to cometD notifications

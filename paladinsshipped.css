@@ -351,6 +351,11 @@
   /* transform-origin: 0px 0px; */
 }
 
+
+.selectable {
+  border: 6px solid cyan;
+}
+
 .paladin_card.selectable
 {
     border: 6px solid cyan;
