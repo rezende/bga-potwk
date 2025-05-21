@@ -75,41 +75,45 @@ define([
           items_per_row: 7,
           width: 160,
           height: 250,
-          type_property: "type_arg"
+          type_property: "type_arg",
         },
         tavern_card: {
           items_per_row: 5,
           width: 127,
           height: 198,
-          type_property: "type_arg"
+          type_property: "type_arg",
         },
         wall_card: {
           items_per_row: 5,
           width: 127,
           height: 198,
-          type_property: "type_arg"
+          type_property: "type_arg",
         },
         kingsorder_card: {
           items_per_row: 4,
           width: 127,
           height: 198,
-          type_property: "type_arg"
+          type_property: "type_arg",
         },
         kingsfavour_card: {
           items_per_row: 5,
           width: 127,
           height: 198,
-          type_property: "type_arg"
-        }
+          type_property: "type_arg",
+        },
       };
 
       this.uiItems.getByUiType = function (uiType) {
-        return this.filter(function (u) { return u.uiType == uiType });
+        return this.filter(function (u) {
+          return u.uiType == uiType;
+        });
       };
 
       this.uiItems.getByUid = function (uid) {
-        return this.find(function (u) { return u.uid == uid });
-      }
+        return this.find(function (u) {
+          return u.uid == uid;
+        });
+      };
 
       this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
         var background = { x: 0, y: 0 };
@@ -119,7 +123,7 @@ define([
           this.itemBackgroundConfig[uiType]["width"];
         background.y =
           Math.floor(
-            typeArg / this.itemBackgroundConfig[uiType].items_per_row
+            typeArg / this.itemBackgroundConfig[uiType].items_per_row,
           ) *
           -1 *
           this.itemBackgroundConfig[uiType]["height"];
@@ -142,7 +146,7 @@ define([
         dojo.setStyle(
           uiItem.htmlNode,
           "background-position",
-          background.x + "px" + " " + background.y + "px"
+          background.x + "px" + " " + background.y + "px",
         );
       };
 
@@ -198,8 +202,8 @@ define([
         this.resetSelectableAnimation();
       };
 
-      this.uiItems.resetSelectableAnimation = function ()          //need code to restart it - https://css-tricks.com/restart-css-animation/
-      {
+      this.uiItems.resetSelectableAnimation = function () {
+        //need code to restart it - https://css-tricks.com/restart-css-animation/
         const items = this.getSelectableItems(false);
         for (var i = 0; i < items.length; i++) {
           items[i].htmlNode.classList.remove("selectable");
@@ -209,13 +213,19 @@ define([
       };
 
       this.uiItems.getSelectedItems = function () {
-        return this.filter(function (u) { return u.isSelected; });
+        return this.filter(function (u) {
+          return u.isSelected;
+        });
       };
 
       this.uiItems.getSelectableItems = function (includeSelected) {
         if (includeSelected)
-          return this.filter(function (u) { return u.isSelectable; });
-        return this.filter(function (u) { return u.isSelectable && !u.isSelected; });
+          return this.filter(function (u) {
+            return u.isSelectable;
+          });
+        return this.filter(function (u) {
+          return u.isSelectable && !u.isSelected;
+        });
       };
 
       this.uiItems.toggleSelection = function (uiItem) {
@@ -223,15 +233,13 @@ define([
           if (uiItem.isSelected) {
             dojo.addClass(uiItem.htmlNode, "selectable");
             dojo.removeClass(uiItem.htmlNode, "selected");
-          }
-          else {
-            dojo.removeClass(uiItem.htmlNode, "selectable")
+          } else {
+            dojo.removeClass(uiItem.htmlNode, "selectable");
             dojo.addClass(uiItem.htmlNode, "selected");
           }
           uiItem.isSelected = !uiItem.isSelected;
         }
       };
-
     },
 
     // onMainboardZoomPlus: function() {
@@ -308,7 +316,7 @@ define([
       // );
       this.uiItems.createItems(
         "townsfolk",
-        this.getValuesFromObject(this.townsfolk_display)
+        this.getValuesFromObject(this.townsfolk_display),
       );
       if (this.paladin_hand) {
         this.createPaladinUiItems(this.paladin_hand);
@@ -318,8 +326,12 @@ define([
       }
       // TODO: so far, it only creates the deck background, not the cards
       this.setupWallCards(this.getValuesFromObject(this.wall_cards));
-      this.setupKingsOrderCards(this.getValuesFromObject(this.kingsorder_display));
-      this.setupKingsFavourCards(this.getValuesFromObject(this.kingsfavour_display));
+      this.setupKingsOrderCards(
+        this.getValuesFromObject(this.kingsorder_display),
+      );
+      this.setupKingsFavourCards(
+        this.getValuesFromObject(this.kingsfavour_display),
+      );
       this.setupNotifications();
       this.drawUi();
 
@@ -331,7 +343,7 @@ define([
           this.format_block("jstpl_player_panel_extension", {
             player_id: player_id,
           }),
-          $("player_board_" + player_id)
+          $("player_board_" + player_id),
         );
         if (player.parchment == "1") {
           this.updateParchment(player_id);
@@ -343,7 +355,7 @@ define([
       this.addTooltipToClass(
         ".panel_parchment",
         _("Parchment, indicates the first player of each round"),
-        ""
+        "",
       );
       console.log("Ending game setup");
     },
@@ -375,7 +387,7 @@ define([
         dojo.setStyle("paladinsSelection", "display", "flex");
         dojo.setStyle("paladinsSelection", "justify-content", "center");
         this.uiItems.makeSelectable(paladinCards);
-        
+
         const tavernCards = this.uiItems.getByUiType("tavern_card");
         for (var tavernCard of tavernCards) {
           dojo.place(tavernCard.htmlNode, "tavernsSelection");
@@ -397,8 +409,8 @@ define([
     },
 
     displayTaverns: function () {
-        dojo.setStyle("tavernsSelection", "display", "flex");
-        dojo.setStyle("tavernsSelection", "justify-content", "center");
+      dojo.setStyle("tavernsSelection", "display", "flex");
+      dojo.setStyle("tavernsSelection", "justify-content", "center");
     },
 
     createTavernUiItems: function (cards) {
@@ -406,8 +418,8 @@ define([
         const card = cards[cardId];
         // card.location = "tavernDisplay";
         card.isSelectable = false;
-        const uiType = "tavern_card"
-        const params = card
+        const uiType = "tavern_card";
+        const params = card;
         this.uiItems.createAndAddItem(uiType, params);
       }
     },
@@ -417,14 +429,14 @@ define([
         const card = cards[cardId];
         card.location = "paladinsSelection";
         card.isSelectable = true;
-        const uiType = "paladin_card"
-        const params = card
+        const uiType = "paladin_card";
+        const params = card;
         this.uiItems.createAndAddItem(uiType, params);
       }
     },
 
     setupWallCards: function (cards) {
-      const deckBackground = { type: 24, type_arg: 24};
+      const deckBackground = { type: 24, type_arg: 24 };
       this.uiItems.createAndAddItem("wall_card", deckBackground);
     },
 
@@ -434,9 +446,9 @@ define([
         If there are less than 3 cards, the missing cards are replaced by a background card.
       */
       const deckBackground = { type: 6, type_arg: 6 };
-      const uiItems = Array(3).fill(deckBackground).map((background, i) =>
-        cards[i] || background
-      );
+      const uiItems = Array(3)
+        .fill(deckBackground)
+        .map((background, i) => cards[i] || background);
       this.uiItems.createItems("kingsorder_card", uiItems);
     },
 
@@ -446,9 +458,9 @@ define([
         If there are less than 5 cards, the missing cards are replaced by a background card.
       */
       const deckBackground = { type: 10, type_arg: 10 };
-      const uiItems = Array(5).fill(deckBackground).map((background, i) =>
-        cards[i] || background
-      );
+      const uiItems = Array(5)
+        .fill(deckBackground)
+        .map((background, i) => cards[i] || background);
       this.uiItems.createItems("kingsfavour_card", uiItems);
     },
 
@@ -458,47 +470,61 @@ define([
       var selectedPaladins = this.uiItems.getSelectedItems();
 
       if (selectedPaladins.length < 3) {
-        const paladin_cards = this.uiItems.getByUiType("paladin_card").filter(function (c) { return c.data.location == "paladin_hand" && c.data.location_arg == playerId; });
+        const paladin_cards = this.uiItems
+          .getByUiType("paladin_card")
+          .filter(function (c) {
+            return (
+              c.data.location == "paladin_hand" &&
+              c.data.location_arg == playerId
+            );
+          });
         this.uiItems.makeSelectable(paladin_cards);
-      }
-      else if (selectedPaladins.length == 3) {
-        this.sendPaladins(selectedPaladins[0].data.id, selectedPaladins[1].data.id, selectedPaladins[2].data.id);
+      } else if (selectedPaladins.length == 3) {
+        this.sendPaladins(
+          selectedPaladins[0].data.id,
+          selectedPaladins[1].data.id,
+          selectedPaladins[2].data.id,
+        );
       }
     },
 
     pickTavern: function (uiItem) {
       if (uiItem.data.id) {
-        debugger
+        debugger;
         this.onClickConfirmTavern(uiItem.data.id);
       }
     },
 
     // onClick functions
     onPaladinCardClick: function (uid) {
-      const card = this.uiItems.find(item => item.uid === parseInt(uid));
+      const card = this.uiItems.find((item) => item.uid === parseInt(uid));
       if (!card) return;
 
       // Toggle selection
-      const isSelected = dojo.hasClass(card.htmlNode, 'selected');
+      const isSelected = dojo.hasClass(card.htmlNode, "selected");
       if (!isSelected) {
         // Only allow selecting if less than 3 cards are selected
-        const selectedCards = dojo.query('.paladin.selected');
+        const selectedCards = dojo.query(".paladin.selected");
         if (selectedCards.length >= 3) return;
       }
 
-      dojo.toggleClass(card.htmlNode, 'selected');
+      dojo.toggleClass(card.htmlNode, "selected");
 
       // Check if we have exactly 3 cards selected
-      const selectedCards = dojo.query('.paladin.selected');
+      const selectedCards = dojo.query(".paladin.selected");
       if (selectedCards.length === 3) {
         // Get the IDs of selected cards in order
-        const selectedIds = Array.from(selectedCards).map(node => {
-          const uid = dojo.attr(node, 'data-uid');
-          const item = this.uiItems.find(item => item.uid === parseInt(uid));
+        const selectedIds = Array.from(selectedCards).map((node) => {
+          const uid = dojo.attr(node, "data-uid");
+          const item = this.uiItems.find((item) => item.uid === parseInt(uid));
           return item.data.id;
         });
 
-        this.onClickConfirmPaladins(selectedIds[0], selectedIds[1], selectedIds[2]);
+        this.onClickConfirmPaladins(
+          selectedIds[0],
+          selectedIds[1],
+          selectedIds[2],
+        );
       }
     },
 
@@ -514,15 +540,15 @@ define([
       console.log("Entering state: " + stateName);
 
       switch (stateName) {
-        case 'pickPaladins':
+        case "pickPaladins":
           this.setupPaladinSelection();
           break;
 
-        case 'pickTavern':
+        case "pickTavern":
           this.setupTavernSelection();
           break;
 
-        case 'cleanupTaverns':
+        case "cleanupTaverns":
           dojo.setStyle("tavernsSelection", "display", "none");
 
         case "dummmy":
@@ -537,7 +563,7 @@ define([
       console.log("Leaving state: " + stateName);
 
       switch (stateName) {
-        case 'pickPaladins':
+        case "pickPaladins":
           dojo.setStyle("paladinsSelection", "display", "none");
           this.uiItems.resetAllSelectable();
           break;
@@ -556,7 +582,7 @@ define([
         switch (stateName) {
           case "hireInitialTownsfolk":
             for (const [tf_id, value] of Object.entries(
-              this.townsfolk_display
+              this.townsfolk_display,
             )) {
               const tf_name = this.townsfolk_material[value.type_arg].name;
               this.addActionButton(
@@ -564,8 +590,8 @@ define([
                 _(`Hire ${tf_name} (${tf_id})`),
                 dojo.hitch(
                   this,
-                  dojo.partial(this.onClickConfirmTownsfolk, tf_id)
-                )
+                  dojo.partial(this.onClickConfirmTownsfolk, tf_id),
+                ),
               );
             }
             break;
@@ -660,10 +686,11 @@ define([
             
             */
 
-
     onClickUiItem: function (evt) {
       if (evt != null) {
-        var uid = dojo.getAttr(evt.currentTarget, "data-uid").replace("uid-", "");
+        var uid = dojo
+          .getAttr(evt.currentTarget, "data-uid")
+          .replace("uid-", "");
         var uiItem = this.uiItems.getByUid(uid);
         if (uiItem.isSelectable && this[this.currentMove] != undefined) {
           this.uiItems.toggleSelection(uiItem);
@@ -682,8 +709,8 @@ define([
           townsfolk_card_id: townsfolk_card_id,
         },
         this,
-        function (result) { },
-        function (error) { }
+        function (result) {},
+        function (error) {},
       );
     },
 
@@ -696,8 +723,8 @@ define([
           tavern_card_id: tavern_card_id,
         },
         this,
-        function (result) { },
-        function (error) { }
+        function (result) {},
+        function (error) {},
       );
     },
 
@@ -712,8 +739,8 @@ define([
           top_id: top_id,
         },
         this,
-        function (result) { },
-        function (error) { }
+        function (result) {},
+        function (error) {},
       );
     },
 
@@ -735,7 +762,6 @@ define([
       dojo.subscribe("paladinCards", this, "notif_paladinCards");
       dojo.subscribe("revealTaverns", this, "notif_revealTaverns");
       dojo.subscribe("cleanupTaverns", this, "notif_cleanupTaverns");
-
 
       // TODO: here, associate your game notifications with local methods
 
@@ -781,7 +807,6 @@ define([
 
     notif_cleanupTaverns: function (notif) {
       dojo.setStyle("tavernsSelection", "display", "none");
-    }
-
+    },
   });
 });
