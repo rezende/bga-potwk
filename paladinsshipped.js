@@ -555,9 +555,12 @@ define([
           break;
       }
 
-      if (this.isCurrentPlayerActive() && ["pickPaladins"].includes(stateName)) {
+      if (
+        this.isCurrentPlayerActive() &&
+        ["pickPaladins"].includes(stateName)
+      ) {
         this.uiItems.resetAllSelectable();
-        this[stateName]();
+        this.pickPaladins();
       }
     },
 
@@ -700,21 +703,9 @@ define([
         var uiItem = this.uiItems.getByUid(uid);
         if (uiItem.isSelectable && this[this.currentMove] != undefined) {
           this.uiItems.toggleSelection(uiItem);
-          // calls stateName()(uiItem)
           this[this.currentMove](uiItem);
         }
       }
-    },
-
-    onClickUiItem: function (evt) {
-        if (evt != null) {
-            var uid = dojo.getAttr(evt.currentTarget, "data-uid").replace("uid-", "");
-            var uiItem = this.uiItems.getByUid(uid);
-            if (uiItem.isSelectable && this[this.currentMove] != undefined) {
-                this.uiItems.toggleSelection(uiItem);
-                this[this.currentMove](uiItem);
-            }
-        }
     },
 
     onClickConfirmTownsfolk: function (townsfolk_card_id) {
