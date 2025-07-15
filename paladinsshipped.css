@@ -275,8 +275,10 @@
 
 /* Player townsfolk cards - same size as display cards */
 .playerboard_cards .townsfolk {
-  width: 92.8px; /* 160px * 0.58 */
+  width: 94px; /* Match display card width */
   height: 145px; /* 250px * 0.58 */
+  transform: scale(0.58); /* Match display card scale */
+  transform-origin: top left;
   margin: 5px;
   position: relative;
 }
