@@ -129,9 +129,26 @@
   width: 100%;
 }
 
+.playerboard_box_middle {
+  display: flex;
+  width: 100%;
+  height: 680px;
+}
+
+.playerboard_cards {
+  position: relative;
+  width: 30%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
 .playerboard_box {
   position: relative;
-  width: 50%;
+  width: 70%;
   height: 680px;
   background-image: url("img/Playerboard.png");
   background-repeat: no-repeat;

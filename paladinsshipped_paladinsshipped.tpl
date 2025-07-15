@@ -42,6 +42,7 @@
       <div class="playerboard" id="playerboard_{player_ID}">
         <div class="playerboard_box_middle">
           <div class="playerboard_box"></div>
+          <div class="playerboard_cards" id="playerboard_cards_{player_ID}"></div>
         </div>
       </div>
       <!-- END playerboard -->
