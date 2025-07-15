@@ -618,12 +618,8 @@ define([
           if (playerboardCardsElement) {
             dojo.place(uiItem.htmlNode, playerboardCardsElement);
             console.log("Placed card in container");
-            // Set smaller scale for player cards
-            dojo.setStyle(uiItem.htmlNode, 'transform', 'scale(0.4)');
+            // Add some margin for spacing between cards
             dojo.setStyle(uiItem.htmlNode, 'margin', '5px');
-            // Set fixed dimensions for proper sprite display
-            dojo.setStyle(uiItem.htmlNode, 'width', '160px');
-            dojo.setStyle(uiItem.htmlNode, 'height', '250px');
             console.log("Applied styles to card");
           } else {
             console.error("Could not find playerboard cards container:", parentContainer);

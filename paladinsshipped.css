@@ -272,6 +272,14 @@
   position: relative;
 }
 
+/* Player townsfolk cards - same size as display cards */
+.playerboard_cards .townsfolk {
+  width: 92.8px; /* 160px * 0.58 */
+  height: 145px; /* 250px * 0.58 */
+  margin: 5px;
+  position: relative;
+}
+
 #kingsorder_cards {
   display: flex;
   gap: 15px;
