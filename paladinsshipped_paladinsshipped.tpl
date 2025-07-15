@@ -39,10 +39,10 @@
     <!-- mainBoardContainer contains the players board -->
     <div id="playersBoardContainer">
       <!-- BEGIN playerboard -->
-      <div class="playerboard" id="playerboard_{player_ID}">
+      <div class="playerboard" id="playerboard_{PLAYER_ID}">
         <div class="playerboard_box_middle">
           <div class="playerboard_box"></div>
-          <div class="playerboard_cards" id="playerboard_cards_{player_ID}"></div>
+          <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>
         </div>
       </div>
       <!-- END playerboard -->

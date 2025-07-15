@@ -302,6 +302,7 @@ define([
       this.townsfolk_material = gamedatas.townsfolk_material;
       this.paladin_material = gamedatas.paladin_material;
       this.paladin_hand = gamedatas.player_paladin_hand;
+      this.player_townsfolk_hand = gamedatas.player_townsfolk_hand;
       this.tavern_display = gamedatas.tavern_display;
       this.tavern_cards_material = gamedatas.tavern_cards_material;
       this.wall_cards = gamedatas.wall_cards;
@@ -322,6 +323,9 @@ define([
       }
       if (this.tavern_display) {
         this.createTavernUiItems(this.tavern_display);
+      }
+      if (this.player_townsfolk_hand) {
+        this.createPlayerTownsfolkUiItems(this.player_townsfolk_hand);
       }
       // TODO: so far, it only creates the deck background, not the cards
       this.setupWallCards(this.getValuesFromObject(this.wall_cards));
@@ -437,6 +441,17 @@ define([
         card.location = "paladinsSelection";
         card.isSelectable = true;
         const uiType = "paladin_card";
+        const params = card;
+        this.uiItems.createAndAddItem(uiType, params);
+      }
+    },
+
+    createPlayerTownsfolkUiItems: function (cards) {
+      for (var cardId in cards) {
+        const card = cards[cardId];
+        card.location = "playerboard_cards";
+        card.isSelectable = false;
+        const uiType = "townsfolk_uiitem";
         const params = card;
         this.uiItems.createAndAddItem(uiType, params);
       }
@@ -590,7 +605,18 @@ define([
 
     moveUiItemToParentContainer: function (uiItem, parentContainer) {
       if (parentContainer != null) {
-        dojo.place(uiItem.htmlNode, parentContainer);
+        // Special handling for player townsfolk cards
+        if (uiItem.uiType == "townsfolk_uiitem" && uiItem.data.location == "playerboard_cards") {
+          const playerboardCardsElement = document.getElementById(parentContainer);
+          if (playerboardCardsElement) {
+            dojo.place(uiItem.htmlNode, playerboardCardsElement);
+            // Set smaller scale for player cards
+            dojo.setStyle(uiItem.htmlNode, 'transform', 'scale(0.4)');
+            dojo.setStyle(uiItem.htmlNode, 'margin', '5px');
+          }
+        } else {
+          dojo.place(uiItem.htmlNode, parentContainer);
+        }
         this.positionUiItem(uiItem);
       }
     },
@@ -601,7 +627,12 @@ define([
         containerName = "outsider_cards";
       }
       if (uiItem.uiType == "townsfolk_uiitem") {
-        containerName = "townsfolk_cards";
+        if (uiItem.data.location == "playerboard_cards") {
+          debugger;
+          containerName = "playerboard_cards_" + this.player_id;
+        } else {
+          containerName = "townsfolk_cards";
+        }
       }
       if (uiItem.uiType == "paladin_card") {
         containerName = "paladin_cards";
