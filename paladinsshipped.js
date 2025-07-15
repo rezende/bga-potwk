@@ -302,8 +302,8 @@ define([
       this.townsfolk_material = gamedatas.townsfolk_material;
       this.paladin_material = gamedatas.paladin_material;
       this.paladin_hand = gamedatas.player_paladin_hand;
-      this.player_townsfolk_hand = gamedatas.player_townsfolk_hand;
-      console.log("Player townsfolk hand:", this.player_townsfolk_hand);
+      this.all_players_townsfolk_hands = gamedatas.all_players_townsfolk_hands;
+      console.log("All players townsfolk hands:", this.all_players_townsfolk_hands);
       this.tavern_display = gamedatas.tavern_display;
       this.tavern_cards_material = gamedatas.tavern_cards_material;
       this.wall_cards = gamedatas.wall_cards;
@@ -325,10 +325,10 @@ define([
       if (this.tavern_display) {
         this.createTavernUiItems(this.tavern_display);
       }
-      console.log("Checking if player_townsfolk_hand exists:", !!this.player_townsfolk_hand);
-      if (this.player_townsfolk_hand) {
-        console.log("Calling createPlayerTownsfolkUiItems");
-        this.createPlayerTownsfolkUiItems(this.player_townsfolk_hand);
+      console.log("Checking if all_players_townsfolk_hands exists:", !!this.all_players_townsfolk_hands);
+      if (this.all_players_townsfolk_hands) {
+        console.log("Creating UI items for all players' townsfolk hands");
+        this.createAllPlayersTownsfolkUiItems(this.all_players_townsfolk_hands);
       }
       // TODO: so far, it only creates the deck background, not the cards
       this.setupWallCards(this.getValuesFromObject(this.wall_cards));
@@ -449,16 +449,21 @@ define([
       }
     },
 
-    createPlayerTownsfolkUiItems: function (cards) {
-      console.log("createPlayerTownsfolkUiItems called with:", cards);
-      for (var cardId in cards) {
-        const card = cards[cardId];
-        card.location = "playerboard_cards";
-        card.isSelectable = false;
-        const uiType = "townsfolk_uiitem";
-        const params = card;
-        console.log("Creating UI item for card:", params);
-        this.uiItems.createAndAddItem(uiType, params);
+    createAllPlayersTownsfolkUiItems: function (allPlayersCards) {
+      console.log("createAllPlayersTownsfolkUiItems called with:", allPlayersCards);
+      for (var playerId in allPlayersCards) {
+        const playerCards = allPlayersCards[playerId];
+        console.log("Creating UI items for player", playerId, "with cards:", playerCards);
+        for (var cardId in playerCards) {
+          const card = playerCards[cardId];
+          card.location = "playerboard_cards";
+          card.location_arg = playerId; // Set the player ID so cards go to correct player area
+          card.isSelectable = false;
+          const uiType = "townsfolk_uiitem";
+          const params = card;
+          console.log("Creating UI item for player", playerId, "card:", params);
+          this.uiItems.createAndAddItem(uiType, params);
+        }
       }
     },
 
@@ -638,7 +643,7 @@ define([
       }
       if (uiItem.uiType == "townsfolk_uiitem") {
         if (uiItem.data.location == "playerboard_cards") {
-          containerName = "playerboard_cards_" + this.player_id;
+          containerName = "playerboard_cards_" + uiItem.data.location_arg;
         } else {
           containerName = "townsfolk_cards";
         }

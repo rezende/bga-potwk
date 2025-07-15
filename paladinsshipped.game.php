@@ -231,7 +231,12 @@ class PaladinsShipped extends Table
         $result['townsfolk_material'] = $this->tf_cards_material;
         $result['paladin_material'] = $this->paladins_cards_material;
         $result['player_paladin_hand'] = $this->deck->getCardsInLocation('paladin_hand', $current_player_id);
-        $result['player_townsfolk_hand'] = $this->deck->getCardsInLocation('hand', $current_player_id);
+        // Load all players' townsfolk hands since they are public information
+        $result['all_players_townsfolk_hands'] = array();
+        $players = self::loadPlayersBasicInfos();
+        foreach ($players as $player_id => $player) {
+            $result['all_players_townsfolk_hands'][$player_id] = $this->deck->getCardsInLocation('hand', $player_id);
+        }
         $result['tavern_display'] = $this->deck->getCardsInLocation('tavern_display');
         $result['tavern_cards_material'] = $this->tavern_cards_material;
         $result['wall_cards'] = $this->deck->getCardsInLocation('wall_hand', $current_player_id);
