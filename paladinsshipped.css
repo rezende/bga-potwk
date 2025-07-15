@@ -95,12 +95,12 @@
 
 #boardLeft {
   position: relative;
-  width: 734px;
-  height: 180px;
+  width: 733px; /* Original size */
+  height: 180px; /* Original size */
   background-image: url("img/main_board_1.png");
-  background-size: 734px 180px;
-  margin-top: 167px;
-  margin-bottom: 167px;
+  background-size: 733px 180px;
+  margin-top: 167px; /* Original margins */
+  margin-bottom: 167px; /* Original margins */
 }
 
 /* #boardRight {
@@ -257,18 +257,19 @@
 
 #townsfolk_cards {
   display: flex;
-  gap: 12px;
   width: 50%;
-  left: 18px;
+  left: 17px; /* Original initial gap */
   position: relative;
-  top: -140px;
+  top: -140px; /* Original positioning */
 }
 
 #townsfolk_cards .townsfolk {
-  transform: scale(0.58);
+  width: 94px; /* Original card width */
+  height: 145px; /* 250px * 0.58 */
+  transform: scale(0.58); /* Scale down to fit 94px width (94/153 ≈ 0.61) */
   transform-origin: top left;
-  margin-right: -52px;
-  margin-bottom: -108px;
+  margin-right: -40px; /* Adjusted for new size */
+  margin-bottom: -63px; /* Adjusted for new size */
   position: relative;
 }
 
@@ -286,7 +287,7 @@
   width: 50%;
   left: 11px;
   position: relative;
-  top: -296px;
+  top: -340px;
 }
 
 #kingsorder_cards .kingsorder_card {
@@ -301,9 +302,9 @@
   display: flex;
   gap: 15px;
   width: 50%;
-  left: 287px;
+  left: 282px;
   position: relative;
-  top: -386px;
+  top: -420px;
 }
 
 #kingsfavour_cards .kingsfavour_card {
