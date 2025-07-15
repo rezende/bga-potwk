@@ -207,7 +207,10 @@
   background: url("img/sprite_townsfolk.png");
   background-color: white;
   transform-origin: 0px 0px;
+  background-repeat: no-repeat;
 }
+
+
 
 .wall_card {
   min-width: 127px;

@@ -303,6 +303,7 @@ define([
       this.paladin_material = gamedatas.paladin_material;
       this.paladin_hand = gamedatas.player_paladin_hand;
       this.player_townsfolk_hand = gamedatas.player_townsfolk_hand;
+      console.log("Player townsfolk hand:", this.player_townsfolk_hand);
       this.tavern_display = gamedatas.tavern_display;
       this.tavern_cards_material = gamedatas.tavern_cards_material;
       this.wall_cards = gamedatas.wall_cards;
@@ -324,7 +325,9 @@ define([
       if (this.tavern_display) {
         this.createTavernUiItems(this.tavern_display);
       }
+      console.log("Checking if player_townsfolk_hand exists:", !!this.player_townsfolk_hand);
       if (this.player_townsfolk_hand) {
+        console.log("Calling createPlayerTownsfolkUiItems");
         this.createPlayerTownsfolkUiItems(this.player_townsfolk_hand);
       }
       // TODO: so far, it only creates the deck background, not the cards
@@ -447,12 +450,14 @@ define([
     },
 
     createPlayerTownsfolkUiItems: function (cards) {
+      console.log("createPlayerTownsfolkUiItems called with:", cards);
       for (var cardId in cards) {
         const card = cards[cardId];
         card.location = "playerboard_cards";
         card.isSelectable = false;
         const uiType = "townsfolk_uiitem";
         const params = card;
+        console.log("Creating UI item for card:", params);
         this.uiItems.createAndAddItem(uiType, params);
       }
     },
@@ -513,7 +518,6 @@ define([
 
     pickTavern: function (uiItem) {
       if (uiItem.data.id) {
-        debugger;
         this.onClickConfirmTavern(uiItem.data.id);
       }
     },
@@ -607,12 +611,22 @@ define([
       if (parentContainer != null) {
         // Special handling for player townsfolk cards
         if (uiItem.uiType == "townsfolk_uiitem" && uiItem.data.location == "playerboard_cards") {
+          console.log("Processing player townsfolk card:", uiItem);
           const playerboardCardsElement = document.getElementById(parentContainer);
+          console.log("Looking for container:", parentContainer);
+          console.log("Found element:", playerboardCardsElement);
           if (playerboardCardsElement) {
             dojo.place(uiItem.htmlNode, playerboardCardsElement);
+            console.log("Placed card in container");
             // Set smaller scale for player cards
             dojo.setStyle(uiItem.htmlNode, 'transform', 'scale(0.4)');
             dojo.setStyle(uiItem.htmlNode, 'margin', '5px');
+            // Set fixed dimensions for proper sprite display
+            dojo.setStyle(uiItem.htmlNode, 'width', '160px');
+            dojo.setStyle(uiItem.htmlNode, 'height', '250px');
+            console.log("Applied styles to card");
+          } else {
+            console.error("Could not find playerboard cards container:", parentContainer);
           }
         } else {
           dojo.place(uiItem.htmlNode, parentContainer);
@@ -628,7 +642,6 @@ define([
       }
       if (uiItem.uiType == "townsfolk_uiitem") {
         if (uiItem.data.location == "playerboard_cards") {
-          debugger;
           containerName = "playerboard_cards_" + this.player_id;
         } else {
           containerName = "townsfolk_cards";
@@ -759,6 +772,7 @@ define([
       dojo.subscribe("paladinCards", this, "notif_paladinCards");
       dojo.subscribe("revealTaverns", this, "notif_revealTaverns");
       dojo.subscribe("cleanupTaverns", this, "notif_cleanupTaverns");
+      dojo.subscribe("townsfolkHired", this, "notif_townsfolkHired");
 
       // TODO: here, associate your game notifications with local methods
 
@@ -804,6 +818,21 @@ define([
 
     notif_cleanupTaverns: function (notif) {
       dojo.setStyle("tavernsSelection", "display", "none");
+    },
+
+    notif_townsfolkHired: function (notif) {
+      console.log("Townsfolk hired notification received:", notif);
+      
+      // Create a UI item for the hired townsfolk card in the player's area
+      const hiredCard = notif.args.card;
+      const playerId = notif.args.player_id;
+      
+      // Set the location to playerboard_cards so it goes to the correct container
+      hiredCard.location = "playerboard_cards";
+      hiredCard.location_arg = playerId;
+      
+      console.log("Creating UI item for hired townsfolk:", hiredCard);
+      this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
     },
   });
 });

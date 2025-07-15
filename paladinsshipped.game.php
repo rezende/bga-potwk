@@ -508,6 +508,14 @@ class PaladinsShipped extends Table
                 "townsfolk_name" => $townsfolk_card_info['name']
             ]
         );
+        
+        // Notify all players about the townsfolk being hired to update UI
+        $hired_card = $this->deck->getCard($townsfolk_card_id);
+        self::notifyAllPlayers("townsfolkHired", '', [
+            'card' => $hired_card,
+            'player_id' => $player_id
+        ]);
+        
         $this->gamestate->nextState("");
     }
 
