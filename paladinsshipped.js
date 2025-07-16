@@ -845,6 +845,11 @@ define([
       const tempCard = sourceCard.htmlNode.cloneNode(true);
       dojo.setStyle(tempCard, "position", "absolute");
       dojo.setStyle(tempCard, "z-index", "1000");
+      // Apply the same styling as display cards to maintain size consistency
+      dojo.setStyle(tempCard, "width", "94px");
+      dojo.setStyle(tempCard, "height", "145px");
+      dojo.setStyle(tempCard, "transform", "scale(0.58)");
+      dojo.setStyle(tempCard, "transform-origin", "top left");
       dojo.place(tempCard, "zoomBox");
       
       // Get positions
@@ -858,6 +863,9 @@ define([
       // Position temp card at source
       dojo.setStyle(tempCard, "top", sourcePos.y + "px");
       dojo.setStyle(tempCard, "left", sourcePos.x + "px");
+      
+      // Hide the original card immediately
+      dojo.setStyle(sourceCard.htmlNode, "display", "none");
       
       // Animate to destination
       const anim = dojo.fx.slideTo({
@@ -875,7 +883,11 @@ define([
         // Add the card to player's area
         hiredCard.location = "playerboard_cards";
         hiredCard.location_arg = playerId;
+        console.log("Creating UI item for hired townsfolk:", hiredCard);
         this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+        
+        // Force a redraw to make sure the card appears
+        this.drawUi();
       };
       
       anim.play();
