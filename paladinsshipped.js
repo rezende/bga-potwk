@@ -633,6 +633,8 @@ define([
           dojo.place(uiItem.htmlNode, parentContainer);
         }
         this.positionUiItem(uiItem);
+      } else {
+        console.error("No parent container found for UI item:", uiItem);
       }
     },
 
@@ -644,8 +646,10 @@ define([
       if (uiItem.uiType == "townsfolk_uiitem") {
         if (uiItem.data.location == "playerboard_cards") {
           containerName = "playerboard_cards_" + uiItem.data.location_arg;
+          console.log("Routing townsfolk card to player container:", containerName, "for player:", uiItem.data.location_arg);
         } else {
-          containerName = "townsfolk_cards";
+          // Place cards in their specific spots based on location_arg (position in display)
+          containerName = "townsfolk_spot_" + uiItem.data.location_arg;
         }
       }
       if (uiItem.uiType == "paladin_card") {
@@ -864,8 +868,8 @@ define([
       dojo.setStyle(tempCard, "top", sourcePos.y + "px");
       dojo.setStyle(tempCard, "left", sourcePos.x + "px");
       
-      // Hide the original card immediately
-      dojo.setStyle(sourceCard.htmlNode, "display", "none");
+      // Hide the original card during animation instead of replacing it
+      dojo.setStyle(sourceCard.htmlNode, "visibility", "hidden");
       
       // Animate to destination
       const anim = dojo.fx.slideTo({
@@ -880,14 +884,30 @@ define([
         console.log("Animation completed");
         dojo.destroy(tempCard);
         
-        // Add the card to player's area
-        hiredCard.location = "playerboard_cards";
-        hiredCard.location_arg = playerId;
-        console.log("Creating UI item for hired townsfolk:", hiredCard);
-        this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+        // Remove the original card from the UI items array and DOM
+        const cardIndex = this.uiItems.findIndex(item => item.uid === sourceCard.uid);
+        if (cardIndex !== -1) {
+          this.uiItems.splice(cardIndex, 1);
+          dojo.destroy(sourceCard.htmlNode);
+        }
         
-        // Force a redraw to make sure the card appears
-        this.drawUi();
+        // Create the UI item for the hired card in the player's area
+        // Check if it doesn't already exist to avoid duplicates
+        const existingCards = this.uiItems.getByUiType("townsfolk_uiitem");
+        const cardExists = existingCards.some(card => card.data.id == hiredCard.id && card.data.location == "playerboard_cards");
+        
+        if (!cardExists) {
+          console.log("Creating UI item for hired townsfolk in player area:", hiredCard);
+          hiredCard.location = "playerboard_cards";
+          hiredCard.location_arg = playerId;
+          this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+          
+          // Force a redraw to make sure the card appears
+          console.log("Forcing UI redraw after creating card");
+          this.drawUi();
+        } else {
+          console.log("Card already exists in player area, skipping creation");
+        }
       };
       
       anim.play();

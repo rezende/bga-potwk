@@ -29,7 +29,13 @@
     <!-- mainBoardContainer contains the main board -->
     <div id="board">
       <div id="boardLeft">
-        <div id="townsfolk_cards"></div>
+        <div id="townsfolk_cards">
+          <div id="townsfolk_spot_0" class="townsfolk_spot"></div>
+          <div id="townsfolk_spot_1" class="townsfolk_spot"></div>
+          <div id="townsfolk_spot_2" class="townsfolk_spot"></div>
+          <div id="townsfolk_spot_3" class="townsfolk_spot"></div>
+          <div id="townsfolk_spot_4" class="townsfolk_spot"></div>
+        </div>
         <div id="wall_deck"></div>
         <div id="kingsorder_cards"></div>
         <div id="kingsfavour_cards"></div>

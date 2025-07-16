@@ -256,11 +256,20 @@
 }
 
 #townsfolk_cards {
-  display: flex;
+  position: relative;
   width: 50%;
   left: 17px; /* Original initial gap */
-  position: relative;
   top: -140px; /* Original positioning */
+  display: flex;
+  gap: -45px; /* Negative gap to compensate for transform extra space */
+  align-items: flex-start;
+  justify-content: flex-start; /* Align cards to the start */
+}
+
+/* Individual spots for townsfolk cards */
+.townsfolk_spot {
+  /* Flexbox will handle positioning automatically */
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 #townsfolk_cards .townsfolk {
@@ -268,9 +277,9 @@
   height: 145px; /* 250px * 0.58 */
   transform: scale(0.58); /* Scale down to fit 94px width (94/153 ≈ 0.61) */
   transform-origin: top left;
-  margin-right: -40px; /* Adjusted for new size */
-  margin-bottom: -63px; /* Adjusted for new size */
   position: relative;
+  flex-shrink: 0; /* Prevent cards from shrinking */
+  margin-right: -40px; /* Compensate for the extra space created by transform */
 }
 
 /* Player townsfolk cards - same size as display cards */
@@ -284,7 +293,8 @@
 }
 
 #kingsorder_cards {
-  display: flex;
+  display: none;
+  /* display: flex; */
   gap: 15px;
   width: 50%;
   left: 11px;
@@ -301,7 +311,8 @@
 }
 
 #kingsfavour_cards {
-  display: flex;
+  display: none;
+  /* display: flex; */
   gap: 15px;
   width: 50%;
   left: 282px;
