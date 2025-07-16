@@ -824,16 +824,61 @@ define([
     notif_townsfolkHired: function (notif) {
       console.log("Townsfolk hired notification received:", notif);
       
-      // Create a UI item for the hired townsfolk card in the player's area
       const hiredCard = notif.args.card;
       const playerId = notif.args.player_id;
       
-      // Set the location to playerboard_cards so it goes to the correct container
-      hiredCard.location = "playerboard_cards";
-      hiredCard.location_arg = playerId;
+      // Find the source card in the display
+      const townsfolkCards = this.uiItems.getByUiType("townsfolk_uiitem");
+      const sourceCard = townsfolkCards.find(card => card.data.id == hiredCard.id);
+      if (!sourceCard) {
+        console.error("Could not find source card for animation");
+        // Fallback to normal behavior
+        hiredCard.location = "playerboard_cards";
+        hiredCard.location_arg = playerId;
+        this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+        return;
+      }
       
-      console.log("Creating UI item for hired townsfolk:", hiredCard);
-      this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+      console.log("Found source card:", sourceCard);
+      
+      // Create a clone of the card for animation
+      const tempCard = sourceCard.htmlNode.cloneNode(true);
+      dojo.setStyle(tempCard, "position", "absolute");
+      dojo.setStyle(tempCard, "z-index", "1000");
+      dojo.place(tempCard, "zoomBox");
+      
+      // Get positions
+      const sourcePos = dojo.position(sourceCard.htmlNode);
+      const destContainer = document.getElementById("playerboard_cards_" + playerId);
+      const destPos = dojo.position(destContainer);
+      
+      console.log("Source position:", sourcePos);
+      console.log("Destination position:", destPos);
+      
+      // Position temp card at source
+      dojo.setStyle(tempCard, "top", sourcePos.y + "px");
+      dojo.setStyle(tempCard, "left", sourcePos.x + "px");
+      
+      // Animate to destination
+      const anim = dojo.fx.slideTo({
+        node: tempCard,
+        top: destPos.y + 10, // Add small offset
+        left: destPos.x + 10,
+        duration: 800,
+        unit: "px"
+      });
+      
+      anim.onEnd = () => {
+        console.log("Animation completed");
+        dojo.destroy(tempCard);
+        
+        // Add the card to player's area
+        hiredCard.location = "playerboard_cards";
+        hiredCard.location_arg = playerId;
+        this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+      };
+      
+      anim.play();
     },
   });
 });
