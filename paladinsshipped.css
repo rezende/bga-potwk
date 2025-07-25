@@ -242,7 +242,7 @@
 #wall_deck {
   display: flex;
   position: relative;
-  top: -253px;
+  top: -196px;
   left: 648px;
 }
 
@@ -258,19 +258,24 @@
 #townsfolk_cards {
   position: relative;
   width: 50%;
-  left: 17px; /* Original initial gap */
+  left: 59px; /* Moved further right to restore original position */
   top: -140px; /* Original positioning */
   display: flex;
-  gap: -45px; /* Negative gap to compensate for transform extra space */
+  gap: 40px; /* Increased gap between cards */
   align-items: flex-start;
-  justify-content: flex-start; /* Align cards to the start */
 }
 
 /* Individual spots for townsfolk cards */
 .townsfolk_spot {
-  /* Flexbox will handle positioning automatically */
-  flex-shrink: 0; /* Prevent shrinking */
+  flex: 0 0 auto; /* Don't grow, don't shrink, auto basis */
+  width: 80px; /* Increased width for each spot */
+  height: 84px; /* 145px * 0.58 - matches the scaled visual size */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
+
+/* Individual spot positioning is now handled by flexbox */
 
 #townsfolk_cards .townsfolk {
   width: 94px; /* Original card width */
@@ -278,8 +283,6 @@
   transform: scale(0.58); /* Scale down to fit 94px width (94/153 ≈ 0.61) */
   transform-origin: top left;
   position: relative;
-  flex-shrink: 0; /* Prevent cards from shrinking */
-  margin-right: -40px; /* Compensate for the extra space created by transform */
 }
 
 /* Player townsfolk cards - same size as display cards */
@@ -431,7 +434,170 @@
 }
 
 #tavernsSelection {
-  position: relative;
-  text-align: center;
   display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+  z-index: 1000;
+}
+
+/* Action Buttons */
+#action_buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  margin: 10px 0;
+  justify-content: center;
+}
+
+.action_button {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  min-width: 80px;
+  text-align: center;
+}
+
+.action_button:hover {
+  background: linear-gradient(135deg, #357abd, #2c5aa0);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.action_button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.action_button:disabled {
+  background: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.action_button:disabled:hover {
+  background: #cccccc;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Action button categories */
+.action_button.primary {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.action_button.secondary {
+  background: linear-gradient(135deg, #6c757d, #495057);
+}
+
+.action_button.danger {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.action_button.warning {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+}
+
+/* Action button states */
+.action_button.available {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 144, 226, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(74, 144, 226, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);
+  }
+}
+
+/* Worker placement areas */
+.worker_placement_area {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 5px;
+  min-height: 60px;
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.worker_placement_area:hover {
+  border-color: #4a90e2;
+  background-color: rgba(74, 144, 226, 0.1);
+}
+
+.worker_placement_area.valid {
+  border-color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.worker_placement_area.invalid {
+  border-color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Action space indicators */
+.action_space {
+  position: relative;
+  display: inline-block;
+  margin: 5px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #ddd;
+}
+
+.action_space.available {
+  border-color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.action_space.unavailable {
+  border-color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
+  opacity: 0.6;
+}
+
+/* Resource counters */
+.resource_counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  border: 1px solid #ddd;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.resource_counter.insufficient {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.resource_counter.sufficient {
+  color: #28a745;
+  border-color: #28a745;
 }

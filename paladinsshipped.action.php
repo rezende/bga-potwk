@@ -60,6 +60,154 @@ class action_paladinsshipped extends APP_GameAction
         self::ajaxResponse();
     }
 
+    // CORE GAME ACTIONS
+    public function pass()
+    {
+        self::setAjaxMode();
+        $this->game->pass();
+        self::ajaxResponse();
+    }
+
+    public function pray()
+    {
+        self::setAjaxMode();
+        $action_space = self::getArg("action_space", AT_alphanum, true);
+        $this->game->pray($action_space);
+        self::ajaxResponse();
+    }
+
+    public function recruitDiscard()
+    {
+        self::setAjaxMode();
+        $worker_id = self::getArg("worker_id", AT_int, true);
+        $townsfolk_card_id = self::getArg("townsfolk_card_id", AT_int, true);
+        $this->game->recruitDiscard($worker_id, $townsfolk_card_id);
+        self::ajaxResponse();
+    }
+
+    public function recruitHire()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, false);
+        $townsfolk_card_id = self::getArg("townsfolk_card_id", AT_int, true);
+        $use_debt = self::getArg("use_debt", AT_bool, false);
+        $this->game->recruitHire($worker1_id, $worker2_id, $townsfolk_card_id, $use_debt);
+        self::ajaxResponse();
+    }
+
+    public function develop()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, true);
+        $action_space = self::getArg("action_space", AT_alphanum, true);
+        $workshop_position = self::getArg("workshop_position", AT_alphanum, true);
+        $this->game->develop($worker1_id, $worker2_id, $action_space, $workshop_position);
+        self::ajaxResponse();
+    }
+
+    public function hunt()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, false);
+        $this->game->hunt($worker1_id, $worker2_id);
+        self::ajaxResponse();
+    }
+
+    public function trade()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, false);
+        $this->game->trade($worker1_id, $worker2_id);
+        self::ajaxResponse();
+    }
+
+    public function conspire()
+    {
+        self::setAjaxMode();
+        $worker_id = self::getArg("worker_id", AT_int, true);
+        $this->game->conspire($worker_id);
+        self::ajaxResponse();
+    }
+
+    public function commission()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, true);
+        $worker3_id = self::getArg("worker3_id", AT_int, true);
+        $board_position = self::getArg("board_position", AT_int, true);
+        $this->game->commission($worker1_id, $worker2_id, $worker3_id, $board_position);
+        self::ajaxResponse();
+    }
+
+    public function fortify()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, true);
+        $worker3_id = self::getArg("worker3_id", AT_int, true);
+        $this->game->fortify($worker1_id, $worker2_id, $worker3_id);
+        self::ajaxResponse();
+    }
+
+    public function garrison()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, true);
+        $worker3_id = self::getArg("worker3_id", AT_int, true);
+        $board_position = self::getArg("board_position", AT_int, true);
+        $this->game->garrison($worker1_id, $worker2_id, $worker3_id, $board_position);
+        self::ajaxResponse();
+    }
+
+    public function absolve()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, true);
+        $worker3_id = self::getArg("worker3_id", AT_int, true);
+        $jar_position = self::getArg("jar_position", AT_alphanum, true);
+        $this->game->absolve($worker1_id, $worker2_id, $worker3_id, $jar_position);
+        self::ajaxResponse();
+    }
+
+    public function attack()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, true);
+        $worker3_id = self::getArg("worker3_id", AT_int, true);
+        $outsider_card_id = self::getArg("outsider_card_id", AT_int, true);
+        $silver_cost = self::getArg("silver_cost", AT_int, false);
+        $this->game->attack($worker1_id, $worker2_id, $worker3_id, $outsider_card_id, $silver_cost);
+        self::ajaxResponse();
+    }
+
+    public function convert()
+    {
+        self::setAjaxMode();
+        $worker1_id = self::getArg("worker1_id", AT_int, true);
+        $worker2_id = self::getArg("worker2_id", AT_int, true);
+        $worker3_id = self::getArg("worker3_id", AT_int, true);
+        $outsider_card_id = self::getArg("outsider_card_id", AT_int, true);
+        $this->game->convert($worker1_id, $worker2_id, $worker3_id, $outsider_card_id);
+        self::ajaxResponse();
+    }
+
+    public function kingsFavor()
+    {
+        self::setAjaxMode();
+        $worker_id = self::getArg("worker_id", AT_int, true);
+        $kings_favor_id = self::getArg("kings_favor_id", AT_int, true);
+        $this->game->kingsFavor($worker_id, $kings_favor_id);
+        self::ajaxResponse();
+    }
+
     // SETUP
 
     // recruit (assistantID, assistantPosition)

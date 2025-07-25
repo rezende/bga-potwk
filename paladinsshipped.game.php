@@ -696,6 +696,365 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState("");
     }
 
+    public function stGameActionPhaseManager()
+    {
+        // Check if all players have passed
+        $active_players = $this->gamestate->getActivePlayerList();
+        if (empty($active_players)) {
+            // All players have passed, end the round
+            $this->gamestate->nextState('endOfRound');
+        } else {
+            // Continue with next player
+            $this->gamestate->nextState('nextPlayer');
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////// CORE GAME ACTIONS
+    ////////////
+
+    public function pass()
+    {
+        self::checkAction('pass');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Clear all workers from player board and return to supply
+        $workers_to_return = $this->getCollectionFromDb("SELECT * FROM player_resources WHERE player_id = $player_id AND resource_type IN ('white_worker', 'green_worker', 'red_worker', 'blue_worker', 'black_worker', 'purple_worker')");
+        
+        foreach ($workers_to_return as $worker) {
+            $this->addResource($player_id, $worker['resource_type'], -$worker['resource_qty']);
+        }
+        
+        // Allow carrying up to 3 workers to next round
+        $carry_limit = 3;
+        $workers_carried = 0;
+        
+        self::notifyAllPlayers('pass', clienttranslate('${player_name} passes'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function pray($action_space)
+    {
+        self::checkAction('pray');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Check if player has a Cleric (black worker)
+        if ($this->getResourceCount($player_id, WORKER_BLACK) < 1) {
+            throw new BgaUserException(self::_("You need a Cleric to pray"));
+        }
+        
+        // Check if player has enough silver
+        if ($this->getResourceCount($player_id, RESOURCE_COIN) < 2) {
+            throw new BgaUserException(self::_("You need 2 Silver to pray"));
+        }
+        
+        // Remove Cleric and pay silver
+        $this->addResource($player_id, WORKER_BLACK, -1);
+        $this->addResource($player_id, RESOURCE_COIN, -2);
+        
+        // Clear workers from specified action space
+        // TODO: Implement worker clearing logic
+        
+        self::notifyAllPlayers('pray', clienttranslate('${player_name} prays and clears workers from ${action_space}'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'action_space' => $action_space,
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function recruitDiscard($worker_id, $townsfolk_card_id)
+    {
+        self::checkAction('recruitDiscard');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate worker and townsfolk card
+        // TODO: Add validation logic
+        
+        // Remove worker and discard townsfolk
+        // TODO: Implement discard logic
+        
+        self::notifyAllPlayers('recruitDiscard', clienttranslate('${player_name} discards a townsfolk'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function recruitHire($worker1_id, $worker2_id, $townsfolk_card_id, $use_debt = false)
+    {
+        self::checkAction('recruitHire');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers and townsfolk card
+        // TODO: Add validation logic
+        
+        // Remove workers and hire townsfolk
+        // TODO: Implement hiring logic
+        
+        self::notifyAllPlayers('recruitHire', clienttranslate('${player_name} hires a townsfolk'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function develop($worker1_id, $worker2_id, $action_space, $workshop_position)
+    {
+        self::checkAction('develop');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Check if player has enough silver
+        if ($this->getResourceCount($player_id, RESOURCE_COIN) < 4) {
+            throw new BgaUserException(self::_("You need 4 Silver to develop"));
+        }
+        
+        // Validate workers and action space
+        // TODO: Add validation logic
+        
+        // Remove workers and pay silver
+        $this->addResource($player_id, RESOURCE_COIN, -4);
+        
+        // Place workshop and gain worker
+        // TODO: Implement workshop placement logic
+        
+        self::notifyAllPlayers('develop', clienttranslate('${player_name} develops ${action_space}'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'action_space' => $action_space,
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function hunt($worker1_id, $worker2_id = null)
+    {
+        self::checkAction('hunt');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers
+        // TODO: Add validation logic
+        
+        // Gain provisions based on number of workers
+        $provisions_gained = ($worker2_id !== null) ? 3 : 1;
+        $this->addResource($player_id, RESOURCE_PROVISION, $provisions_gained);
+        
+        self::notifyAllPlayers('hunt', clienttranslate('${player_name} hunts and gains ${provisions} provisions'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'provisions' => $provisions_gained,
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function trade($worker1_id, $worker2_id = null)
+    {
+        self::checkAction('trade');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers
+        // TODO: Add validation logic
+        
+        // Gain silver based on number of workers
+        $silver_gained = ($worker2_id !== null) ? 3 : 1;
+        $this->addResource($player_id, RESOURCE_COIN, $silver_gained);
+        
+        self::notifyAllPlayers('trade', clienttranslate('${player_name} trades and gains ${silver} silver'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'silver' => $silver_gained,
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function conspire($worker_id)
+    {
+        self::checkAction('conspire');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate worker
+        // TODO: Add validation logic
+        
+        // Gain criminal and suspicion
+        $this->addResource($player_id, WORKER_PURPLE, 1);
+        $this->addResource($player_id, RESOURCE_SUSPICION, 1);
+        
+        self::notifyAllPlayers('conspire', clienttranslate('${player_name} conspires and gains a criminal'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function commission($worker1_id, $worker2_id, $worker3_id, $board_position)
+    {
+        self::checkAction('commission');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers and board position
+        // TODO: Add validation logic
+        
+        // Check faith requirement and provision cost
+        // TODO: Implement faith and provision validation
+        
+        // Place monk and gain rewards
+        // TODO: Implement monk placement logic
+        
+        self::notifyAllPlayers('commission', clienttranslate('${player_name} commissions a monk'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function fortify($worker1_id, $worker2_id, $worker3_id)
+    {
+        self::checkAction('fortify');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers
+        // TODO: Add validation logic
+        
+        // Check influence requirement and provision cost
+        // TODO: Implement influence and provision validation
+        
+        // Build wall and gain rewards
+        // TODO: Implement wall building logic
+        
+        self::notifyAllPlayers('fortify', clienttranslate('${player_name} fortifies with a wall'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function garrison($worker1_id, $worker2_id, $worker3_id, $board_position)
+    {
+        self::checkAction('garrison');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers and board position
+        // TODO: Add validation logic
+        
+        // Check strength requirement and provision cost
+        // TODO: Implement strength and provision validation
+        
+        // Place outpost and gain rewards
+        // TODO: Implement outpost placement logic
+        
+        self::notifyAllPlayers('garrison', clienttranslate('${player_name} garrisons an outpost'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function absolve($worker1_id, $worker2_id, $worker3_id, $jar_position)
+    {
+        self::checkAction('absolve');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers and jar position
+        // TODO: Add validation logic
+        
+        // Check influence requirement and silver cost
+        // TODO: Implement influence and silver validation
+        
+        // Absolve and gain rewards
+        // TODO: Implement absolution logic
+        
+        self::notifyAllPlayers('absolve', clienttranslate('${player_name} absolves'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function attack($worker1_id, $worker2_id, $worker3_id, $outsider_card_id, $silver_cost = 0)
+    {
+        self::checkAction('attack');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers and outsider card
+        // TODO: Add validation logic
+        
+        // Check strength requirement and pay silver if needed
+        // TODO: Implement strength validation and silver payment
+        
+        // Attack outsider and gain rewards
+        // TODO: Implement attack logic
+        
+        self::notifyAllPlayers('attack', clienttranslate('${player_name} attacks an outsider'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function convert($worker1_id, $worker2_id, $worker3_id, $outsider_card_id)
+    {
+        self::checkAction('convert');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate workers and outsider card
+        // TODO: Add validation logic
+        
+        // Check faith requirement and silver cost
+        // TODO: Implement faith and silver validation
+        
+        // Convert outsider and gain rewards
+        // TODO: Implement conversion logic
+        
+        self::notifyAllPlayers('convert', clienttranslate('${player_name} converts an outsider'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function kingsFavor($worker_id, $kings_favor_id)
+    {
+        self::checkAction('kingsFavor');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Validate worker and kings favor card
+        // TODO: Add validation logic
+        
+        // Use kings favor and gain rewards
+        // TODO: Implement kings favor logic
+        
+        self::notifyAllPlayers('kingsFavor', clienttranslate('${player_name} uses a King\'s Favor'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id
+        ]);
+        
+        $this->gamestate->nextState('nextPlayer');
+    }
+
+    // Helper method to get resource count
+    private function getResourceCount($player_id, $resource_type)
+    {
+        $sql = "SELECT resource_qty FROM player_resources WHERE player_id = $player_id AND resource_type = '$resource_type'";
+        $result = $this->getCollectionFromDb($sql);
+        return count($result) > 0 ? $result[0]['resource_qty'] : 0;
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     //////////// Zombie
     ////////////

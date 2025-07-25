@@ -53,6 +53,9 @@
       </div>
       <!-- END playerboard -->
     </div>
+
+    <!-- Action Buttons Container -->
+    <div id="action_buttons"></div>
   </div>
 </div>
 

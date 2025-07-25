@@ -339,6 +339,7 @@ define([
         this.getValuesFromObject(this.kingsfavour_display),
       );
       this.setupNotifications();
+      this.setupActionButtons();
       this.drawUi();
 
       // Setting up player boards
@@ -558,6 +559,11 @@ define([
           this.setupTownsfolkSelection();
           break;
 
+        case "playerAction":
+          this.setupActionButtons();
+          this.updateActionButtons();
+          break;
+
         case "cleanupTaverns":
           dojo.setStyle("tavernsSelection", "display", "none");
 
@@ -628,6 +634,16 @@ define([
             console.log("Applied styles to card");
           } else {
             console.error("Could not find playerboard cards container:", parentContainer);
+          }
+        } else if (uiItem.uiType == "townsfolk_uiitem" && parentContainer.startsWith("townsfolk_spot_")) {
+          // Special handling for display townsfolk cards - place in specific spots
+          console.log("Processing display townsfolk card:", uiItem, "to spot:", parentContainer);
+          const spotElement = document.getElementById(parentContainer);
+          if (spotElement) {
+            dojo.place(uiItem.htmlNode, spotElement);
+            console.log("Placed display card in spot:", parentContainer);
+          } else {
+            console.error("Could not find spot container:", parentContainer);
           }
         } else {
           dojo.place(uiItem.htmlNode, parentContainer);
@@ -911,6 +927,252 @@ define([
       };
       
       anim.play();
+    },
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////// ACTION BUTTON HANDLERS
+    ////////////
+
+    onPass: function() {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/pass.html', {}, this, function(result) {}, function(is_error) {});
+    },
+
+    onPray: function(action_space) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/pray.html', {
+        action_space: action_space
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onRecruitDiscard: function(worker_id, townsfolk_card_id) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/recruitDiscard.html', {
+        worker_id: worker_id,
+        townsfolk_card_id: townsfolk_card_id
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onRecruitHire: function(worker1_id, worker2_id, townsfolk_card_id, use_debt) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/recruitHire.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        townsfolk_card_id: townsfolk_card_id,
+        use_debt: use_debt
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onDevelop: function(worker1_id, worker2_id, action_space, workshop_position) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/develop.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        action_space: action_space,
+        workshop_position: workshop_position
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onHunt: function(worker1_id, worker2_id) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/hunt.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onTrade: function(worker1_id, worker2_id) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/trade.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onConspire: function(worker_id) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/conspire.html', {
+        worker_id: worker_id
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onCommission: function(worker1_id, worker2_id, worker3_id, board_position) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/commission.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        worker3_id: worker3_id,
+        board_position: board_position
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onFortify: function(worker1_id, worker2_id, worker3_id) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/fortify.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        worker3_id: worker3_id
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onGarrison: function(worker1_id, worker2_id, worker3_id, board_position) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/garrison.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        worker3_id: worker3_id,
+        board_position: board_position
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onAbsolve: function(worker1_id, worker2_id, worker3_id, jar_position) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/absolve.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        worker3_id: worker3_id,
+        jar_position: jar_position
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onAttack: function(worker1_id, worker2_id, worker3_id, outsider_card_id, silver_cost) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/attack.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        worker3_id: worker3_id,
+        outsider_card_id: outsider_card_id,
+        silver_cost: silver_cost
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onConvert: function(worker1_id, worker2_id, worker3_id, outsider_card_id) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/convert.html', {
+        worker1_id: worker1_id,
+        worker2_id: worker2_id,
+        worker3_id: worker3_id,
+        outsider_card_id: outsider_card_id
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    onKingsFavor: function(worker_id, kings_favor_id) {
+      this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavor.html', {
+        worker_id: worker_id,
+        kings_favor_id: kings_favor_id
+      }, this, function(result) {}, function(is_error) {});
+    },
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////// UI HELPER METHODS
+    ////////////
+
+    setupActionButtons: function() {
+      // Create action buttons for the player board
+      const actionButtons = [
+        { id: 'pass', text: 'Pass', action: 'onPass' },
+        { id: 'pray', text: 'Pray', action: 'onPray' },
+        { id: 'recruit', text: 'Recruit', action: 'onRecruitHire' },
+        { id: 'develop', text: 'Develop', action: 'onDevelop' },
+        { id: 'hunt', text: 'Hunt', action: 'onHunt' },
+        { id: 'trade', text: 'Trade', action: 'onTrade' },
+        { id: 'conspire', text: 'Conspire', action: 'onConspire' },
+        { id: 'commission', text: 'Commission', action: 'onCommission' },
+        { id: 'fortify', text: 'Fortify', action: 'onFortify' },
+        { id: 'garrison', text: 'Garrison', action: 'onGarrison' },
+        { id: 'absolve', text: 'Absolve', action: 'onAbsolve' },
+        { id: 'attack', text: 'Attack', action: 'onAttack' },
+        { id: 'convert', text: 'Convert', action: 'onConvert' }
+      ];
+
+      const actionContainer = document.getElementById('action_buttons');
+      if (actionContainer) {
+        actionButtons.forEach(button => {
+          const btn = document.createElement('button');
+          btn.id = button.id + '_btn';
+          btn.className = 'action_button';
+          btn.innerHTML = button.text;
+          btn.onclick = () => this[button.action]();
+          actionContainer.appendChild(btn);
+        });
+      }
+    },
+
+    updateActionButtons: function() {
+      // Enable/disable action buttons based on current game state and player resources
+      // This will be called when the game state changes
+      const isMyTurn = this.isCurrentPlayerActive();
+      
+      // Get all action buttons
+      const actionButtons = document.querySelectorAll('.action_button');
+      actionButtons.forEach(btn => {
+        btn.disabled = !isMyTurn;
+      });
+    },
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////// NOTIFICATION HANDLERS FOR ACTIONS
+    ////////////
+
+    notif_pass: function(notif) {
+      console.log('Player passed:', notif.args.player_name);
+      // Update UI to show player passed
+    },
+
+    notif_pray: function(notif) {
+      console.log('Player prayed:', notif.args.player_name, 'Action space:', notif.args.action_space);
+      // Update UI to show prayer action
+    },
+
+    notif_recruitDiscard: function(notif) {
+      console.log('Player discarded townsfolk:', notif.args.player_name);
+      // Update UI to show townsfolk discard
+    },
+
+    notif_recruitHire: function(notif) {
+      console.log('Player hired townsfolk:', notif.args.player_name);
+      // Update UI to show townsfolk hire
+    },
+
+    notif_develop: function(notif) {
+      console.log('Player developed:', notif.args.player_name, 'Action space:', notif.args.action_space);
+      // Update UI to show development
+    },
+
+    notif_hunt: function(notif) {
+      console.log('Player hunted:', notif.args.player_name, 'Provisions gained:', notif.args.provisions);
+      // Update UI to show hunt results
+    },
+
+    notif_trade: function(notif) {
+      console.log('Player traded:', notif.args.player_name, 'Silver gained:', notif.args.silver);
+      // Update UI to show trade results
+    },
+
+    notif_conspire: function(notif) {
+      console.log('Player conspired:', notif.args.player_name);
+      // Update UI to show conspiracy
+    },
+
+    notif_commission: function(notif) {
+      console.log('Player commissioned monk:', notif.args.player_name);
+      // Update UI to show monk commission
+    },
+
+    notif_fortify: function(notif) {
+      console.log('Player fortified:', notif.args.player_name);
+      // Update UI to show fortification
+    },
+
+    notif_garrison: function(notif) {
+      console.log('Player garrisoned outpost:', notif.args.player_name);
+      // Update UI to show outpost garrison
+    },
+
+    notif_absolve: function(notif) {
+      console.log('Player absolved:', notif.args.player_name);
+      // Update UI to show absolution
+    },
+
+    notif_attack: function(notif) {
+      console.log('Player attacked outsider:', notif.args.player_name);
+      // Update UI to show attack
+    },
+
+    notif_convert: function(notif) {
+      console.log('Player converted outsider:', notif.args.player_name);
+      // Update UI to show conversion
+    },
+
+    notif_kingsFavor: function(notif) {
+      console.log('Player used King\'s Favor:', notif.args.player_name);
+      // Update UI to show King's Favor use
     },
   });
 });
