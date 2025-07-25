@@ -448,12 +448,39 @@
 /* Action Buttons */
 #action_buttons {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 248, 255, 0.95));
+  border-radius: 12px;
+  margin: 15px 0 25px 0;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(74, 144, 226, 0.3);
+  position: sticky;
+  top: 10px;
+  z-index: 100;
+}
+
+.action_buttons_header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.action_buttons_header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.action_buttons_container {
+  display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 15px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  margin: 10px 0;
+  gap: 8px;
   justify-content: center;
 }
 
@@ -461,15 +488,17 @@
   background: linear-gradient(135deg, #4a90e2, #357abd);
   color: white;
   border: none;
-  padding: 10px 15px;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 15px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  min-width: 80px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  min-width: 90px;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .action_button:hover {
@@ -600,4 +629,47 @@
 .resource_counter.sufficient {
   color: #28a745;
   border-color: #28a745;
+}
+
+/* Responsive design for action buttons */
+@media (max-width: 768px) {
+  #action_buttons {
+    padding: 15px;
+    margin: 10px 0 20px 0;
+  }
+  
+  .action_buttons_header h3 {
+    font-size: 16px;
+  }
+  
+  .action_button {
+    padding: 10px 14px;
+    font-size: 13px;
+    min-width: 80px;
+  }
+  
+  .action_buttons_container {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  #action_buttons {
+    padding: 12px;
+    margin: 8px 0 15px 0;
+  }
+  
+  .action_buttons_header h3 {
+    font-size: 14px;
+  }
+  
+  .action_button {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-width: 70px;
+  }
+  
+  .action_buttons_container {
+    gap: 4px;
+  }
 }

@@ -1073,13 +1073,30 @@ define([
 
       const actionContainer = document.getElementById('action_buttons');
       if (actionContainer) {
+        // Clear existing content
+        actionContainer.innerHTML = '';
+        
+        // Add header with current player info
+        const header = document.createElement('div');
+        header.className = 'action_buttons_header';
+        
+        const isMyTurn = this.isCurrentPlayerActive();
+        const headerText = isMyTurn ? 'Your Turn - Available Actions' : 'Available Actions';
+        header.innerHTML = '<h3>' + headerText + '</h3>';
+        actionContainer.appendChild(header);
+        
+        // Add buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'action_buttons_container';
+        actionContainer.appendChild(buttonsContainer);
+        
         actionButtons.forEach(button => {
           const btn = document.createElement('button');
           btn.id = button.id + '_btn';
           btn.className = 'action_button';
           btn.innerHTML = button.text;
           btn.onclick = () => this[button.action]();
-          actionContainer.appendChild(btn);
+          buttonsContainer.appendChild(btn);
         });
       }
     },
@@ -1093,7 +1110,22 @@ define([
       const actionButtons = document.querySelectorAll('.action_button');
       actionButtons.forEach(btn => {
         btn.disabled = !isMyTurn;
+        
+        // Add visual feedback for available actions
+        if (isMyTurn) {
+          dojo.addClass(btn, 'available');
+        } else {
+          dojo.removeClass(btn, 'available');
+        }
       });
+      
+      // Show/hide the entire action buttons area based on game state
+      const actionContainer = document.getElementById('action_buttons');
+      if (actionContainer) {
+        const currentState = this.gamedatas.gamestate.name;
+        const shouldShow = currentState === 'playerAction';
+        dojo.setStyle(actionContainer, 'display', shouldShow ? 'flex' : 'none');
+      }
     },
 
     //////////////////////////////////////////////////////////////////////////////

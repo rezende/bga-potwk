@@ -1,6 +1,9 @@
 {OVERALL_GAME_HEADER}
 
 <div id="zoomBox">
+  <!-- Action Buttons Container - Moved to top -->
+  <div id="action_buttons"></div>
+
   <!-- containter on the top to select cards -->
   <div id="townsfolkSelection" class="whiteblock">
     <div
@@ -53,9 +56,6 @@
       </div>
       <!-- END playerboard -->
     </div>
-
-    <!-- Action Buttons Container -->
-    <div id="action_buttons"></div>
   </div>
 </div>
 
