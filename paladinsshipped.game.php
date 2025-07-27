@@ -105,7 +105,8 @@ class PaladinsShipped extends Table
         'strength',
         'faith',
         'influence',
-        'paladin_board'
+        'paladin_board',
+        'board_positions'
     );
 
     public const PALADIN_SETS = array(
@@ -128,6 +129,7 @@ class PaladinsShipped extends Table
         self::initGameStateLabels(array(
             "current_round" => 10,
             "can_undo" => 11,
+            "tax_supply" => 12,
         ));
         $this->deck = self::getNew("module.common.deck");
         $this->deck->init("card");
@@ -192,6 +194,12 @@ class PaladinsShipped extends Table
         $this->createAllDecks();
         // $this->createDefaultGamePieces($players);
         $this->setNextFirstPlayer();
+        
+        // Initialize tax supply based on player count
+        $this->initializeTaxSupply(count($players));
+
+        // Setup board positions based on player count
+        $this->setupBoardPositions(count($players));
 
         // Activate first player (which is in general a good idea :) )
 
@@ -242,6 +250,31 @@ class PaladinsShipped extends Table
         $result['wall_cards'] = $this->deck->getCardsInLocation('wall_hand', $current_player_id);
         $result['kingsorder_display'] = $this->deck->getCardsInLocation('kingsorder_display');
         $result['kingsfavour_display'] = $this->deck->getCardsInLocation('kingsfavour_display');
+        
+        // Add tax supply information
+        $result['tax_supply'] = $this->getTaxSupply();
+        
+        // Add action space information for all players
+        $result['action_spaces'] = [];
+        foreach ($players as $player_id => $player) {
+            $result['action_spaces'][$player_id] = $this->getActionSpaceInfo($player_id);
+        }
+        
+        // Add board position information for all players
+        $result['board_positions'] = [];
+        foreach ($players as $player_id => $player) {
+            $result['board_positions'][$player_id] = [
+                'all_positions' => $this->getBoardPositions($player_id),
+                'commission_positions' => $this->getCommissionPositions($player_id),
+                'garrison_positions' => $this->getGarrisonPositions($player_id),
+                'available_garrison_positions' => $this->getAvailableGarrisonPositions($player_id),
+                'available_board_positions_by_faith' => $this->getAvailableBoardPositionsByFaith($player_id),
+                'available_board_positions_by_strength' => $this->getAvailableBoardPositionsByStrength($player_id),
+                'total_faith' => $this->getTotalFaith($player_id),
+                'total_strength' => $this->getTotalStrength($player_id)
+            ];
+        }
+        
         return $result;
     }
 
@@ -279,6 +312,7 @@ class PaladinsShipped extends Table
         $this->placeNewCardsOnDisplay(CARD_TYPE_TOWNSFOLK, 'new_round');
         $this->placeNewCardsOnDisplay(CARD_TYPE_OUTSIDER, 'new_round');
     }
+
     public function dealPaladinCards($players)
     {
         self::notifyAllPlayers("message", clienttranslate('Each player draws their top 3 paladin cards'), array());
@@ -290,8 +324,230 @@ class PaladinsShipped extends Table
 
     public function addResource($player_id, $resource, $qty = 1)
     {
-        $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
-        self::DbQuery($sql);
+        // Check if the resource exists as a column in the player table
+        $valid_resources = [
+            'coin', 'provision', 'white_worker', 'green_worker', 'blue_worker', 
+            'red_worker', 'black_worker', 'purple_worker', 'paid_debt', 'unpaid_debt',
+            'strength', 'faith', 'influence', 'parchment', 'develop_qty', 
+            'commission_qty', 'garrison_qty'
+        ];
+        
+        if (in_array($resource, $valid_resources)) {
+            $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
+            self::DbQuery($sql);
+        } else {
+            // Log error for debugging
+            self::warn("Attempted to add invalid resource: $resource");
+        }
+    }
+
+    public function addWorkersForPlayer($player_id, $workers)
+    {
+        // Validate that all workers are valid worker types
+        $valid_workers = [
+            'white_worker', 'green_worker', 'blue_worker', 
+            'red_worker', 'black_worker', 'purple_worker'
+        ];
+        
+        $updates = [];
+        foreach ($workers as $worker) {
+            if (in_array($worker, $valid_workers)) {
+                $updates[] = "$worker = $worker + 1";
+            }
+        }
+        
+        if (!empty($updates)) {
+            $sql = "UPDATE player SET " . implode(', ', $updates) . " WHERE player_id = $player_id";
+            self::DbQuery($sql);
+        }
+    }
+
+    public function getTaxSupply()
+    {
+        return self::getGameStateValue('tax_supply');
+    }
+
+    public function setTaxSupply($amount)
+    {
+        self::setGameStateValue('tax_supply', $amount);
+    }
+
+    public function addToTaxSupply($amount)
+    {
+        $current = $this->getTaxSupply();
+        $this->setTaxSupply($current + $amount);
+    }
+
+    public function removeFromTaxSupply($amount)
+    {
+        $current = $this->getTaxSupply();
+        $new_amount = max(0, $current - $amount);
+        $this->setTaxSupply($new_amount);
+        
+        $amount_removed = $current - $new_amount;
+        
+        // Check if tax supply was depleted (trigger inquisition)
+        if ($current > 0 && $new_amount == 0) {
+            $this->triggerInquisition();
+        }
+        
+        return $amount_removed; // Return actual amount removed
+    }
+
+    public function triggerInquisition()
+    {
+        // Find players with the most suspicion
+        $sql = "SELECT player_id, COUNT(*) as suspicion_count 
+                FROM card 
+                WHERE card_location LIKE 'suspicion_deck_%' 
+                GROUP BY player_id 
+                ORDER BY suspicion_count DESC";
+        $suspicion_counts = self::getCollectionFromDb($sql);
+        
+        if (empty($suspicion_counts)) {
+            // No suspicion, no inquisition
+            return;
+        }
+        
+        $max_suspicion = $suspicion_counts[0]['suspicion_count'];
+        $players_with_max = array_filter($suspicion_counts, function($player) use ($max_suspicion) {
+            return $player['suspicion_count'] == $max_suspicion;
+        });
+        
+        // Give debt to players with most suspicion
+        foreach ($players_with_max as $player) {
+            $this->addResource($player['player_id'], 'unpaid_debt', 1);
+            
+            // Remove half of their suspicion (rounded down)
+            $suspicion_to_remove = floor($max_suspicion / 2);
+            if ($suspicion_to_remove > 0) {
+                // TODO: Implement suspicion removal logic
+            }
+        }
+        
+        // Refill tax supply
+        $player_count = count(self::loadPlayersBasicInfos());
+        $tax_amounts = [2 => 5, 3 => 6, 4 => 8];
+        $refill_amount = $tax_amounts[$player_count] ?? 5;
+        $this->setTaxSupply($refill_amount);
+        
+        self::notifyAllPlayers("inquisition", clienttranslate('Inquisition! Players with most suspicion gain debt. Tax supply refilled.'), [
+            'players_with_debt' => array_column($players_with_max, 'player_id'),
+            'tax_refill' => $refill_amount
+        ]);
+    }
+
+    public function initializeTaxSupply($player_count)
+    {
+        // Tax supply initialization based on player count
+        // According to the rules, tax supply should be 5-8 silver based on player count
+        $tax_amounts = [
+            2 => 5,  // 2 players: 5 silver
+            3 => 6,  // 3 players: 6 silver  
+            4 => 8   // 4 players: 8 silver
+        ];
+        
+        $tax_amount = $tax_amounts[$player_count] ?? 5; // Default to 5 if unknown
+        $this->setTaxSupply($tax_amount);
+        
+        self::notifyAllPlayers("initializeTaxSupply", clienttranslate('Tax supply initialized with ${tax_amount} silver'), [
+            'tax_amount' => $tax_amount
+        ]);
+    }
+
+    public function setupBoardPositions($player_count)
+    {
+        // Initialize board positions for all players
+        $players = self::loadPlayersBasicInfos();
+        $initial_board_positions = [];
+        
+        // Find positions that need to be pre-filled based on player count
+        $positions_to_fill = [];
+        
+        foreach ($this->board_positions_material as $index => $position) {
+            $min_players = $position['min_players'] ?? 1;
+            
+            // If playing with less than 4 players, fill positions requiring 4+ players
+            if ($player_count < 4 && $min_players >= 4) {
+                $positions_to_fill[] = $index;
+            }
+            // If playing with less than 3 players, fill positions requiring 3+ players
+            else if ($player_count < 3 && $min_players >= 3) {
+                $positions_to_fill[] = $index;
+            }
+        }
+        
+        // Randomly fill the required positions
+        foreach ($positions_to_fill as $position_index) {
+            // Randomly choose between commission (monk) and garrison (fort)
+            $piece_type = (rand(0, 1) == 0) ? 'commission' : 'garrison';
+            $initial_board_positions[$position_index] = $piece_type;
+        }
+        
+        // Save the initial board positions to the database
+        if (!empty($initial_board_positions)) {
+            $positions_json = json_encode($initial_board_positions);
+            $sql = "UPDATE player SET board_positions = '$positions_json'";
+            self::DbQuery($sql);
+            
+            // Notify players about the setup
+            $filled_count = count($initial_board_positions);
+            self::notifyAllPlayers("setupBoardPositions", clienttranslate('${filled_count} board positions have been randomly filled for ${player_count}-player game'), [
+                'player_count' => $player_count,
+                'filled_positions' => $initial_board_positions,
+                'filled_count' => $filled_count
+            ]);
+        }
+    }
+
+    public function removeWorkerCountsForPlayer($player_id, $worker_counts)
+    {
+        $updates = [];
+        foreach ($worker_counts as $worker_type => $count) {
+            if ($count > 0) {
+                $updates[] = "$worker_type = GREATEST(0, $worker_type - $count)";
+            }
+        }
+        
+        if (!empty($updates)) {
+            $sql = "UPDATE player SET " . implode(', ', $updates) . " WHERE player_id = $player_id";
+            self::DbQuery($sql);
+        }
+    }
+
+    public function addSuspicionCard($player_id)
+    {
+        // Draw a suspicion card from the deck and add it to the player's suspicion pile
+        $suspicion_card = $this->deck->pickCardForLocation('suspicion_deck', "suspicion_deck_$player_id");
+        
+        if ($suspicion_card) {
+            // Get suspicion card info for notification
+            $suspicion_info = $this->getCardInfoByGlobalId($suspicion_card['id']);
+            
+            // Get tax amount from suspicion card
+            $tax_amount = $this->suspicion_cards_material[$suspicion_card['type_arg']] ?? 0;
+            
+            // Get current tax supply amount
+            $tax_supply = $this->getTaxSupply();
+            
+            // Add tax to player if available
+            $tax_to_give = 0;
+            if ($tax_amount > 0) {
+                $tax_to_give = $this->removeFromTaxSupply($tax_amount);
+                if ($tax_to_give > 0) {
+                    $this->addResource($player_id, RESOURCE_COIN, $tax_to_give);
+                }
+            }
+            
+            // Add tax information to suspicion info
+            $suspicion_info['tax_amount'] = $tax_amount;
+            $suspicion_info['tax_supply'] = $tax_supply;
+            $suspicion_info['tax_given'] = $tax_to_give ?? 0;
+            
+            return $suspicion_info;
+        }
+        
+        return null;
     }
 
     public function resolveEffectForPlayer($effect, $player_id, $qty = 1)
@@ -548,6 +804,14 @@ class PaladinsShipped extends Table
         // $this->deck->moveCard($id_chosen, "paladin_hand", $player_id);     // Keep
         $this->deck->insertCardOnExtremePosition($id_top, "paladin_deck_{$player_id}", false);    // Top
 
+        // Add workers from the chosen Paladin
+        $chosen_card = $this->deck->getCard($id_chosen);
+        $chosen_paladin_info = $this->paladins_cards_material[$chosen_card['type_arg']];
+        
+        if (isset($chosen_paladin_info['workers'])) {
+            $this->addWorkersForPlayer($player_id, $chosen_paladin_info['workers']);
+        }
+
         // Notify players
         self::notifyAllPlayers("pickedPaladins", clienttranslate('${player_name} has arranged their Paladins'), array(
             'player_id' => $player_id,
@@ -555,7 +819,6 @@ class PaladinsShipped extends Table
         ));
 
         // Notify the specific player about their chosen card
-        $chosen_card = $this->deck->getCard($id_chosen);
         self::notifyPlayer($player_id, "keepPaladin", '', array(
             'card' => $chosen_card
         ));
@@ -571,9 +834,10 @@ class PaladinsShipped extends Table
         $tavern_card = $this->deck->getCard($tavern_id);
         $tavern_card_info = $this->tavern_cards_material[$tavern_card['type_arg']];
         $this->deck->moveCard($tavern_id, 'tavern_discard');
-        foreach ($tavern_card_info as $worker) {
-            $this->resolveEffectForPlayer($worker, $player_id);
-        }
+        
+        // Add all workers from the tavern card in a single query
+        $this->addWorkersForPlayer($player_id, $tavern_card_info);
+        
         $tavern_name = implode(", ", $tavern_card_info);
         self::notifyAllPlayers(
             "message",
@@ -647,7 +911,125 @@ class PaladinsShipped extends Table
         }
         self::setGameStateValue('current_round', $new_round);
         $this->refillDisplays($new_round);
+        
+        // Clear all action spaces for the new round
+        $this->clearActionSpaces();
+        
         $this->gamestate->nextState('done');
+    }
+
+    public function clearActionSpaces()
+    {
+        // Clear all action spaces for all players at the start of a new round
+        $sql = "UPDATE player SET 
+                action_develop_used = 0,
+                action_hunt_used = 0,
+                action_trade_used = 0,
+                action_recruit_used = 0,
+                action_pray_used = 0,
+                action_conspire_used = 0,
+                action_commission_used = 0,
+                action_fortify_used = 0,
+                action_garrison_used = 0,
+                action_absolve_used = 0,
+                action_attack_used = 0,
+                action_convert_used = 0,
+                action_develop_workers = NULL,
+                action_hunt_workers = NULL,
+                action_trade_workers = NULL,
+                action_recruit_workers = NULL,
+                action_pray_workers = NULL,
+                action_conspire_workers = NULL,
+                action_commission_workers = NULL,
+                action_fortify_workers = NULL,
+                action_garrison_workers = NULL,
+                action_absolve_workers = NULL,
+                action_attack_workers = NULL,
+                action_convert_workers = NULL";
+        self::DbQuery($sql);
+        
+        self::notifyAllPlayers("clearActionSpaces", clienttranslate('Action spaces cleared for new round'), []);
+    }
+
+    /**
+     * Check if a player can use a specific action (hasn't used it this round)
+     */
+    public function canUseAction($player_id, $action_name)
+    {
+        $field_name = "action_{$action_name}_used";
+        $sql = "SELECT $field_name FROM player WHERE player_id = $player_id";
+        $result = self::getUniqueValueFromDb($sql);
+        return $result == 0;
+    }
+
+    /**
+     * Mark an action as used for a player
+     */
+    public function markActionAsUsed($player_id, $action_name, $workers = [])
+    {
+        $used_field = "action_{$action_name}_used";
+        $workers_field = "action_{$action_name}_workers";
+        
+        $workers_json = !empty($workers) ? json_encode($workers) : null;
+        
+        $sql = "UPDATE player SET 
+                $used_field = 1,
+                $workers_field = " . ($workers_json ? "'$workers_json'" : "NULL") . "
+                WHERE player_id = $player_id";
+        self::DbQuery($sql);
+    }
+
+    /**
+     * Get the development count for a specific action
+     */
+    public function getDevelopmentCount($player_id, $action_name)
+    {
+        $field_name = "develop_{$action_name}_count";
+        $sql = "SELECT $field_name FROM player WHERE player_id = $player_id";
+        return (int)self::getUniqueValueFromDb($sql);
+    }
+
+    /**
+     * Add a development to a specific action
+     */
+    public function addDevelopment($player_id, $action_name)
+    {
+        $current_count = $this->getDevelopmentCount($player_id, $action_name);
+        if ($current_count < 2) { // Max 2 developments per action
+            $field_name = "develop_{$action_name}_count";
+            $sql = "UPDATE player SET $field_name = $field_name + 1 WHERE player_id = $player_id";
+            self::DbQuery($sql);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Get all action space information for a player (for UI display)
+     */
+    public function getActionSpaceInfo($player_id)
+    {
+        $actions = ['develop', 'hunt', 'trade', 'recruit', 'pray', 'conspire', 
+                   'commission', 'fortify', 'garrison', 'absolve', 'attack', 'convert'];
+        
+        $info = [];
+        foreach ($actions as $action) {
+            $used_field = "action_{$action}_used";
+            $workers_field = "action_{$action}_workers";
+            $develop_field = "develop_{$action}_count";
+            
+            $sql = "SELECT $used_field, $workers_field, $develop_field 
+                    FROM player WHERE player_id = $player_id";
+            $result = self::getObjectFromDb($sql);
+            
+            $info[$action] = [
+                'used' => (bool)$result[$used_field],
+                'workers' => $result[$workers_field] ? json_decode($result[$workers_field], true) : [],
+                'developments' => (int)$result[$develop_field]
+            ];
+        }
+        
+        return $info;
     }
 
     public function stGamePickPaladins()
@@ -698,15 +1080,10 @@ class PaladinsShipped extends Table
 
     public function stGameActionPhaseManager()
     {
-        // Check if all players have passed
-        $active_players = $this->gamestate->getActivePlayerList();
-        if (empty($active_players)) {
-            // All players have passed, end the round
-            $this->gamestate->nextState('endOfRound');
-        } else {
-            // Continue with next player
-            $this->gamestate->nextState('nextPlayer');
-        }
+        // For now, just move to the next player
+        // TODO: Implement proper action phase management with multiple active players
+        $this->activeNextPlayer();
+        $this->gamestate->nextState('nextPlayer');
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -718,16 +1095,8 @@ class PaladinsShipped extends Table
         self::checkAction('pass');
         $player_id = self::getCurrentPlayerId();
         
-        // Clear all workers from player board and return to supply
-        $workers_to_return = $this->getCollectionFromDb("SELECT * FROM player_resources WHERE player_id = $player_id AND resource_type IN ('white_worker', 'green_worker', 'red_worker', 'blue_worker', 'black_worker', 'purple_worker')");
-        
-        foreach ($workers_to_return as $worker) {
-            $this->addResource($player_id, $worker['resource_type'], -$worker['resource_qty']);
-        }
-        
-        // Allow carrying up to 3 workers to next round
-        $carry_limit = 3;
-        $workers_carried = 0;
+        // TODO: Implement worker clearing logic
+        // For now, just pass to next player
         
         self::notifyAllPlayers('pass', clienttranslate('${player_name} passes'), [
             'player_name' => self::getCurrentPlayerName(),
@@ -737,14 +1106,24 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function pray($action_space)
+    public function pray($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $action_space)
     {
         self::checkAction('pray');
         $player_id = self::getCurrentPlayerId();
         
-        // Check if player has a Cleric (black worker)
-        if ($this->getResourceCount($player_id, WORKER_BLACK) < 1) {
-            throw new BgaUserException(self::_("You need a Cleric to pray"));
+        $cost = $this->getCurrentActionCost(ACTION_PRAY, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
+        
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Pray action"));
         }
         
         // Check if player has enough silver
@@ -752,8 +1131,8 @@ class PaladinsShipped extends Table
             throw new BgaUserException(self::_("You need 2 Silver to pray"));
         }
         
-        // Remove Cleric and pay silver
-        $this->addResource($player_id, WORKER_BLACK, -1);
+        // Remove workers and pay silver
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
         $this->addResource($player_id, RESOURCE_COIN, -2);
         
         // Clear workers from specified action space
@@ -768,15 +1147,29 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function recruitDiscard($worker_id, $townsfolk_card_id)
+    public function recruitDiscard($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $townsfolk_card_id)
     {
         self::checkAction('recruitDiscard');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate worker and townsfolk card
-        // TODO: Add validation logic
+        $cost = $this->getCurrentActionCost(ACTION_RECRUIT, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Remove worker and discard townsfolk
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Recruit action"));
+        }
+        
+        // Remove workers
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        
         // TODO: Implement discard logic
         
         self::notifyAllPlayers('recruitDiscard', clienttranslate('${player_name} discards a townsfolk'), [
@@ -787,15 +1180,29 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function recruitHire($worker1_id, $worker2_id, $townsfolk_card_id, $use_debt = false)
+    public function recruitHire($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $townsfolk_card_id, $use_debt = false)
     {
         self::checkAction('recruitHire');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers and townsfolk card
-        // TODO: Add validation logic
+        $cost = $this->getCurrentActionCost(ACTION_RECRUIT, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Remove workers and hire townsfolk
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Recruit action"));
+        }
+        
+        // Remove workers
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        
         // TODO: Implement hiring logic
         
         self::notifyAllPlayers('recruitHire', clienttranslate('${player_name} hires a townsfolk'), [
@@ -806,7 +1213,7 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function develop($worker1_id, $worker2_id, $action_space, $workshop_position)
+    public function develop($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $action_space, $workshop_position)
     {
         self::checkAction('develop');
         $player_id = self::getCurrentPlayerId();
@@ -816,10 +1223,23 @@ class PaladinsShipped extends Table
             throw new BgaUserException(self::_("You need 4 Silver to develop"));
         }
         
-        // Validate workers and action space
-        // TODO: Add validation logic
+        $cost = $this->getCurrentActionCost(ACTION_DEVELOP, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
+        
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Develop action"));
+        }
         
         // Remove workers and pay silver
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
         $this->addResource($player_id, RESOURCE_COIN, -4);
         
         // Place workshop and gain worker
@@ -834,16 +1254,32 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function hunt($worker1_id, $worker2_id = null)
+    public function hunt($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers)
     {
         self::checkAction('hunt');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers
-        // TODO: Add validation logic
+        $cost = $this->getCurrentActionCost(ACTION_HUNT, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
+        
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Hunt action"));
+        }
+        
+        // Remove workers
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
         
         // Gain provisions based on number of workers
-        $provisions_gained = ($worker2_id !== null) ? 3 : 1;
+        $total_workers = array_sum($worker_counts);
+        $provisions_gained = ($total_workers > 1) ? 3 : 1;
         $this->addResource($player_id, RESOURCE_PROVISION, $provisions_gained);
         
         self::notifyAllPlayers('hunt', clienttranslate('${player_name} hunts and gains ${provisions} provisions'), [
@@ -855,16 +1291,32 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function trade($worker1_id, $worker2_id = null)
+    public function trade($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers)
     {
         self::checkAction('trade');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers
-        // TODO: Add validation logic
+        $cost = $this->getCurrentActionCost(ACTION_TRADE, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
+        
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Trade action"));
+        }
+        
+        // Remove workers
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
         
         // Gain silver based on number of workers
-        $silver_gained = ($worker2_id !== null) ? 3 : 1;
+        $total_workers = array_sum($worker_counts);
+        $silver_gained = ($total_workers > 1) ? 3 : 1;
         $this->addResource($player_id, RESOURCE_COIN, $silver_gained);
         
         self::notifyAllPlayers('trade', clienttranslate('${player_name} trades and gains ${silver} silver'), [
@@ -876,155 +1328,831 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function conspire($worker_id)
+    public function conspire($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers)
     {
         self::checkAction('conspire');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate worker
-        // TODO: Add validation logic
+        // Check if action is available
+        if (!$this->canUseAction($player_id, 'conspire')) {
+            throw new BgaUserException(self::_("You have already used the conspire action this round"));
+        }
         
-        // Gain criminal and suspicion
+        $cost = $this->getCurrentActionCost(ACTION_CONSPIRE, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
+        
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Conspire action"));
+        }
+        
+        // Remove the spent workers
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        
+        // Gain criminal
         $this->addResource($player_id, WORKER_PURPLE, 1);
-        $this->addResource($player_id, RESOURCE_SUSPICION, 1);
         
-        self::notifyAllPlayers('conspire', clienttranslate('${player_name} conspires and gains a criminal'), [
-            'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
-        ]);
+        // Mark this action as used and store worker info
+        $this->markActionAsUsed($player_id, 'conspire', $worker_counts);
+        
+        // Gain suspicion (draw a suspicion card)
+        $suspicion_info = $this->addSuspicionCard($player_id);
+        
+        if ($suspicion_info) {
+            $tax_message = '';
+            if ($suspicion_info['tax_given'] > 0) {
+                $tax_message = clienttranslate(' and gains ${tax_given} silver from tax (${tax_amount} available, ${tax_supply} in treasury)');
+            } else if ($suspicion_info['tax_amount'] > 0) {
+                $tax_message = clienttranslate(' but no silver available from tax (${tax_amount} needed, ${tax_supply} in treasury)');
+            }
+            
+            self::notifyAllPlayers('conspire', clienttranslate('${player_name} conspires and gains a criminal and suspicion') . $tax_message, [
+                'player_name' => self::getCurrentPlayerName(),
+                'player_id' => $player_id,
+                'suspicion_card' => $suspicion_info,
+                'tax_given' => $suspicion_info['tax_given'],
+                'tax_amount' => $suspicion_info['tax_amount'],
+                'tax_supply' => $suspicion_info['tax_supply'],
+                'action_space_info' => $this->getActionSpaceInfo($player_id)
+            ]);
+        } else {
+            self::notifyAllPlayers('conspire', clienttranslate('${player_name} conspires and gains a criminal'), [
+                'player_name' => self::getCurrentPlayerName(),
+                'player_id' => $player_id,
+                'action_space_info' => $this->getActionSpaceInfo($player_id)
+            ]);
+        }
         
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function commission($worker1_id, $worker2_id, $worker3_id, $board_position)
+    // Helper to get the current cost for an upgradable action
+    public function getCurrentActionCost($action, $player_id) {
+        $upgradable = [
+            ACTION_COMMISSION, ACTION_FORTIFY, ACTION_GARRISON,
+            ACTION_ABSOLVE, ACTION_ATTACK, ACTION_CONVERT
+        ];
+        $defaultCosts = $this->player_spaces_material;
+        $cost = $defaultCosts[$action];
+        if (in_array($action, $upgradable)) {
+            // The DB field uses lowercase action names
+            $devs = $this->getDevelopmentCount($player_id, strtolower(str_replace('ACTION_', '', $action)));
+            $cost = array_slice($cost, $devs);
+        }
+        return $cost;
+    }
+
+    // Helper to validate worker counts against action cost requirements
+    public function validateWorkerCountsForAction($player_id, $worker_counts, $cost) {
+        // Debug logging
+        self::trace("validateWorkerCountsForAction called with:");
+        self::trace("player_id: $player_id");
+        self::trace("worker_counts: " . json_encode($worker_counts));
+        self::trace("cost: " . json_encode($cost));
+        
+        // Get player's current worker counts
+        $player_workers = [];
+        $worker_types = ['white_worker', 'green_worker', 'blue_worker', 'red_worker', 'black_worker', 'purple_worker'];
+        foreach ($worker_types as $type) {
+            $count = $this->getResourceCount($player_id, $type);
+            if ($count > 0) {
+                $player_workers[$type] = $count;
+            }
+        }
+        
+        self::trace("Player worker counts: " . json_encode($player_workers));
+        
+        // Count total workers being used
+        $total_workers_used = array_sum($worker_counts);
+        $total_workers_required = count($cost);
+        
+        if ($total_workers_used !== $total_workers_required) {
+            self::trace("Total worker count mismatch: $total_workers_used vs $total_workers_required");
+            return false;
+        }
+        
+        // Create a copy to track available workers for validation
+        $available_workers = $player_workers;
+        
+        // First, check if the player has enough workers of each type they're trying to use
+        foreach ($worker_counts as $worker_type => $count) {
+            if ($count > 0) {
+                $player_count = $this->getResourceCount($player_id, $worker_type);
+                if ($player_count < $count) {
+                    self::trace("Player doesn't have enough $worker_type: has $player_count, needs $count");
+                    return false;
+                }
+                // Consume the workers from available pool
+                $available_workers[$worker_type] -= $count;
+                if ($available_workers[$worker_type] <= 0) {
+                    unset($available_workers[$worker_type]);
+                }
+            }
+        }
+        
+        // Now validate that the provided workers can satisfy the cost requirements
+        // For each cost requirement, check if we have the specific worker type or can use purple workers
+        for ($i = 0; $i < count($cost); $i++) {
+            $required_type = $cost[$i];
+            
+            if ($required_type === COST_ANY_WORKER) {
+                self::trace("Required: ANY_WORKER");
+                // Any worker is acceptable, but we need to check if player has any
+                if (empty($available_workers)) {
+                    self::trace("No available workers for ANY_WORKER");
+                    return false;
+                }
+                // Find any available worker type
+                $found = false;
+                foreach ($available_workers as $type => $count) {
+                    if ($count > 0) {
+                        $available_workers[$type]--;
+                        if ($available_workers[$type] <= 0) {
+                            unset($available_workers[$type]);
+                        }
+                        $found = true;
+                        self::trace("Found available worker type: $type");
+                        break;
+                    }
+                }
+                if (!$found) {
+                    self::trace("No available workers found for ANY_WORKER");
+                    return false;
+                }
+            } else {
+                self::trace("Required: $required_type");
+                // Check if we have the specific required worker type
+                if (isset($available_workers[$required_type]) && $available_workers[$required_type] > 0) {
+                    $available_workers[$required_type]--;
+                    if ($available_workers[$required_type] <= 0) {
+                        unset($available_workers[$required_type]);
+                    }
+                    self::trace("Used specific worker type: $required_type");
+                } else {
+                    // Try to use purple workers as wild
+                    if (isset($available_workers['purple_worker']) && $available_workers['purple_worker'] > 0) {
+                        $available_workers['purple_worker']--;
+                        if ($available_workers['purple_worker'] <= 0) {
+                            unset($available_workers['purple_worker']);
+                        }
+                        self::trace("Used purple worker as wild for: $required_type");
+                    } else {
+                        self::trace("No specific worker or purple worker available for: $required_type");
+                        return false;
+                    }
+                }
+            }
+        }
+        
+        self::trace("Validation successful");
+        return true;
+    }
+
+    // Helper to calculate provision cost for commission based on current count
+    public function getCommissionProvisionCost($player_id) {
+        $commission_count = $this->getResourceCount($player_id, 'commission_qty');
+        if ($commission_count < 3) {
+            return 1; // First 3 commissions cost 1 provision each
+        } elseif ($commission_count < 5) {
+            return 2; // 4th and 5th commissions cost 2 provisions each
+        } else {
+            return 3; // 6th and 7th commissions cost 3 provisions each
+        }
+    }
+
+    // Helper to get available board positions for commission
+    public function getAvailableCommissionPositions($player_id) {
+        // Get all positions from board_positions_material
+        $all_positions = [];
+        foreach ($this->board_positions_material as $index => $position) {
+            $all_positions[] = $index;
+        }
+        
+        // Get occupied positions for this player
+        $occupied = $this->getBoardPositions($player_id);
+        $occupied_indices = array_keys($occupied);
+        
+        // Return available positions
+        return array_diff($all_positions, $occupied_indices);
+    }
+
+    // Helper to get available board positions for garrison
+    public function getAvailableGarrisonPositions($player_id) {
+        // Get all positions from board_positions_material
+        $all_positions = [];
+        foreach ($this->board_positions_material as $index => $position) {
+            $all_positions[] = $index;
+        }
+        
+        // Get occupied positions for this player
+        $occupied = $this->getBoardPositions($player_id);
+        $occupied_indices = array_keys($occupied);
+        
+        // Return available positions
+        return array_diff($all_positions, $occupied_indices);
+    }
+
+
+
+
+
+    // Helper to calculate total faith for a player (Faith stat + Paladin bonus)
+    public function getTotalFaith($player_id) {
+        $faith_stat = $this->getResourceCount($player_id, ATTR_FAITH);
+        // TODO: Add Paladin bonus calculation
+        // For now, just return the faith stat
+        return $faith_stat;
+    }
+
+    // Helper to get available board positions based on player's faith
+    public function getAvailableBoardPositionsByFaith($player_id) {
+        $total_faith = $this->getTotalFaith($player_id);
+        $occupied_positions = $this->getBoardPositions($player_id);
+        $available_positions = [];
+        
+        foreach ($this->board_positions_material as $index => $position) {
+            // Check if position is available (not occupied) and player has enough faith
+            if (!isset($occupied_positions[$index]) && isset($position['min_faith']) && $total_faith >= $position['min_faith']) {
+                $available_positions[] = [
+                    'index' => $index,
+                    'position' => $position
+                ];
+            }
+        }
+        
+        return $available_positions;
+    }
+
+    public function commission($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers)
     {
         self::checkAction('commission');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers and board position
-        // TODO: Add validation logic
+        // Check if action is available
+        if (!$this->canUseAction($player_id, 'commission')) {
+            throw new BgaUserException(self::_("You have already used the commission action this round"));
+        }
         
-        // Check faith requirement and provision cost
-        // TODO: Implement faith and provision validation
+        $cost = $this->getCurrentActionCost(ACTION_COMMISSION, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Place monk and gain rewards
-        // TODO: Implement monk placement logic
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Commission action"));
+        }
         
-        self::notifyAllPlayers('commission', clienttranslate('${player_name} commissions a monk'), [
+        // Check provision cost based on current commission count
+        $provision_cost = $this->getCommissionProvisionCost($player_id);
+        $provisions = $this->getResourceCount($player_id, RESOURCE_PROVISION);
+        if ($provisions < $provision_cost) {
+            throw new BgaUserException(self::_("You need ${provision_cost} Provision(s) to commission (based on your current commission count)"));
+        }
+        
+        // Remove workers and pay costs
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        $this->addResource($player_id, RESOURCE_PROVISION, -$provision_cost);
+        
+        // Mark action as used
+        $this->markActionAsUsed($player_id, 'commission', $worker_counts);
+        
+        // Increment commission count
+        $this->addResource($player_id, 'commission_qty', 1);
+        
+        // Gain +1 Influence
+        $this->addResource($player_id, ATTR_INFLUENCE, 1);
+        
+        self::notifyAllPlayers('commission', clienttranslate('${player_name} commissions a monk and gains +1 Influence (cost: ${provision_cost} provision)'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'provision_cost' => $provision_cost,
+            'influence_gained' => 1
         ]);
         
-        $this->gamestate->nextState('nextPlayer');
+        // Transition to board position selection state
+        $this->gamestate->nextState('selectBoardPosition');
     }
 
-    public function fortify($worker1_id, $worker2_id, $worker3_id)
+    // New action for selecting board position after commission
+    public function selectCommissionPosition($board_position_index)
+    {
+        self::checkAction('selectCommissionPosition');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Get available positions based on faith
+        $available_positions = $this->getAvailableBoardPositionsByFaith($player_id);
+        $position_found = false;
+        $selected_position = null;
+        
+        foreach ($available_positions as $pos) {
+            if ($pos['index'] == $board_position_index) {
+                $position_found = true;
+                $selected_position = $pos;
+                break;
+            }
+        }
+        
+        if (!$position_found) {
+            throw new BgaUserException(self::_("Invalid board position selected"));
+        }
+        
+        // Add the commission to the board position
+        $this->addPieceToBoardPosition($player_id, $board_position_index, 'commission');
+        
+        // Get the bonus from the selected position
+        $bonus = $selected_position['position']['bonus'];
+        
+        // Handle the bonus
+        $bonus_result = $this->handleCommissionBonus($player_id, $bonus);
+        
+        self::notifyAllPlayers('commissionPositionSelected', clienttranslate('${player_name} places monk at position ${position_index} and gains ${bonus}'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id,
+            'position_index' => $board_position_index,
+            'bonus' => $bonus,
+            'bonus_result' => $bonus_result
+        ]);
+        
+        // Check if we need additional game states for certain bonuses
+        if ($bonus === 'free_recruit') {
+            $this->gamestate->nextState('freeRecruit');
+        } elseif ($bonus === 'pray') {
+            $this->gamestate->nextState('selectPraySpace');
+        } else {
+            $this->gamestate->nextState('nextPlayer');
+        }
+    }
+
+    // Helper to handle commission bonuses
+    public function handleCommissionBonus($player_id, $bonus) {
+        switch ($bonus) {
+            case 'pay_debt':
+                // Remove unpaid debt and add paid debt
+                $this->addResource($player_id, RESOURCE_UNPAID_DEBT, -1);
+                $this->addResource($player_id, RESOURCE_PAID_DEBT, 1);
+                return ['type' => 'pay_debt', 'message' => clienttranslate('Paid 1 debt')];
+                
+            case 'fighter':
+                // Add red worker
+                $this->addResource($player_id, WORKER_RED, 1);
+                return ['type' => 'fighter', 'message' => clienttranslate('Gained 1 Fighter')];
+                
+            case 'labourer_scout':
+                // Add white and green workers
+                $this->addResource($player_id, WORKER_WHITE, 1);
+                $this->addResource($player_id, WORKER_GREEN, 1);
+                return ['type' => 'labourer_scout', 'message' => clienttranslate('Gained 1 Labourer and 1 Scout')];
+                
+            case 'labourer_fighter':
+                // Add white and red workers
+                $this->addResource($player_id, WORKER_WHITE, 1);
+                $this->addResource($player_id, WORKER_RED, 1);
+                return ['type' => 'labourer_fighter', 'message' => clienttranslate('Gained 1 Labourer and 1 Fighter')];
+                
+            case 'labourer_merchant':
+                // Add white and blue workers
+                $this->addResource($player_id, WORKER_WHITE, 1);
+                $this->addResource($player_id, WORKER_BLUE, 1);
+                return ['type' => 'labourer_merchant', 'message' => clienttranslate('Gained 1 Labourer and 1 Merchant')];
+                
+            case 'labourer_cleric':
+                // Add white and black workers
+                $this->addResource($player_id, WORKER_WHITE, 1);
+                $this->addResource($player_id, WORKER_BLACK, 1);
+                return ['type' => 'labourer_cleric', 'message' => clienttranslate('Gained 1 Labourer and 1 Cleric')];
+                
+            case 'labourer_labourer':
+                // Add two white workers
+                $this->addResource($player_id, WORKER_WHITE, 2);
+                return ['type' => 'labourer_labourer', 'message' => clienttranslate('Gained 2 Labourers')];
+                
+            case 'labourer':
+                // Add one white worker
+                $this->addResource($player_id, WORKER_WHITE, 1);
+                return ['type' => 'labourer', 'message' => clienttranslate('Gained 1 Labourer')];
+                
+            case 'scout':
+                // Add one green worker
+                $this->addResource($player_id, WORKER_GREEN, 1);
+                return ['type' => 'scout', 'message' => clienttranslate('Gained 1 Scout')];
+                
+            case 'merchant':
+                // Add one blue worker
+                $this->addResource($player_id, WORKER_BLUE, 1);
+                return ['type' => 'merchant', 'message' => clienttranslate('Gained 1 Merchant')];
+                
+            case 'cleric':
+                // Add one black worker
+                $this->addResource($player_id, WORKER_BLACK, 1);
+                return ['type' => 'cleric', 'message' => clienttranslate('Gained 1 Cleric')];
+                
+            case '2_coin':
+                // Add two coins
+                $this->addResource($player_id, RESOURCE_COIN, 2);
+                return ['type' => '2_coin', 'message' => clienttranslate('Gained 2 Silver')];
+                
+            case 'free_recruit':
+                // This will be handled in a separate game state
+                return ['type' => 'free_recruit', 'message' => clienttranslate('Free recruit available')];
+                
+            case 'pray':
+                // This will be handled in a separate game state
+                return ['type' => 'pray', 'message' => clienttranslate('Pray action available')];
+                
+            case 'rmv_suspicion':
+                // Remove suspicion (TODO: implement suspicion removal)
+                return ['type' => 'rmv_suspicion', 'message' => clienttranslate('Removed suspicion')];
+                
+            default:
+                return ['type' => 'unknown', 'message' => clienttranslate('Unknown bonus: ${bonus}', ['bonus' => $bonus])];
+        }
+    }
+
+    public function fortify($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers)
     {
         self::checkAction('fortify');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers
-        // TODO: Add validation logic
+        // Check if action is available
+        if (!$this->canUseAction($player_id, 'fortify')) {
+            throw new BgaUserException(self::_("You have already used the fortify action this round"));
+        }
         
-        // Check influence requirement and provision cost
-        // TODO: Implement influence and provision validation
+        $cost = $this->getCurrentActionCost(ACTION_FORTIFY, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Build wall and gain rewards
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Fortify action"));
+        }
+        
+        // Check influence requirement (minimum 2 influence needed)
+        $influence = $this->getResourceCount($player_id, ATTR_INFLUENCE);
+        if ($influence < 2) {
+            throw new BgaUserException(self::_("You need at least 2 Influence to fortify"));
+        }
+        
+        // Check provision cost (1 provision)
+        $provisions = $this->getResourceCount($player_id, RESOURCE_PROVISION);
+        if ($provisions < 1) {
+            throw new BgaUserException(self::_("You need 1 Provision to fortify"));
+        }
+        
+        // Remove workers and pay costs
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        $this->addResource($player_id, RESOURCE_PROVISION, -1);
+        
+        // Mark action as used
+        $this->markActionAsUsed($player_id, 'fortify', $worker_counts);
+        
         // TODO: Implement wall building logic
+        // TODO: Add fortify count tracking
         
         self::notifyAllPlayers('fortify', clienttranslate('${player_name} fortifies with a wall'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id)
         ]);
-        
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function garrison($worker1_id, $worker2_id, $worker3_id, $board_position)
+    // Helper to calculate total strength for a player (Strength stat + Paladin bonus)
+    public function getTotalStrength($player_id) {
+        $strength_stat = $this->getResourceCount($player_id, ATTR_STRENGTH);
+        // TODO: Add Paladin bonus calculation
+        // For now, just return the strength stat
+        return $strength_stat;
+    }
+
+    // Helper to get available board positions based on player's strength
+    public function getAvailableBoardPositionsByStrength($player_id) {
+        $total_strength = $this->getTotalStrength($player_id);
+        $occupied_positions = $this->getBoardPositions($player_id);
+        $available_positions = [];
+        
+        foreach ($this->board_positions_material as $index => $position) {
+            // Check if position is available (not occupied) and player has enough strength
+            if (!isset($occupied_positions[$index]) && isset($position['min_strength']) && $total_strength >= $position['min_strength']) {
+                $available_positions[] = [
+                    'index' => $index,
+                    'position' => $position
+                ];
+            }
+        }
+        
+        return $available_positions;
+    }
+
+    // Helper to get provision cost for garrison (same as commission)
+    public function getGarrisonProvisionCost($player_id) {
+        $garrison_count = $this->getResourceCount($player_id, 'garrison_qty');
+        if ($garrison_count < 3) {
+            return 1; // First 3 garrisons cost 1 provision each
+        } elseif ($garrison_count < 5) {
+            return 2; // 4th and 5th garrisons cost 2 provisions each
+        } else {
+            return 3; // 6th and 7th garrisons cost 3 provisions each
+        }
+    }
+
+    public function garrison($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers)
     {
         self::checkAction('garrison');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers and board position
-        // TODO: Add validation logic
+        // Check if action is available
+        if (!$this->canUseAction($player_id, 'garrison')) {
+            throw new BgaUserException(self::_("You have already used the garrison action this round"));
+        }
         
-        // Check strength requirement and provision cost
-        // TODO: Implement strength and provision validation
+        $cost = $this->getCurrentActionCost(ACTION_GARRISON, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Place outpost and gain rewards
-        // TODO: Implement outpost placement logic
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Garrison action"));
+        }
         
-        self::notifyAllPlayers('garrison', clienttranslate('${player_name} garrisons an outpost'), [
+        // Check provision cost based on current garrison count
+        $provision_cost = $this->getGarrisonProvisionCost($player_id);
+        $provisions = $this->getResourceCount($player_id, RESOURCE_PROVISION);
+        if ($provisions < $provision_cost) {
+            throw new BgaUserException(self::_("You need ${provision_cost} Provision(s) to garrison (based on your current garrison count)"));
+        }
+        
+        // Remove workers and pay costs
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        $this->addResource($player_id, RESOURCE_PROVISION, -$provision_cost);
+        
+        // Mark action as used
+        $this->markActionAsUsed($player_id, 'garrison', $worker_counts);
+        
+        // Increment garrison count
+        $this->addResource($player_id, 'garrison_qty', 1);
+        
+        // Gain +1 Faith
+        $this->addResource($player_id, ATTR_FAITH, 1);
+        
+        self::notifyAllPlayers('garrison', clienttranslate('${player_name} garrisons an outpost and gains +1 Faith (cost: ${provision_cost} provision)'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'provision_cost' => $provision_cost,
+            'faith_gained' => 1
         ]);
         
-        $this->gamestate->nextState('nextPlayer');
+        // Transition to board position selection state
+        $this->gamestate->nextState('selectBoardPosition');
     }
 
-    public function absolve($worker1_id, $worker2_id, $worker3_id, $jar_position)
+    // New action for selecting board position after garrison
+    public function selectGarrisonPosition($board_position_index)
+    {
+        self::checkAction('selectGarrisonPosition');
+        $player_id = self::getCurrentPlayerId();
+        
+        // Get available positions based on strength
+        $available_positions = $this->getAvailableBoardPositionsByStrength($player_id);
+        $position_found = false;
+        $selected_position = null;
+        
+        foreach ($available_positions as $pos) {
+            if ($pos['index'] == $board_position_index) {
+                $position_found = true;
+                $selected_position = $pos;
+                break;
+            }
+        }
+        
+        if (!$position_found) {
+            throw new BgaUserException(self::_("Invalid board position selected"));
+        }
+        
+        // Add the garrison to the board position
+        $this->addPieceToBoardPosition($player_id, $board_position_index, 'garrison');
+        
+        // Get the bonus from the selected position
+        $bonus = $selected_position['position']['bonus'];
+        
+        // Handle the bonus (same as commission)
+        $bonus_result = $this->handleCommissionBonus($player_id, $bonus);
+        
+        self::notifyAllPlayers('garrisonPositionSelected', clienttranslate('${player_name} places outpost at position ${position_index} and gains ${bonus}'), [
+            'player_name' => self::getCurrentPlayerName(),
+            'player_id' => $player_id,
+            'position_index' => $board_position_index,
+            'bonus' => $bonus,
+            'bonus_result' => $bonus_result
+        ]);
+        
+        // Check if we need additional game states for certain bonuses
+        if ($bonus === 'free_recruit') {
+            $this->gamestate->nextState('freeRecruit');
+        } elseif ($bonus === 'pray') {
+            $this->gamestate->nextState('selectPraySpace');
+        } else {
+            $this->gamestate->nextState('nextPlayer');
+        }
+    }
+
+    public function absolve($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $jar_position)
     {
         self::checkAction('absolve');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers and jar position
-        // TODO: Add validation logic
+        // Check if action is available
+        if (!$this->canUseAction($player_id, 'absolve')) {
+            throw new BgaUserException(self::_("You have already used the absolve action this round"));
+        }
         
-        // Check influence requirement and silver cost
-        // TODO: Implement influence and silver validation
+        $cost = $this->getCurrentActionCost(ACTION_ABSOLVE, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Absolve and gain rewards
-        // TODO: Implement absolution logic
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Absolve action"));
+        }
+        
+        // Check influence requirement (minimum 2 influence needed)
+        $influence = $this->getResourceCount($player_id, ATTR_INFLUENCE);
+        if ($influence < 2) {
+            throw new BgaUserException(self::_("You need at least 2 Influence to absolve"));
+        }
+        
+        // Check silver cost (2 silver)
+        $silver = $this->getResourceCount($player_id, RESOURCE_COIN);
+        if ($silver < 2) {
+            throw new BgaUserException(self::_("You need 2 Silver to absolve"));
+        }
+        
+        // Remove workers and pay costs
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        $this->addResource($player_id, RESOURCE_COIN, -2);
+        
+        // Mark action as used
+        $this->markActionAsUsed($player_id, 'absolve', $worker_counts);
+        
+        // TODO: Implement absolution logic based on jar position
+        // TODO: Add absolve count tracking
         
         self::notifyAllPlayers('absolve', clienttranslate('${player_name} absolves'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'jar_position' => $jar_position
         ]);
-        
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function attack($worker1_id, $worker2_id, $worker3_id, $outsider_card_id, $silver_cost = 0)
+    public function attack($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $outsider_card_id, $silver_cost = 0)
     {
         self::checkAction('attack');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers and outsider card
-        // TODO: Add validation logic
+        // Check if action is available
+        if (!$this->canUseAction($player_id, 'attack')) {
+            throw new BgaUserException(self::_("You have already used the attack action this round"));
+        }
         
-        // Check strength requirement and pay silver if needed
-        // TODO: Implement strength validation and silver payment
+        $cost = $this->getCurrentActionCost(ACTION_ATTACK, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Attack outsider and gain rewards
-        // TODO: Implement attack logic
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Attack action"));
+        }
+        
+        // Check strength requirement (minimum 2 strength needed)
+        $strength = $this->getResourceCount($player_id, ATTR_STRENGTH);
+        if ($strength < 2) {
+            throw new BgaUserException(self::_("You need at least 2 Strength to attack"));
+        }
+        
+        // Check silver cost if needed
+        if ($silver_cost > 0) {
+            $silver = $this->getResourceCount($player_id, RESOURCE_COIN);
+            if ($silver < $silver_cost) {
+                throw new BgaUserException(self::_("You need ${silver_cost} Silver to attack this outsider"));
+            }
+        }
+        
+        // Remove workers and pay costs
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        if ($silver_cost > 0) {
+            $this->addResource($player_id, RESOURCE_COIN, -$silver_cost);
+        }
+        
+        // Mark action as used
+        $this->markActionAsUsed($player_id, 'attack', $worker_counts);
+        
+        // TODO: Implement attack logic for outsider card
+        // TODO: Add attack count tracking
         
         self::notifyAllPlayers('attack', clienttranslate('${player_name} attacks an outsider'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'outsider_card_id' => $outsider_card_id,
+            'silver_cost' => $silver_cost
         ]);
-        
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function convert($worker1_id, $worker2_id, $worker3_id, $outsider_card_id)
+    public function convert($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $outsider_card_id)
     {
         self::checkAction('convert');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate workers and outsider card
-        // TODO: Add validation logic
+        // Check if action is available
+        if (!$this->canUseAction($player_id, 'convert')) {
+            throw new BgaUserException(self::_("You have already used the convert action this round"));
+        }
         
-        // Check faith requirement and silver cost
-        // TODO: Implement faith and silver validation
+        $cost = $this->getCurrentActionCost(ACTION_CONVERT, $player_id);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers)
+        ];
         
-        // Convert outsider and gain rewards
-        // TODO: Implement conversion logic
+        // Validate worker counts
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for Convert action"));
+        }
+        
+        // Check faith requirement (minimum 2 faith needed)
+        $faith = $this->getResourceCount($player_id, ATTR_FAITH);
+        if ($faith < 2) {
+            throw new BgaUserException(self::_("You need at least 2 Faith to convert"));
+        }
+        
+        // Check silver cost (2 silver)
+        $silver = $this->getResourceCount($player_id, RESOURCE_COIN);
+        if ($silver < 2) {
+            throw new BgaUserException(self::_("You need 2 Silver to convert"));
+        }
+        
+        // Remove workers and pay costs
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        $this->addResource($player_id, RESOURCE_COIN, -2);
+        
+        // Mark action as used
+        $this->markActionAsUsed($player_id, 'convert', $worker_counts);
+        
+        // TODO: Implement conversion logic for outsider card
+        // TODO: Add convert count tracking
         
         self::notifyAllPlayers('convert', clienttranslate('${player_name} converts an outsider'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'outsider_card_id' => $outsider_card_id
         ]);
-        
         $this->gamestate->nextState('nextPlayer');
     }
 
@@ -1050,9 +2178,21 @@ class PaladinsShipped extends Table
     // Helper method to get resource count
     private function getResourceCount($player_id, $resource_type)
     {
-        $sql = "SELECT resource_qty FROM player_resources WHERE player_id = $player_id AND resource_type = '$resource_type'";
-        $result = $this->getCollectionFromDb($sql);
-        return count($result) > 0 ? $result[0]['resource_qty'] : 0;
+        // Check if the resource exists as a column in the player table
+        $valid_resources = [
+            'coin', 'provision', 'white_worker', 'green_worker', 'blue_worker', 
+            'red_worker', 'black_worker', 'purple_worker', 'paid_debt', 'unpaid_debt',
+            'strength', 'faith', 'influence', 'parchment', 'develop_qty', 
+            'commission_qty', 'garrison_qty'
+        ];
+        
+        if (in_array($resource_type, $valid_resources)) {
+            $sql = "SELECT $resource_type FROM player WHERE player_id = $player_id";
+            $result = $this->getCollectionFromDb($sql);
+            return count($result) > 0 ? $result[0][$resource_type] : 0;
+        }
+        
+        return 0;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1137,5 +2277,68 @@ class PaladinsShipped extends Table
         //
 
 
+    }
+
+    // Helper to add a piece to a board position (unified method for commission and garrison)
+    public function addPieceToBoardPosition($player_id, $position, $piece_type) {
+        // Validate piece type
+        if (!in_array($piece_type, ['commission', 'garrison'])) {
+            throw new BgaUserException(self::_("Invalid piece type: ${piece_type}"));
+        }
+        
+        // Get current board positions
+        $board_positions = $this->getBoardPositions($player_id);
+        
+        // Add the piece to the specified position
+        $board_positions[$position] = $piece_type;
+        
+        // Save back to database
+        $positions_json = json_encode($board_positions);
+        $sql = "UPDATE player SET board_positions = '$positions_json' WHERE player_id = $player_id";
+        self::DbQuery($sql);
+    }
+
+    // Helper to get all board positions for a player
+    public function getBoardPositions($player_id) {
+        $sql = "SELECT board_positions FROM player WHERE player_id = $player_id";
+        $result = self::getUniqueValueFromDb($sql);
+        return $result ? json_decode($result, true) : [];
+    }
+
+    // Helper to get positions for a specific piece type
+    public function getPositions($player_id, $piece_type) {
+        // Validate piece type
+        if (!in_array($piece_type, ['commission', 'garrison'])) {
+            throw new BgaUserException(self::_("Invalid piece type: ${piece_type}"));
+        }
+        
+        $board_positions = $this->getBoardPositions($player_id);
+        $positions = [];
+        
+        foreach ($board_positions as $position => $type) {
+            if ($type === $piece_type) {
+                $positions[] = (int)$position;
+            }
+        }
+        
+        return $positions;
+    }
+
+    // Legacy methods for backward compatibility
+    public function addCommissionPosition($player_id, $position) {
+        return $this->addPieceToBoardPosition($player_id, $position, 'commission');
+    }
+
+    public function addGarrisonPosition($player_id, $position) {
+        return $this->addPieceToBoardPosition($player_id, $position, 'garrison');
+    }
+
+    // Legacy methods for backward compatibility
+    public function getCommissionPositions($player_id) {
+        return $this->getPositions($player_id, 'commission');
+    }
+
+    public function getGarrisonPositions($player_id) {
+        return $this->getPositions($player_id, 'garrison');
     }
 }

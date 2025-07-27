@@ -128,19 +128,42 @@ class action_paladinsshipped extends APP_GameAction
     public function conspire()
     {
         self::setAjaxMode();
-        $worker_id = self::getArg("worker_id", AT_int, true);
-        $this->game->conspire($worker_id);
+        $white_workers = self::getArg("white_workers", AT_int, false);
+        $green_workers = self::getArg("green_workers", AT_int, false);
+        $blue_workers = self::getArg("blue_workers", AT_int, false);
+        $red_workers = self::getArg("red_workers", AT_int, false);
+        $black_workers = self::getArg("black_workers", AT_int, false);
+        $purple_workers = self::getArg("purple_workers", AT_int, false);
+        $this->game->conspire($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers);
         self::ajaxResponse();
     }
 
     public function commission()
     {
         self::setAjaxMode();
-        $worker1_id = self::getArg("worker1_id", AT_int, true);
-        $worker2_id = self::getArg("worker2_id", AT_int, true);
-        $worker3_id = self::getArg("worker3_id", AT_int, true);
-        $board_position = self::getArg("board_position", AT_int, true);
-        $this->game->commission($worker1_id, $worker2_id, $worker3_id, $board_position);
+        $white_workers = self::getArg("white_workers", AT_int, false);
+        $green_workers = self::getArg("green_workers", AT_int, false);
+        $blue_workers = self::getArg("blue_workers", AT_int, false);
+        $red_workers = self::getArg("red_workers", AT_int, false);
+        $black_workers = self::getArg("black_workers", AT_int, false);
+        $purple_workers = self::getArg("purple_workers", AT_int, false);
+        $this->game->commission($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers);
+        self::ajaxResponse();
+    }
+
+    public function selectCommissionPosition()
+    {
+        self::setAjaxMode();
+        $board_position_index = self::getArg("board_position_index", AT_posint, true);
+        $this->game->selectCommissionPosition($board_position_index);
+        self::ajaxResponse();
+    }
+
+    public function selectGarrisonPosition()
+    {
+        self::setAjaxMode();
+        $board_position_index = self::getArg("board_position_index", AT_posint, true);
+        $this->game->selectGarrisonPosition($board_position_index);
         self::ajaxResponse();
     }
 
@@ -157,11 +180,10 @@ class action_paladinsshipped extends APP_GameAction
     public function garrison()
     {
         self::setAjaxMode();
-        $worker1_id = self::getArg("worker1_id", AT_int, true);
-        $worker2_id = self::getArg("worker2_id", AT_int, true);
-        $worker3_id = self::getArg("worker3_id", AT_int, true);
-        $board_position = self::getArg("board_position", AT_int, true);
-        $this->game->garrison($worker1_id, $worker2_id, $worker3_id, $board_position);
+        $worker1_id = self::getArg("worker1_id", AT_posint, false);
+        $worker2_id = self::getArg("worker2_id", AT_posint, false);
+        $worker3_id = self::getArg("worker3_id", AT_posint, false);
+        $this->game->garrison($worker1_id, $worker2_id, $worker3_id);
         self::ajaxResponse();
     }
 

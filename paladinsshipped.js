@@ -292,6 +292,9 @@ define([
 
     // page load
     setup: function (gamedatas) {
+      // Store the complete gamedatas for access throughout the game
+      this.gamedatas = gamedatas;
+      
       this.min_width_viewport = gamedatas.game_interface_width.min;
       this.max_width_viewport = gamedatas.game_interface_width.max;
       this.onScreenWidthChange();
@@ -340,6 +343,7 @@ define([
       );
       this.setupNotifications();
       this.setupActionButtons();
+      this.updateActionButtons(); // Ensure action buttons are properly hidden/shown based on initial state
       this.drawUi();
 
       // Setting up player boards
@@ -583,6 +587,13 @@ define([
           dojo.setStyle("paladinsSelection", "display", "none");
           this.uiItems.resetAllSelectable();
           break;
+        case "playerAction":
+          // Hide action buttons when leaving playerAction state
+          const actionContainer = document.getElementById('action_buttons');
+          if (actionContainer) {
+            dojo.setStyle(actionContainer, 'display', 'none');
+          }
+          break;
         case "dummmy":
           break;
       }
@@ -593,6 +604,8 @@ define([
     //
     onUpdateActionButtons: function (stateName, args) {
       console.log("onUpdateActionButtons: " + stateName);
+      // Update action buttons visibility when current player changes
+      this.updateActionButtons();
     },
 
     ///////////////////////////////////////////////////
@@ -937,116 +950,60 @@ define([
       this.ajaxcall('/paladinsshipped/paladinsshipped/pass.html', {}, this, function(result) {}, function(is_error) {});
     },
 
-    onPray: function(action_space) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/pray.html', {
-        action_space: action_space
-      }, this, function(result) {}, function(is_error) {});
+    onPray: function() {
+      this.showWorkerSelectionMenu('pray', { action_space: 'pray' });
     },
 
-    onRecruitDiscard: function(worker_id, townsfolk_card_id) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/recruitDiscard.html', {
-        worker_id: worker_id,
-        townsfolk_card_id: townsfolk_card_id
-      }, this, function(result) {}, function(is_error) {});
+    onRecruitDiscard: function() {
+      this.showWorkerSelectionMenu('recruitDiscard', { townsfolk_card_id: null });
     },
 
-    onRecruitHire: function(worker1_id, worker2_id, townsfolk_card_id, use_debt) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/recruitHire.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        townsfolk_card_id: townsfolk_card_id,
-        use_debt: use_debt
-      }, this, function(result) {}, function(is_error) {});
+    onRecruitHire: function() {
+      this.showWorkerSelectionMenu('recruitHire', { townsfolk_card_id: null, use_debt: false });
     },
 
-    onDevelop: function(worker1_id, worker2_id, action_space, workshop_position) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/develop.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        action_space: action_space,
-        workshop_position: workshop_position
-      }, this, function(result) {}, function(is_error) {});
+    onDevelop: function() {
+      this.showWorkerSelectionMenu('develop', { action_space: 'develop', workshop_position: 'left' });
     },
 
-    onHunt: function(worker1_id, worker2_id) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/hunt.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id
-      }, this, function(result) {}, function(is_error) {});
+    onHunt: function() {
+      this.showWorkerSelectionMenu('hunt', {});
     },
 
-    onTrade: function(worker1_id, worker2_id) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/trade.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id
-      }, this, function(result) {}, function(is_error) {});
+    onTrade: function() {
+      this.showWorkerSelectionMenu('trade', {});
     },
 
-    onConspire: function(worker_id) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/conspire.html', {
-        worker_id: worker_id
-      }, this, function(result) {}, function(is_error) {});
+    onConspire: function() {
+      this.showWorkerSelectionMenu('conspire', {});
     },
 
-    onCommission: function(worker1_id, worker2_id, worker3_id, board_position) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/commission.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        worker3_id: worker3_id,
-        board_position: board_position
-      }, this, function(result) {}, function(is_error) {});
+    onCommission: function() {
+      this.showWorkerSelectionMenu('commission', { board_position: null });
     },
 
-    onFortify: function(worker1_id, worker2_id, worker3_id) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/fortify.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        worker3_id: worker3_id
-      }, this, function(result) {}, function(is_error) {});
+    onFortify: function() {
+      this.showWorkerSelectionMenu('fortify', {});
     },
 
-    onGarrison: function(worker1_id, worker2_id, worker3_id, board_position) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/garrison.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        worker3_id: worker3_id,
-        board_position: board_position
-      }, this, function(result) {}, function(is_error) {});
+    onGarrison: function() {
+      this.showWorkerSelectionMenu('garrison', { board_position: null });
     },
 
-    onAbsolve: function(worker1_id, worker2_id, worker3_id, jar_position) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/absolve.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        worker3_id: worker3_id,
-        jar_position: jar_position
-      }, this, function(result) {}, function(is_error) {});
+    onAbsolve: function() {
+      this.showWorkerSelectionMenu('absolve', { jar_position: 'pay_debt' });
     },
 
-    onAttack: function(worker1_id, worker2_id, worker3_id, outsider_card_id, silver_cost) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/attack.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        worker3_id: worker3_id,
-        outsider_card_id: outsider_card_id,
-        silver_cost: silver_cost
-      }, this, function(result) {}, function(is_error) {});
+    onAttack: function() {
+      this.showWorkerSelectionMenu('attack', { outsider_card_id: null, silver_cost: 0 });
     },
 
-    onConvert: function(worker1_id, worker2_id, worker3_id, outsider_card_id) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/convert.html', {
-        worker1_id: worker1_id,
-        worker2_id: worker2_id,
-        worker3_id: worker3_id,
-        outsider_card_id: outsider_card_id
-      }, this, function(result) {}, function(is_error) {});
+    onConvert: function() {
+      this.showWorkerSelectionMenu('convert', { outsider_card_id: null });
     },
 
-    onKingsFavor: function(worker_id, kings_favor_id) {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavor.html', {
-        worker_id: worker_id,
-        kings_favor_id: kings_favor_id
-      }, this, function(result) {}, function(is_error) {});
+    onKingsFavor: function() {
+      this.showWorkerSelectionMenu('kingsFavor', { kings_favor_id: null });
     },
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1068,7 +1025,8 @@ define([
         { id: 'garrison', text: 'Garrison', action: 'onGarrison' },
         { id: 'absolve', text: 'Absolve', action: 'onAbsolve' },
         { id: 'attack', text: 'Attack', action: 'onAttack' },
-        { id: 'convert', text: 'Convert', action: 'onConvert' }
+        { id: 'convert', text: 'Convert', action: 'onConvert' },
+        { id: 'kingsFavor', text: 'King\'s Favor', action: 'onKingsFavor' }
       ];
 
       const actionContainer = document.getElementById('action_buttons');
@@ -1098,6 +1056,9 @@ define([
           btn.onclick = () => this[button.action]();
           buttonsContainer.appendChild(btn);
         });
+        
+        // Hide action buttons by default - they will only show during playerAction state
+        dojo.setStyle(actionContainer, 'display', 'none');
       }
     },
 
@@ -1119,12 +1080,123 @@ define([
         }
       });
       
-      // Show/hide the entire action buttons area based on game state
+      // Show/hide the entire action buttons area based on game state AND current player
       const actionContainer = document.getElementById('action_buttons');
       if (actionContainer) {
         const currentState = this.gamedatas.gamestate.name;
-        const shouldShow = currentState === 'playerAction';
+        // Only show action buttons if we're in playerAction state AND it's the current player's turn
+        const shouldShow = currentState === 'playerAction' && isMyTurn;
         dojo.setStyle(actionContainer, 'display', shouldShow ? 'flex' : 'none');
+      }
+      
+      // Update individual button states based on action availability
+      if (isMyTurn) {
+        this.updateIndividualActionButtons();
+      }
+    },
+
+    updateIndividualActionButtons: function() {
+      const currentPlayerId = this.player_id;
+      const actionSpaces = this.gamedatas.action_spaces[currentPlayerId];
+      
+      if (!actionSpaces) return;
+      
+      // Check conspire action availability
+      const conspireBtn = document.getElementById('conspire_btn');
+      if (conspireBtn) {
+        if (actionSpaces.conspire && actionSpaces.conspire.used) {
+          conspireBtn.disabled = true;
+          conspireBtn.classList.add('unavailable');
+          conspireBtn.title = 'Conspire action already used this round';
+        } else {
+          conspireBtn.disabled = false;
+          conspireBtn.classList.remove('unavailable');
+          conspireBtn.title = 'Conspire - Gain 1 Criminal and 1 Suspicion';
+        }
+      }
+      
+      // Check commission action availability
+      const commissionBtn = document.getElementById('commission_btn');
+      if (commissionBtn) {
+        if (actionSpaces.commission && actionSpaces.commission.used) {
+          commissionBtn.disabled = true;
+          commissionBtn.classList.add('unavailable');
+          commissionBtn.title = 'Commission action already used this round';
+        } else {
+          commissionBtn.disabled = false;
+          commissionBtn.classList.remove('unavailable');
+          commissionBtn.title = 'Commission - Place a monk (requires 0 Faith, 1-3 Provisions based on count)';
+        }
+      }
+      
+      // Check fortify action availability
+      const fortifyBtn = document.getElementById('fortify_btn');
+      if (fortifyBtn) {
+        if (actionSpaces.fortify && actionSpaces.fortify.used) {
+          fortifyBtn.disabled = true;
+          fortifyBtn.classList.add('unavailable');
+          fortifyBtn.title = 'Fortify action already used this round';
+        } else {
+          fortifyBtn.disabled = false;
+          fortifyBtn.classList.remove('unavailable');
+          fortifyBtn.title = 'Fortify - Build a wall (requires 2 Influence, 1 Provision)';
+        }
+      }
+      
+      // Check garrison action availability
+      const garrisonBtn = document.getElementById('garrison_btn');
+      if (garrisonBtn) {
+        if (actionSpaces.garrison && actionSpaces.garrison.used) {
+          garrisonBtn.disabled = true;
+          garrisonBtn.classList.add('unavailable');
+          garrisonBtn.title = 'Garrison action already used this round';
+        } else {
+          garrisonBtn.disabled = false;
+          garrisonBtn.classList.remove('unavailable');
+          garrisonBtn.title = 'Garrison - Place an outpost (requires 2 Strength, 1 Provision)';
+        }
+      }
+      
+      // Check absolve action availability
+      const absolveBtn = document.getElementById('absolve_btn');
+      if (absolveBtn) {
+        if (actionSpaces.absolve && actionSpaces.absolve.used) {
+          absolveBtn.disabled = true;
+          absolveBtn.classList.add('unavailable');
+          absolveBtn.title = 'Absolve action already used this round';
+        } else {
+          absolveBtn.disabled = false;
+          absolveBtn.classList.remove('unavailable');
+          absolveBtn.title = 'Absolve - Absolve sins (requires 2 Influence, 2 Silver)';
+        }
+      }
+      
+      // Check attack action availability
+      const attackBtn = document.getElementById('attack_btn');
+      if (attackBtn) {
+        if (actionSpaces.attack && actionSpaces.attack.used) {
+          attackBtn.disabled = true;
+          attackBtn.classList.add('unavailable');
+          attackBtn.title = 'Attack action already used this round';
+        } else {
+          attackBtn.disabled = false;
+          attackBtn.classList.remove('unavailable');
+          attackBtn.title = 'Attack - Attack an outsider (requires 2 Strength)';
+        }
+      }
+      
+      // Check convert action availability
+      const convertBtn = document.getElementById('convert_btn');
+      if (convertBtn) {
+        if (actionSpaces.convert && actionSpaces.convert.used) {
+          convertBtn.disabled = true;
+          convertBtn.classList.add('unavailable');
+          convertBtn.title = 'Convert action already used this round';
+        } else {
+          convertBtn.disabled = false;
+          convertBtn.classList.remove('unavailable');
+          convertBtn.title = 'Convert - Convert an outsider (requires 2 Faith, 2 Silver)';
+        }
       }
     },
 
@@ -1169,12 +1241,76 @@ define([
 
     notif_conspire: function(notif) {
       console.log('Player conspired:', notif.args.player_name);
+      console.log('Tax info:', notif.args.tax_given, notif.args.tax_amount, notif.args.tax_supply);
       // Update UI to show conspiracy
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
+    },
+
+    notif_clearActionSpaces: function(notif) {
+      console.log('Action spaces cleared for new round');
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
+    },
+
+    notif_initializeTaxSupply: function(notif) {
+      console.log('Tax supply initialized with:', notif.args.tax_amount, 'silver');
+      // Update tax supply display if needed
+    },
+
+    notif_inquisition: function(notif) {
+      console.log('Inquisition triggered!');
+      console.log('Players with debt:', notif.args.players_with_debt);
+      console.log('Tax refill amount:', notif.args.tax_refill);
+      // Update UI to show inquisition results
     },
 
     notif_commission: function(notif) {
       console.log('Player commissioned monk:', notif.args.player_name);
+      console.log('Board position:', notif.args.board_position);
       // Update UI to show monk commission
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
+    },
+
+    notif_fortify: function(notif) {
+      console.log('Player fortified with wall:', notif.args.player_name);
+      // Update UI to show wall building
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
+    },
+
+    notif_garrison: function(notif) {
+      console.log('Player garrisoned outpost:', notif.args.player_name);
+      console.log('Board position:', notif.args.board_position);
+      // Update UI to show outpost placement
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
+    },
+
+    notif_absolve: function(notif) {
+      console.log('Player absolved sins:', notif.args.player_name);
+      console.log('Jar position:', notif.args.jar_position);
+      // Update UI to show absolution
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
+    },
+
+    notif_attack: function(notif) {
+      console.log('Player attacked outsider:', notif.args.player_name);
+      console.log('Outsider card ID:', notif.args.outsider_card_id);
+      console.log('Silver cost:', notif.args.silver_cost);
+      // Update UI to show attack
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
+    },
+
+    notif_convert: function(notif) {
+      console.log('Player converted outsider:', notif.args.player_name);
+      console.log('Outsider card ID:', notif.args.outsider_card_id);
+      // Update UI to show conversion
+      // Refresh action buttons to update availability
+      this.updateActionButtons();
     },
 
     notif_fortify: function(notif) {
@@ -1205,6 +1341,282 @@ define([
     notif_kingsFavor: function(notif) {
       console.log('Player used King\'s Favor:', notif.args.player_name);
       // Update UI to show King's Favor use
+    },
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////// WORKER SELECTION MENU
+    ////////////
+
+    showWorkerSelectionMenu: function(actionType, actionParams) {
+      // Store the current action being performed
+      this.currentAction = {
+        type: actionType,
+        params: actionParams,
+        selectedWorkers: []
+      };
+
+      // Get worker requirements for this action
+      const requirements = this.getWorkerRequirements(actionType);
+      
+      // Create and show the worker selection modal
+      this.createWorkerSelectionModal(actionType, requirements);
+    },
+
+    getWorkerRequirements: function(actionType) {
+      // Define worker requirements for each action type
+      const requirements = {
+        'pass': { workers: 0, specific: [] },
+        'pray': { workers: 1, specific: ['black_worker'] },
+        'recruitDiscard': { workers: 1, specific: [] },
+        'recruitHire': { workers: 2, specific: ['red_worker'] },
+        'develop': { workers: 2, specific: [] },
+        'hunt': { workers: 2, specific: ['green_worker'] },
+        'trade': { workers: 2, specific: ['blue_worker'] },
+        'conspire': { workers: 1, specific: [] },
+        'commission': { workers: 3, specific: ['green_worker', 'black_worker'] },
+        'fortify': { workers: 3, specific: ['blue_worker', 'green_worker'] },
+        'garrison': { workers: 3, specific: ['blue_worker', 'red_worker'] },
+        'absolve': { workers: 3, specific: ['black_worker', 'blue_worker'] },
+        'attack': { workers: 3, specific: ['green_worker', 'red_worker'] },
+        'convert': { workers: 3, specific: ['red_worker', 'black_worker'] },
+        'kingsFavor': { workers: 1, specific: [] }
+      };
+
+      return requirements[actionType] || { workers: 0, specific: [] };
+    },
+
+    createWorkerSelectionModal: function(actionType, requirements) {
+      // Remove existing modal if any
+      const existingModal = document.getElementById('worker_selection_modal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+
+      // Create modal container
+      const modal = document.createElement('div');
+      modal.id = 'worker_selection_modal';
+      modal.className = 'worker_selection_modal';
+      
+      // Create modal content
+      const modalContent = document.createElement('div');
+      modalContent.className = 'worker_selection_content';
+      
+      // Add header
+      const header = document.createElement('div');
+      header.className = 'worker_selection_header';
+      header.innerHTML = `<h3>Select Workers for ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}</h3>`;
+      modalContent.appendChild(header);
+      
+      // Add requirements info
+      const requirementsInfo = document.createElement('div');
+      requirementsInfo.className = 'worker_requirements_info';
+      requirementsInfo.innerHTML = `
+        <p><strong>Required:</strong> ${requirements.workers} worker(s)</p>
+        ${requirements.specific.length > 0 ? `<p><strong>Specific:</strong> ${requirements.specific.join(', ')}</p>` : ''}
+      `;
+      modalContent.appendChild(requirementsInfo);
+      
+      // Add worker selection area
+      const workerSelection = document.createElement('div');
+      workerSelection.className = 'worker_selection_area';
+      workerSelection.id = 'worker_selection_area';
+      modalContent.appendChild(workerSelection);
+      
+      // Add action buttons
+      const actionButtons = document.createElement('div');
+      actionButtons.className = 'worker_selection_actions';
+      
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'action_button primary';
+      confirmBtn.innerHTML = 'Confirm Action';
+      confirmBtn.onclick = () => this.confirmWorkerSelection();
+      actionButtons.appendChild(confirmBtn);
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'action_button secondary';
+      cancelBtn.innerHTML = 'Cancel';
+      cancelBtn.onclick = () => this.hideWorkerSelectionModal();
+      actionButtons.appendChild(cancelBtn);
+      
+      modalContent.appendChild(actionButtons);
+      
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+      
+      // Populate available workers
+      this.populateAvailableWorkers();
+    },
+
+    populateAvailableWorkers: function() {
+      const workerSelectionArea = document.getElementById('worker_selection_area');
+      if (!workerSelectionArea) return;
+
+      // Clear existing content
+      workerSelectionArea.innerHTML = '';
+
+      // Get current player's workers from game data
+      const availableWorkers = this.getCurrentPlayerWorkers();
+      
+      console.log('Available workers for selection:', availableWorkers);
+      
+      if (availableWorkers.length === 0) {
+        workerSelectionArea.innerHTML = '<p style="text-align: center; color: #6c757d; font-style: italic;">No workers available</p>';
+        return;
+      }
+
+      // Create worker selection cards
+      availableWorkers.forEach(worker => {
+        const workerCard = document.createElement('div');
+        workerCard.className = 'worker_selection_card';
+        workerCard.dataset.workerId = worker.id;
+        workerCard.dataset.workerType = worker.type;
+        
+        workerCard.innerHTML = `
+          <div class="worker_card_content" style="background-color: ${worker.color}">
+            <div class="worker_name">${worker.name}</div>
+            <div class="worker_type">${worker.type}</div>
+          </div>
+        `;
+        
+        workerCard.onclick = () => this.toggleWorkerSelection(workerCard, worker);
+        workerSelectionArea.appendChild(workerCard);
+      });
+    },
+
+    toggleWorkerSelection: function(workerCard, worker) {
+      const isSelected = workerCard.classList.contains('selected');
+      
+      if (isSelected) {
+        // Deselect worker
+        workerCard.classList.remove('selected');
+        this.currentAction.selectedWorkers = this.currentAction.selectedWorkers.filter(w => w.id !== worker.id);
+      } else {
+        // Check if we can select more workers
+        const requirements = this.getWorkerRequirements(this.currentAction.type);
+        if (this.currentAction.selectedWorkers.length < requirements.workers) {
+          // Select worker
+          workerCard.classList.add('selected');
+          this.currentAction.selectedWorkers.push(worker);
+        }
+      }
+      
+      // Update confirm button state
+      this.updateConfirmButtonState();
+    },
+
+    updateConfirmButtonState: function() {
+      const confirmBtn = document.querySelector('#worker_selection_modal .action_button.primary');
+      if (!confirmBtn) return;
+
+      const requirements = this.getWorkerRequirements(this.currentAction.type);
+      const canConfirm = this.currentAction.selectedWorkers.length === requirements.workers;
+      
+      confirmBtn.disabled = !canConfirm;
+      if (canConfirm) {
+        confirmBtn.classList.add('available');
+      } else {
+        confirmBtn.classList.remove('available');
+      }
+    },
+
+    confirmWorkerSelection: function() {
+      if (!this.currentAction || this.currentAction.selectedWorkers.length === 0) {
+        return;
+      }
+
+      // Prepare the action parameters with selected workers
+      const actionParams = { ...this.currentAction.params };
+      
+      // Add worker IDs to the parameters
+      this.currentAction.selectedWorkers.forEach((worker, index) => {
+        actionParams[`worker${index + 1}_id`] = worker.id;
+      });
+
+      // Submit the action
+      this.submitAction(this.currentAction.type, actionParams);
+      
+      // Hide the modal
+      this.hideWorkerSelectionModal();
+    },
+
+    submitAction: function(actionType, params) {
+      // Map action types to their corresponding AJAX calls
+      const actionMap = {
+        'pass': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pass.html', {}, this, function(result) {}, function(is_error) {}),
+        'pray': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pray.html', { action_space: params.action_space }, this, function(result) {}, function(is_error) {}),
+        'recruitDiscard': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitDiscard.html', { worker_id: params.worker1_id, townsfolk_card_id: params.townsfolk_card_id }, this, function(result) {}, function(is_error) {}),
+        'recruitHire': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitHire.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, townsfolk_card_id: params.townsfolk_card_id, use_debt: params.use_debt }, this, function(result) {}, function(is_error) {}),
+        'develop': () => this.ajaxcall('/paladinsshipped/paladinsshipped/develop.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, action_space: params.action_space, workshop_position: params.workshop_position }, this, function(result) {}, function(is_error) {}),
+        'hunt': () => this.ajaxcall('/paladinsshipped/paladinsshipped/hunt.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id }, this, function(result) {}, function(is_error) {}),
+        'trade': () => this.ajaxcall('/paladinsshipped/paladinsshipped/trade.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id }, this, function(result) {}, function(is_error) {}),
+        'conspire': () => this.ajaxcall('/paladinsshipped/paladinsshipped/conspire.html', { worker_id: params.worker1_id }, this, function(result) {}, function(is_error) {}),
+        'commission': () => this.ajaxcall('/paladinsshipped/paladinsshipped/commission.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, board_position: params.board_position }, this, function(result) {}, function(is_error) {}),
+        'fortify': () => this.ajaxcall('/paladinsshipped/paladinsshipped/fortify.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id }, this, function(result) {}, function(is_error) {}),
+        'garrison': () => this.ajaxcall('/paladinsshipped/paladinsshipped/garrison.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, board_position: params.board_position }, this, function(result) {}, function(is_error) {}),
+        'absolve': () => this.ajaxcall('/paladinsshipped/paladinsshipped/absolve.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, jar_position: params.jar_position }, this, function(result) {}, function(is_error) {}),
+        'attack': () => this.ajaxcall('/paladinsshipped/paladinsshipped/attack.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, outsider_card_id: params.outsider_card_id, silver_cost: params.silver_cost }, this, function(result) {}, function(is_error) {}),
+        'convert': () => this.ajaxcall('/paladinsshipped/paladinsshipped/convert.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, outsider_card_id: params.outsider_card_id }, this, function(result) {}, function(is_error) {}),
+        'kingsFavor': () => this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavor.html', { worker_id: params.worker1_id, kings_favor_id: params.kings_favor_id }, this, function(result) {}, function(is_error) {})
+      };
+
+      // Execute the action
+      if (actionMap[actionType]) {
+        actionMap[actionType]();
+      }
+    },
+
+    hideWorkerSelectionModal: function() {
+      const modal = document.getElementById('worker_selection_modal');
+      if (modal) {
+        modal.remove();
+      }
+      this.currentAction = null;
+    },
+
+    getCurrentPlayerWorkers: function() {
+      // Get the current player's workers from the game data
+      const currentPlayerId = this.player_id;
+      
+      if (!this.gamedatas || !this.gamedatas.players) {
+        console.error('Game data not available');
+        return [];
+      }
+      
+      const playerData = this.gamedatas.players[currentPlayerId];
+      
+      if (!playerData) {
+        console.error('Player data not found for ID:', currentPlayerId);
+        console.log('Available players:', Object.keys(this.gamedatas.players));
+        return [];
+      }
+
+      const workerTypes = [
+        { type: 'white_worker', name: 'Labourer', color: '#ffffff' },
+        { type: 'green_worker', name: 'Scout', color: '#28a745' },
+        { type: 'red_worker', name: 'Fighter', color: '#dc3545' },
+        { type: 'blue_worker', name: 'Merchant', color: '#007bff' },
+        { type: 'black_worker', name: 'Cleric', color: '#343a40' },
+        { type: 'purple_worker', name: 'Criminal', color: '#6f42c1' }
+      ];
+
+      const availableWorkers = [];
+      let workerId = 1;
+      
+      workerTypes.forEach(workerType => {
+        const count = parseInt(playerData[workerType.type]) || 0;
+        console.log(`Player ${currentPlayerId} has ${count} ${workerType.type}`);
+        for (let i = 0; i < count; i++) {
+          availableWorkers.push({
+            id: workerId++,
+            type: workerType.type,
+            name: workerType.name,
+            color: workerType.color
+          });
+        }
+      });
+
+      console.log(`Total available workers for player ${currentPlayerId}:`, availableWorkers.length);
+      return availableWorkers;
     },
   });
 });
