@@ -49,6 +49,51 @@
     <div id="playersBoardContainer">
       <!-- BEGIN playerboard -->
       <div class="playerboard" id="playerboard_{PLAYER_ID}">
+        <!-- Player Resources Table -->
+        <div class="player_resources_table" id="player_resources_{PLAYER_ID}">
+          <table class="resources_table">
+            <thead>
+              <tr>
+                <th colspan="2">Resources</th>
+                <th colspan="6">Workers</th>
+                <th colspan="3">Stats</th>
+              </tr>
+              <tr>
+                <th>Provisions</th>
+                <th>Coins</th>
+                <th>White</th>
+                <th>Green</th>
+                <th>Blue</th>
+                <th>Red</th>
+                <th>Black</th>
+                <th>Purple</th>
+                <th>Faith</th>
+                <th>Strength</th>
+                <th>Influence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td id="provisions_{PLAYER_ID}">0</td>
+                <td id="coins_{PLAYER_ID}">0</td>
+                <td id="white_workers_{PLAYER_ID}">0</td>
+                <td id="green_workers_{PLAYER_ID}">0</td>
+                <td id="blue_workers_{PLAYER_ID}">0</td>
+                <td id="red_workers_{PLAYER_ID}">0</td>
+                <td id="black_workers_{PLAYER_ID}">0</td>
+                <td id="purple_workers_{PLAYER_ID}">0</td>
+                <td id="faith_{PLAYER_ID}">0</td>
+                <td id="strength_{PLAYER_ID}">0</td>
+                <td id="influence_{PLAYER_ID}">0</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="debt_info">
+            <span>Paid Debt: <span id="paid_debt_{PLAYER_ID}">0</span></span>
+            <span>Unpaid Debt: <span id="unpaid_debt_{PLAYER_ID}">0</span></span>
+          </div>
+        </div>
+        
         <div class="playerboard_box_middle">
           <div class="playerboard_box"></div>
           <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>

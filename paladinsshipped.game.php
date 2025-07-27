@@ -313,15 +313,6 @@ class PaladinsShipped extends Table
         $this->placeNewCardsOnDisplay(CARD_TYPE_OUTSIDER, 'new_round');
     }
 
-    public function dealPaladinCards($players)
-    {
-        self::notifyAllPlayers("message", clienttranslate('Each player draws their top 3 paladin cards'), array());
-        foreach ($players as $player_id => $player) {
-            $cards = $this->deck->pickCardsForLocation(3, "paladin_deck_{$player_id}", 'paladin_hand', $player_id);
-            // self::notifyPlayer($player_id, "paladinCards", '', array("cards" => $cards));
-        }
-    }
-
     public function addResource($player_id, $resource, $qty = 1)
     {
         // Check if the resource exists as a column in the player table
@@ -335,6 +326,9 @@ class PaladinsShipped extends Table
         if (in_array($resource, $valid_resources)) {
             $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
             self::DbQuery($sql);
+            
+            // Send notification to update the resource table
+            $this->notifyPlayerResourceUpdate($player_id);
         } else {
             // Log error for debugging
             self::warn("Attempted to add invalid resource: $resource");
@@ -359,6 +353,9 @@ class PaladinsShipped extends Table
         if (!empty($updates)) {
             $sql = "UPDATE player SET " . implode(', ', $updates) . " WHERE player_id = $player_id";
             self::DbQuery($sql);
+            
+            // Send notification to update the resource table
+            $this->notifyPlayerResourceUpdate($player_id);
         }
     }
 
@@ -512,6 +509,9 @@ class PaladinsShipped extends Table
         if (!empty($updates)) {
             $sql = "UPDATE player SET " . implode(', ', $updates) . " WHERE player_id = $player_id";
             self::DbQuery($sql);
+            
+            // Send notification to update the resource table
+            $this->notifyPlayerResourceUpdate($player_id);
         }
     }
 
@@ -2340,5 +2340,17 @@ class PaladinsShipped extends Table
 
     public function getGarrisonPositions($player_id) {
         return $this->getPositions($player_id, 'garrison');
+    }
+
+    public function notifyPlayerResourceUpdate($player_id) {
+        // Get updated player data
+        $sql = "SELECT * FROM player WHERE player_id = $player_id";
+        $player_data = self::getObjectFromDb($sql);
+        
+        // Send notification to all players to update the resource table
+        self::notifyAllPlayers('playerResourcesUpdated', '', [
+            'player_id' => $player_id,
+            'player_data' => $player_data
+        ]);
     }
 }

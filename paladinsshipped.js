@@ -359,6 +359,9 @@ define([
         if (player.parchment == "1") {
           this.updateParchment(player_id);
         }
+        
+        // Update player resource table
+        this.updatePlayerResourceTable(player_id, player);
       }
 
       // TODO: Set up your game interface here, according to "gamedatas"
@@ -807,6 +810,7 @@ define([
       dojo.subscribe("revealTaverns", this, "notif_revealTaverns");
       dojo.subscribe("cleanupTaverns", this, "notif_cleanupTaverns");
       dojo.subscribe("townsfolkHired", this, "notif_townsfolkHired");
+      dojo.subscribe("playerResourcesUpdated", this, "notif_playerResourcesUpdated");
 
       // TODO: here, associate your game notifications with local methods
 
@@ -897,49 +901,37 @@ define([
       dojo.setStyle(tempCard, "top", sourcePos.y + "px");
       dojo.setStyle(tempCard, "left", sourcePos.x + "px");
       
-      // Hide the original card during animation instead of replacing it
-      dojo.setStyle(sourceCard.htmlNode, "visibility", "hidden");
-      
       // Animate to destination
-      const anim = dojo.fx.slideTo({
+      dojo.animateProperty({
         node: tempCard,
-        top: destPos.y + 10, // Add small offset
-        left: destPos.x + 10,
-        duration: 800,
-        unit: "px"
-      });
-      
-      anim.onEnd = () => {
-        console.log("Animation completed");
-        dojo.destroy(tempCard);
-        
-        // Remove the original card from the UI items array and DOM
-        const cardIndex = this.uiItems.findIndex(item => item.uid === sourceCard.uid);
-        if (cardIndex !== -1) {
-          this.uiItems.splice(cardIndex, 1);
-          dojo.destroy(sourceCard.htmlNode);
-        }
-        
-        // Create the UI item for the hired card in the player's area
-        // Check if it doesn't already exist to avoid duplicates
-        const existingCards = this.uiItems.getByUiType("townsfolk_uiitem");
-        const cardExists = existingCards.some(card => card.data.id == hiredCard.id && card.data.location == "playerboard_cards");
-        
-        if (!cardExists) {
-          console.log("Creating UI item for hired townsfolk in player area:", hiredCard);
+        properties: {
+          top: { start: sourcePos.y, end: destPos.y },
+          left: { start: sourcePos.x, end: destPos.x }
+        },
+        duration: 1000,
+        easing: dojo.fx.easing.quadOut,
+        onEnd: () => {
+          // Remove the temporary card
+          tempCard.remove();
+          
+          // Add the card to the player's board
           hiredCard.location = "playerboard_cards";
           hiredCard.location_arg = playerId;
           this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
-          
-          // Force a redraw to make sure the card appears
-          console.log("Forcing UI redraw after creating card");
-          this.drawUi();
-        } else {
-          console.log("Card already exists in player area, skipping creation");
         }
-      };
+      }).play();
+    },
+
+    notif_playerResourcesUpdated: function(notif) {
+      console.log("Player resources updated notification received:", notif);
       
-      anim.play();
+      // Update the resource table for the specified player
+      if (notif.args.player_id && notif.args.player_data) {
+        this.updatePlayerResourceTable(notif.args.player_id, notif.args.player_data);
+      } else if (notif.args.all_players) {
+        // Update all player resource tables
+        this.updateAllPlayerResourceTables();
+      }
     },
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1617,6 +1609,42 @@ define([
 
       console.log(`Total available workers for player ${currentPlayerId}:`, availableWorkers.length);
       return availableWorkers;
+    },
+
+    updatePlayerResourceTable: function(player_id, player_data) {
+      // Update resource values in the table
+      const resourceElements = {
+        'provisions': player_data.provision || 0,
+        'coins': player_data.coin || 0,
+        'white_workers': player_data.white_worker || 0,
+        'green_workers': player_data.green_worker || 0,
+        'blue_workers': player_data.blue_worker || 0,
+        'red_workers': player_data.red_worker || 0,
+        'black_workers': player_data.black_worker || 0,
+        'purple_workers': player_data.purple_worker || 0,
+        'faith': player_data.faith || 0,
+        'strength': player_data.strength || 0,
+        'influence': player_data.influence || 0,
+        'paid_debt': player_data.paid_debt || 0,
+        'unpaid_debt': player_data.unpaid_debt || 0
+      };
+
+      // Update each resource element
+      for (const [resource, value] of Object.entries(resourceElements)) {
+        const element = document.getElementById(`${resource}_${player_id}`);
+        if (element) {
+          element.textContent = value;
+        }
+      }
+    },
+
+    // Method to update all player resource tables (called when game state changes)
+    updateAllPlayerResourceTables: function() {
+      if (this.gamedatas && this.gamedatas.players) {
+        for (const player_id in this.gamedatas.players) {
+          this.updatePlayerResourceTable(player_id, this.gamedatas.players[player_id]);
+        }
+      }
     },
   });
 });

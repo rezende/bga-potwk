@@ -82,6 +82,104 @@
   flex-wrap: wrap;
 }
 
+/* Player Resources Table */
+.player_resources_table {
+  margin-bottom: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.resources_table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.resources_table th {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 4px 2px;
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+}
+
+.resources_table td {
+  border: 1px solid #ccc;
+  padding: 4px 2px;
+  text-align: center;
+  background-color: #fff;
+  font-weight: bold;
+}
+
+.resources_table th:first-child,
+.resources_table td:first-child {
+  border-left: 2px solid #666;
+}
+
+.resources_table th:last-child,
+.resources_table td:last-child {
+  border-right: 2px solid #666;
+}
+
+.resources_table thead tr:first-child th {
+  border-top: 2px solid #666;
+}
+
+.resources_table tbody tr:last-child td {
+  border-bottom: 2px solid #666;
+}
+
+.debt_info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #666;
+  padding: 2px 4px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+}
+
+.debt_info span {
+  font-weight: bold;
+}
+
+/* Responsive design for resource table */
+@media (max-width: 768px) {
+  .resources_table {
+    font-size: 10px;
+  }
+  
+  .resources_table th,
+  .resources_table td {
+    padding: 2px 1px;
+  }
+  
+  .debt_info {
+    font-size: 10px;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .resources_table {
+    font-size: 9px;
+  }
+  
+  .resources_table th,
+  .resources_table td {
+    padding: 1px;
+  }
+  
+  .debt_info {
+    font-size: 9px;
+  }
+}
+
 #board {
   width: 100%;
   margin-bottom: 15px;
