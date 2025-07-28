@@ -2353,4 +2353,12 @@ class PaladinsShipped extends Table
             'player_data' => $player_data
         ]);
     }
+
+    public function selectPaladins($top_paladin_id, $middle_paladin_id, $bottom_paladin_id)
+    {
+        // This method is called from the client AJAX call
+        // For now, call the existing pickPaladins logic with the correct mapping
+        // (Assuming: top = top, middle = chosen, bottom = bottom)
+        return $this->pickPaladins($bottom_paladin_id, $middle_paladin_id, $top_paladin_id);
+    }
 }

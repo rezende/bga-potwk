@@ -230,6 +230,16 @@ class action_paladinsshipped extends APP_GameAction
         self::ajaxResponse();
     }
 
+    public function selectPaladins()
+    {
+        self::setAjaxMode();
+        $top_paladin_id = self::getArg("top_paladin_id", AT_int, true);
+        $middle_paladin_id = self::getArg("middle_paladin_id", AT_int, true);
+        $bottom_paladin_id = self::getArg("bottom_paladin_id", AT_int, true);
+        $this->game->selectPaladins($top_paladin_id, $middle_paladin_id, $bottom_paladin_id);
+        self::ajaxResponse();
+    }
+
     // SETUP
 
     // recruit (assistantID, assistantPosition)

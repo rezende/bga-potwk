@@ -685,6 +685,10 @@ define([
     onEnteringState: function (stateName, args) {
       console.log('Entering state: ' + stateName);
       
+      // Set current move for click handlers
+      this.currentMove = stateName;
+      this.currentMoveArgs = args.args;
+      
       // Update player board attributes to reflect current state
       this.setPlayerBoardAttributes();
       
@@ -698,6 +702,13 @@ define([
       
       // Setup paladin selection area separately
       this.setupPaladinSelectionArea();
+      
+      // Setup townsfolk selection for hireInitialTownsfolk state
+      if (stateName === 'hireInitialTownsfolk') {
+        setTimeout(() => {
+          this.setupTownsfolkSelection();
+        }, 200);
+      }
     },
 
     // onLeavingState: this method is called each time we are leaving a game state.
@@ -1353,26 +1364,26 @@ define([
 
     confirmPaladinSelection: function() {
       // Check if all three positions are filled
-      const topCard = this.selectedPaladins.top;
-      const middleCard = this.selectedPaladins.middle;
-      const bottomCard = this.selectedPaladins.bottom;
+      const topCardId = this.selectedPaladins.top;
+      const middleCardId = this.selectedPaladins.middle;
+      const bottomCardId = this.selectedPaladins.bottom;
       
-      if (!topCard || !middleCard || !bottomCard) {
+      if (!topCardId || !middleCardId || !bottomCardId) {
         console.error("Not all paladin positions are filled");
         return;
       }
       
       console.log("Confirming paladin selection:", {
-        top: topCard,
-        middle: middleCard,
-        bottom: bottomCard
+        top: topCardId,
+        middle: middleCardId,
+        bottom: bottomCardId
       });
       
       // Submit the selection to the server
       this.ajaxcall('/paladinsshipped/paladinsshipped/selectPaladins.html', {
-        top_paladin_id: topCard.data.id,
-        middle_paladin_id: middleCard.data.id,
-        bottom_paladin_id: bottomCard.data.id
+        top_paladin_id: topCardId,
+        middle_paladin_id: middleCardId,
+        bottom_paladin_id: bottomCardId
       }, this, function(result) {
         console.log("Paladin selection confirmed successfully");
       }, function(is_error) {
