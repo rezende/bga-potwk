@@ -381,7 +381,10 @@ define([
       this.setPlayerBoardAttributes();
       
       // Reorder player areas to show current user first
-      this.reorderPlayerAreas();
+      // Use a delay to ensure all DOM elements are ready
+      setTimeout(() => {
+        this.reorderPlayerAreas();
+      }, 200);
     },
 
     // To be overrided by games
@@ -572,6 +575,12 @@ define([
       // Update player board attributes to reflect current state
       this.setPlayerBoardAttributes();
 
+      // Reorder player areas to ensure current user is first
+      // Use a small delay to ensure DOM is ready
+      setTimeout(() => {
+        this.reorderPlayerAreas();
+      }, 100);
+
       switch (stateName) {
         case "pickPaladins":
           // Show paladin selection button and automatically open the modal
@@ -603,9 +612,6 @@ define([
         case "dummmy":
           break;
       }
-      
-      // Reorder player areas to show current user first
-      this.reorderPlayerAreas();
     },
 
 
@@ -2138,43 +2144,52 @@ define([
     // Function to reorder player areas so current user appears first
     reorderPlayerAreas: function() {
       if (!this.gamedatas || !this.gamedatas.players) {
+        console.log("No gamedatas or players available for reordering");
         return;
       }
 
       const playersBoardContainer = document.getElementById('playersBoardContainer');
       if (!playersBoardContainer) {
+        console.log("Players board container not found");
         return;
       }
 
       // Get the current user's player ID (not the active player)
       const currentUserId = this.player_id;
       if (!currentUserId) {
+        console.log("No current user ID available");
         return;
       }
 
-      // Check if we already reordered for this user
-      if (this.lastReorderedUser === currentUserId) {
+      console.log("=== PLAYER AREA REORDERING DEBUG ===");
+      console.log("Current user ID:", currentUserId, "Type:", typeof currentUserId);
+      console.log("Last reordered user:", this.lastReorderedUser, "Type:", typeof this.lastReorderedUser);
+      console.log("Active player ID:", this.gamedatas.gamestate.active_player);
+      console.log("All player IDs:", Object.keys(this.gamedatas.players));
+
+      // Check if we already reordered for this user (convert to string for comparison)
+      if (this.lastReorderedUser === String(currentUserId)) {
         console.log("Already reordered for user:", currentUserId);
         return;
       }
 
-      console.log("Reordering player areas...");
-      console.log("Current user ID:", currentUserId);
-      console.log("Active player ID:", this.gamedatas.gamestate.active_player);
-      console.log("All player IDs:", Object.keys(this.gamedatas.players));
-
       // Get all player board elements
       const playerBoards = playersBoardContainer.querySelectorAll('.playerboard');
+      console.log("Found player boards:", playerBoards.length);
+      
       if (playerBoards.length <= 1) {
+        console.log("Only one or no player boards, no need to reorder");
         return; // No need to reorder if there's only one player
       }
 
       // Create the desired order: current user first, then others in turn order
       const allPlayerIds = Object.keys(this.gamedatas.players);
-      const desiredOrder = [currentUserId];
+      const desiredOrder = [String(currentUserId)];
       
       // Add other players in turn order (clockwise from current user)
-      const currentUserIndex = allPlayerIds.indexOf(currentUserId);
+      const currentUserIndex = allPlayerIds.indexOf(String(currentUserId));
+      console.log("Current user index in player list:", currentUserIndex);
+      
       for (let i = 1; i < allPlayerIds.length; i++) {
         const nextIndex = (currentUserIndex + i) % allPlayerIds.length;
         desiredOrder.push(allPlayerIds[nextIndex]);
@@ -2183,17 +2198,22 @@ define([
       console.log("Desired player order:", desiredOrder);
 
       // Reorder the player boards
-      desiredOrder.forEach(playerId => {
+      desiredOrder.forEach((playerId, index) => {
         const playerBoard = document.getElementById('playerboard_' + playerId);
         if (playerBoard) {
+          console.log(`Moving player board ${playerId} to position ${index}`);
           playersBoardContainer.appendChild(playerBoard);
+        } else {
+          console.error(`Player board not found for ID: ${playerId}`);
         }
       });
 
-      // Update the order tracking
-      this.lastReorderedUser = currentUserId;
+      // Update the order tracking (store as string)
+      this.lastReorderedUser = String(currentUserId);
       
       console.log("Player areas reordered. New order:", desiredOrder);
+      console.log("Updated lastReorderedUser to:", this.lastReorderedUser);
+      console.log("=== END REORDERING DEBUG ===");
     },
 
     // Helper function to darken a color
@@ -2232,6 +2252,88 @@ define([
       
       // Return black for light colors, white for dark colors
       return luminance > 0.5 ? '#000000' : '#ffffff';
+    },
+
+    // Function to force reorder player areas (useful for debugging)
+    forceReorderPlayerAreas: function() {
+      console.log("Force reordering player areas...");
+      this.lastReorderedUser = null; // Reset the tracking
+      this.reorderPlayerAreas();
+    },
+
+    // Function to reorder player areas so current user appears first
+    reorderPlayerAreas: function() {
+      if (!this.gamedatas || !this.gamedatas.players) {
+        console.log("No gamedatas or players available for reordering");
+        return;
+      }
+
+      const playersBoardContainer = document.getElementById('playersBoardContainer');
+      if (!playersBoardContainer) {
+        console.log("Players board container not found");
+        return;
+      }
+
+      // Get the current user's player ID (not the active player)
+      const currentUserId = this.player_id;
+      if (!currentUserId) {
+        console.log("No current user ID available");
+        return;
+      }
+
+      console.log("=== PLAYER AREA REORDERING DEBUG ===");
+      console.log("Current user ID:", currentUserId, "Type:", typeof currentUserId);
+      console.log("Last reordered user:", this.lastReorderedUser, "Type:", typeof this.lastReorderedUser);
+      console.log("Active player ID:", this.gamedatas.gamestate.active_player);
+      console.log("All player IDs:", Object.keys(this.gamedatas.players));
+
+      // Check if we already reordered for this user (convert to string for comparison)
+      if (this.lastReorderedUser === String(currentUserId)) {
+        console.log("Already reordered for user:", currentUserId);
+        return;
+      }
+
+      // Get all player board elements
+      const playerBoards = playersBoardContainer.querySelectorAll('.playerboard');
+      console.log("Found player boards:", playerBoards.length);
+      
+      if (playerBoards.length <= 1) {
+        console.log("Only one or no player boards, no need to reorder");
+        return; // No need to reorder if there's only one player
+      }
+
+      // Create the desired order: current user first, then others in turn order
+      const allPlayerIds = Object.keys(this.gamedatas.players);
+      const desiredOrder = [String(currentUserId)];
+      
+      // Add other players in turn order (clockwise from current user)
+      const currentUserIndex = allPlayerIds.indexOf(String(currentUserId));
+      console.log("Current user index in player list:", currentUserIndex);
+      
+      for (let i = 1; i < allPlayerIds.length; i++) {
+        const nextIndex = (currentUserIndex + i) % allPlayerIds.length;
+        desiredOrder.push(allPlayerIds[nextIndex]);
+      }
+
+      console.log("Desired player order:", desiredOrder);
+
+      // Reorder the player boards
+      desiredOrder.forEach((playerId, index) => {
+        const playerBoard = document.getElementById('playerboard_' + playerId);
+        if (playerBoard) {
+          console.log(`Moving player board ${playerId} to position ${index}`);
+          playersBoardContainer.appendChild(playerBoard);
+        } else {
+          console.error(`Player board not found for ID: ${playerId}`);
+        }
+      });
+
+      // Update the order tracking (store as string)
+      this.lastReorderedUser = String(currentUserId);
+      
+      console.log("Player areas reordered. New order:", desiredOrder);
+      console.log("Updated lastReorderedUser to:", this.lastReorderedUser);
+      console.log("=== END REORDERING DEBUG ===");
     },
   });
 });
