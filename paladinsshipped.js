@@ -373,6 +373,12 @@ define([
         "",
       );
       console.log("Ending game setup");
+      
+      // Initialize player area reordering tracking
+      this.lastReorderedUser = null;
+      
+      // Reorder player areas to show current user first
+      this.reorderPlayerAreas();
     },
 
     // To be overrided by games
@@ -586,6 +592,70 @@ define([
         case "dummmy":
           break;
       }
+      
+      // Reorder player areas to show current user first
+      this.reorderPlayerAreas();
+    },
+
+    // Function to reorder player areas so current user appears first
+    reorderPlayerAreas: function() {
+      if (!this.gamedatas || !this.gamedatas.players) {
+        return;
+      }
+
+      const playersBoardContainer = document.getElementById('playersBoardContainer');
+      if (!playersBoardContainer) {
+        return;
+      }
+
+      // Get the current user's player ID (not the active player)
+      const currentUserId = this.player_id;
+      if (!currentUserId) {
+        return;
+      }
+
+      // Check if we already reordered for this user
+      if (this.lastReorderedUser === currentUserId) {
+        console.log("Already reordered for user:", currentUserId);
+        return;
+      }
+
+      console.log("Reordering player areas...");
+      console.log("Current user ID:", currentUserId);
+      console.log("Active player ID:", this.gamedatas.gamestate.active_player);
+      console.log("All player IDs:", Object.keys(this.gamedatas.players));
+
+      // Get all player board elements
+      const playerBoards = playersBoardContainer.querySelectorAll('.playerboard');
+      if (playerBoards.length <= 1) {
+        return; // No need to reorder if there's only one player
+      }
+
+      // Create the desired order: current user first, then others in turn order
+      const allPlayerIds = Object.keys(this.gamedatas.players);
+      const desiredOrder = [currentUserId];
+      
+      // Add other players in turn order (clockwise from current user)
+      const currentUserIndex = allPlayerIds.indexOf(currentUserId);
+      for (let i = 1; i < allPlayerIds.length; i++) {
+        const nextIndex = (currentUserIndex + i) % allPlayerIds.length;
+        desiredOrder.push(allPlayerIds[nextIndex]);
+      }
+
+      console.log("Desired player order:", desiredOrder);
+
+      // Reorder the player boards
+      desiredOrder.forEach(playerId => {
+        const playerBoard = document.getElementById('playerboard_' + playerId);
+        if (playerBoard) {
+          playersBoardContainer.appendChild(playerBoard);
+        }
+      });
+
+      // Update the order tracking
+      this.lastReorderedUser = currentUserId;
+      
+      console.log("Player areas reordered. New order:", desiredOrder);
     },
 
     // onLeavingState: this method is called each time we are leaving a game state.
@@ -638,18 +708,29 @@ define([
     },
 
     positionUiItem: function (uiItem) {
+      // Skip positioning for player cards since they use flex layout
+      if (uiItem.uiType == "townsfolk_uiitem" && uiItem.data.location == "playerboard_cards") {
+        console.log("Skipping positioning for player card - using flex layout");
+        return;
+      }
+      
       var position = this.getPositionForUiItem(uiItem);
       if (position.top != null && position.left != null) {
         dojo.setStyle(uiItem.htmlNode, "top", position.top + "px");
         dojo.setStyle(uiItem.htmlNode, "left", position.left + "px");
+        console.log("Positioned UI item:", uiItem.uiType, "at", position.top, position.left);
+      } else {
+        console.log("No position calculated for UI item:", uiItem.uiType);
       }
     },
 
     moveUiItemToParentContainer: function (uiItem, parentContainer) {
+      console.log("moveUiItemToParentContainer called for:", uiItem.uiType, "to container:", parentContainer);
       if (parentContainer != null) {
         // Special handling for player townsfolk cards
         if (uiItem.uiType == "townsfolk_uiitem" && uiItem.data.location == "playerboard_cards") {
           console.log("Processing player townsfolk card:", uiItem);
+          console.log("Card data:", uiItem.data);
           const playerboardCardsElement = document.getElementById(parentContainer);
           console.log("Looking for container:", parentContainer);
           console.log("Found element:", playerboardCardsElement);
@@ -658,7 +739,13 @@ define([
             console.log("Placed card in container");
             // Add some margin for spacing between cards
             dojo.setStyle(uiItem.htmlNode, 'margin', '5px');
+            // Ensure the card is visible
+            dojo.setStyle(uiItem.htmlNode, 'display', 'block');
+            dojo.setStyle(uiItem.htmlNode, 'position', 'relative');
             console.log("Applied styles to card");
+            console.log("Card HTML after placement:", uiItem.htmlNode);
+            console.log("Container children after placement:", playerboardCardsElement.children.length);
+            console.log("Container HTML after placement:", playerboardCardsElement.innerHTML);
           } else {
             console.error("Could not find playerboard cards container:", parentContainer);
           }
@@ -714,7 +801,9 @@ define([
     },
 
     drawUiItem: function (uiItem) {
+      console.log("drawUiItem called for:", uiItem.uiType, "with data:", uiItem.data);
       var parentContainer = this.getParentContainerForUiItem(uiItem);
+      console.log("Parent container determined:", parentContainer);
       this.moveUiItemToParentContainer(uiItem, parentContainer);
     },
 
@@ -875,6 +964,10 @@ define([
       const hiredCard = notif.args.card;
       const playerId = notif.args.player_id;
       
+      console.log("Hiring card:", hiredCard);
+      console.log("For player:", playerId);
+      console.log("Current player ID:", this.player_id);
+      
       // Find the source card in the display
       const townsfolkCards = this.uiItems.getByUiType("townsfolk_uiitem");
       const sourceCard = townsfolkCards.find(card => card.data.id == hiredCard.id);
@@ -889,28 +982,41 @@ define([
       
       console.log("Found source card:", sourceCard);
       
-      // Create a clone of the card for animation
-      const tempCard = sourceCard.htmlNode.cloneNode(true);
-      dojo.setStyle(tempCard, "position", "absolute");
-      dojo.setStyle(tempCard, "z-index", "1000");
-      // Apply the same styling as display cards to maintain size consistency
-      dojo.setStyle(tempCard, "width", "94px");
-      dojo.setStyle(tempCard, "height", "145px");
-      dojo.setStyle(tempCard, "transform", "scale(0.58)");
-      dojo.setStyle(tempCard, "transform-origin", "top left");
-      dojo.place(tempCard, "zoomBox");
-      
-      // Get positions
+      // Get positions BEFORE hiding the card
       const sourcePos = dojo.position(sourceCard.htmlNode);
       const destContainer = document.getElementById("playerboard_cards_" + playerId);
       const destPos = dojo.position(destContainer);
       
       console.log("Source position:", sourcePos);
       console.log("Destination position:", destPos);
+      console.log("Destination container:", destContainer);
       
-      // Position temp card at source
-      dojo.setStyle(tempCard, "top", sourcePos.y + "px");
-      dojo.setStyle(tempCard, "left", sourcePos.x + "px");
+      // Check if positions are valid
+      if (!sourcePos || !destPos || !destContainer) {
+        console.error("Invalid positions for animation, using fallback");
+        // Fallback: just place the card directly
+        hiredCard.location = "playerboard_cards";
+        hiredCard.location_arg = playerId;
+        hiredCard.isSelectable = false;
+        this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+        return;
+      }
+      
+      // Create a temporary card for animation
+      const tempCard = sourceCard.htmlNode.cloneNode(true);
+      tempCard.style.position = 'absolute';
+      tempCard.style.zIndex = '1000';
+      tempCard.style.pointerEvents = 'none';
+      document.body.appendChild(tempCard);
+      
+      // Hide the original card and make it non-selectable
+      dojo.setStyle(sourceCard.htmlNode, "display", "none");
+      sourceCard.isSelectable = false;
+      sourceCard.isSelected = false;
+      
+      // Disable selection of remaining cards
+      const remainingCards = townsfolkCards.filter(card => card.data.id != hiredCard.id);
+      this.uiItems.resetSelectable(remainingCards);
       
       // Animate to destination
       dojo.animateProperty({
@@ -920,17 +1026,59 @@ define([
           left: { start: sourcePos.x, end: destPos.x }
         },
         duration: 1000,
-        easing: dojo.fx.easing.quadOut,
-        onEnd: () => {
-          // Remove the temporary card
-          tempCard.remove();
-          
-          // Add the card to the player's board
-          hiredCard.location = "playerboard_cards";
-          hiredCard.location_arg = playerId;
-          this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
-        }
+        easing: dojo.fx.easing.quadOut
       }).play();
+      
+      // Set up the completion callback using setTimeout
+      setTimeout(() => {
+        console.log("Animation completed, placing card...");
+        
+        // Remove the temporary card
+        tempCard.remove();
+        
+        // Reorder player areas FIRST to ensure correct visual placement
+        console.log("Reordering player areas before card placement...");
+        console.log("Current user ID before reorder:", this.player_id);
+        console.log("Active player ID before reorder:", this.gamedatas.gamestate.active_player);
+        this.reorderPlayerAreas();
+        console.log("Player areas reordered, now placing card...");
+        
+        // Add the card to the player's board
+        hiredCard.location = "playerboard_cards";
+        hiredCard.location_arg = playerId;
+        hiredCard.isSelectable = false; // Player cards should not be selectable
+        const createdItems = this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
+        
+        console.log("Card successfully placed in player area:", playerId);
+        console.log("Created items:", createdItems);
+        
+        // Draw the newly created card to the DOM
+        console.log("Drawing newly created card to DOM...");
+        this.drawUi();
+        
+        // Verify the card was placed correctly
+        setTimeout(() => {
+          const placedCards = this.uiItems.getByUiType("townsfolk_uiitem");
+          console.log("All townsfolk cards:", placedCards);
+          
+          // Look for the card in the player's area specifically
+          const placedCard = placedCards.find(card => 
+            card.data.id == hiredCard.id && 
+            card.data.location == "playerboard_cards" && 
+            card.data.location_arg == playerId
+          );
+          
+          if (placedCard) {
+            console.log("Card verification - Found placed card:", placedCard);
+            console.log("Card location_arg:", placedCard.data.location_arg);
+            console.log("Expected player ID:", playerId);
+            console.log("Card HTML element:", placedCard.htmlNode);
+          } else {
+            console.error("Card verification - Could not find placed card in player area");
+            console.log("Looking for card with ID:", hiredCard.id, "in player area:", playerId);
+          }
+        }, 100);
+      }, 1000); // Match the animation duration
     },
 
     notif_playerResourcesUpdated: function(notif) {
