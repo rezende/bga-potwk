@@ -4,6 +4,58 @@
   <!-- Action Buttons Container - Moved to top -->
   <div id="action_buttons"></div>
 
+  <!-- Paladin Selection Modal -->
+  <div id="paladin_selection_modal" class="paladin_selection_modal" style="display: none;">
+    <div class="paladin_selection_content">
+      <div class="paladin_selection_header">
+        <h3>Select Your Paladins</h3>
+        <button class="close_button" onclick="gameui.hidePaladinSelectionModal()">×</button>
+      </div>
+      
+      <div class="paladin_selection_description">
+        <p>Choose 3 paladin cards from your hand. You can see the available tavern cards below to help inform your decision.</p>
+      </div>
+      
+      <div class="paladin_selection_area">
+        <div class="paladin_cards_section">
+          <h4>Your Paladin Cards</h4>
+          <div class="paladin_selection_positions">
+            <div class="paladin_position">
+              <div class="position_label">TOP</div>
+              <div id="paladin_top_position" class="paladin_position_slot"></div>
+            </div>
+            <div class="paladin_position">
+              <div class="position_label">PICKED</div>
+              <div id="paladin_middle_position" class="paladin_position_slot"></div>
+            </div>
+            <div class="paladin_position">
+              <div class="position_label">BOTTOM</div>
+              <div id="paladin_bottom_position" class="paladin_position_slot"></div>
+            </div>
+          </div>
+          <div class="paladin_available_cards">
+            <h5>Available Cards</h5>
+            <div id="paladin_cards_modal" class="paladin_cards_container"></div>
+          </div>
+        </div>
+        
+        <div class="tavern_cards_section">
+          <h4>Available Tavern Cards</h4>
+          <div id="tavern_cards_modal" class="tavern_cards_container"></div>
+        </div>
+      </div>
+      
+      <div class="paladin_selection_actions">
+        <button class="action_button primary" id="confirm_paladin_selection" onclick="gameui.confirmPaladinSelection()">
+          Confirm Selection (0/3)
+        </button>
+        <button class="action_button secondary" onclick="gameui.hidePaladinSelectionModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- containter on the top to select cards -->
   <div id="townsfolkSelection" class="whiteblock">
     <div

@@ -992,3 +992,350 @@
     font-size: 9px;
   }
 }
+
+/* Paladin Selection Modal */
+.paladin_selection_modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 20px;
+  overflow-y: auto;
+}
+
+.paladin_selection_content {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 95%;
+  width: 1400px;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.paladin_selection_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.paladin_selection_header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.close_button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.close_button:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.paladin_selection_description {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.paladin_selection_description p {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.paladin_selection_area {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 20px;
+}
+
+.paladin_cards_section,
+.tavern_cards_section {
+  flex: 1;
+  min-width: 0;
+}
+
+.paladin_cards_section h4,
+.tavern_cards_section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.paladin_selection_positions {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+}
+
+.paladin_position {
+  flex: 1;
+  text-align: center;
+}
+
+.position_label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #495057;
+  margin-bottom: 10px;
+  padding: 5px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+}
+
+/* Special styling for the PICKED position to highlight it */
+.paladin_position:nth-child(2) .position_label {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+  font-weight: bold;
+}
+
+.paladin_position_slot {
+  min-height: 200px;
+  border: 2px dashed #adb5bd;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.paladin_position_slot.has_card {
+  border-color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.paladin_position_slot.drag_over {
+  border-color: #007bff;
+  background-color: rgba(0, 123, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.paladin_available_cards {
+  margin-top: 20px;
+}
+
+.paladin_available_cards h5 {
+  margin: 0 0 10px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.paladin_cards_container,
+.tavern_cards_container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  min-height: 200px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+}
+
+.paladin_selection_actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  padding-top: 15px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.paladin_selection_actions .action_button {
+  min-width: 120px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Responsive design for paladin selection modal */
+@media (max-width: 768px) {
+  .paladin_selection_content {
+    max-width: 95%;
+    padding: 15px;
+  }
+  
+  .paladin_selection_header h3 {
+    font-size: 20px;
+  }
+  
+  .paladin_selection_area {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .paladin_cards_container,
+  .tavern_cards_container {
+    min-height: 150px;
+    padding: 10px;
+  }
+  
+  .paladin_selection_actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .paladin_selection_actions .action_button {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .paladin_selection_content {
+    max-width: 98%;
+    padding: 10px;
+  }
+  
+  .paladin_selection_header h3 {
+    font-size: 18px;
+  }
+  
+  .paladin_selection_description p {
+    font-size: 13px;
+  }
+  
+  .paladin_cards_section h4,
+  .tavern_cards_section h4 {
+    font-size: 16px;
+  }
+}
+
+/* Paladin card selection styles */
+.paladin_cards_container .selectable {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+}
+
+.paladin_cards_container .selectable:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: #007bff;
+}
+
+.paladin_cards_container .selectable.selected {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.paladin_cards_container .readonly {
+  opacity: 0.8;
+  cursor: default;
+}
+
+/* Draggable card styles */
+.paladin_cards_container .draggable {
+  cursor: grab;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+}
+
+.paladin_cards_container .draggable:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: #007bff;
+}
+
+.paladin_cards_container .draggable.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+  cursor: grabbing;
+}
+
+.paladin_cards_container .draggable.positioned {
+  cursor: default;
+  position: relative;
+}
+
+/* Remove button styles */
+.remove_card_btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
+}
+
+.remove_card_btn:hover {
+  background-color: #c82333;
+}
+
+/* Special action button styling */
+.action_button.special {
+  background-color: #28a745 !important;
+  color: white !important;
+  font-weight: bold !important;
+  border: 2px solid #1e7e34 !important;
+}
+
+.action_button.special:hover {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+}
+
+.action_button.special:disabled {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  opacity: 0.6;
+}

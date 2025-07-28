@@ -30,6 +30,7 @@ define([
       // this.myGlobalValue = 0;
 
       this.uiItems = [];
+      this.selectedPaladins = [];
 
       this.zoomManager = new ZoomManager({
         element: document.getElementById("zoomBox"),
@@ -450,6 +451,7 @@ define([
       for (var cardId in cards) {
         const card = cards[cardId];
         card.location = "paladinsSelection";
+        card.location_arg = this.player_id; // Set the current player ID
         card.isSelectable = true;
         const uiType = "paladin_card";
         const params = card;
@@ -555,7 +557,14 @@ define([
 
       switch (stateName) {
         case "pickPaladins":
-          this.setupPaladinSelection();
+          // Show paladin selection button and automatically open the modal
+          this.setupActionButtons();
+          this.updateActionButtons();
+          
+          // Automatically show the paladin selection modal for the current player
+          if (this.isCurrentPlayerActive()) {
+            this.showPaladinSelectionModal();
+          }
           break;
 
         case "pickTavern":
@@ -587,7 +596,9 @@ define([
 
       switch (stateName) {
         case "pickPaladins":
+          // Hide the old inline selection and the modal
           dojo.setStyle("paladinsSelection", "display", "none");
+          this.hidePaladinSelectionModal();
           this.uiItems.resetAllSelectable();
           break;
         case "playerAction":
@@ -998,6 +1009,270 @@ define([
       this.showWorkerSelectionMenu('kingsFavor', { kings_favor_id: null });
     },
 
+    onPaladinSelection: function() {
+      this.showPaladinSelectionModal();
+    },
+
+    hasPaladinsToSelect: function() {
+      // Check if the current player has paladin cards in their hand
+      const paladinCards = this.uiItems.getByUiType("paladin_card");
+      const currentPlayerId = this.player_id;
+      
+      return paladinCards.some(card => 
+        card.data.location === "paladinsSelection" && 
+        card.data.location_arg === currentPlayerId
+      );
+    },
+
+    showPaladinSelectionModal: function() {
+      // Clear previous content
+      const paladinContainer = document.getElementById('paladin_cards_modal');
+      const tavernContainer = document.getElementById('tavern_cards_modal');
+      const topPosition = document.getElementById('paladin_top_position');
+      const middlePosition = document.getElementById('paladin_middle_position');
+      const bottomPosition = document.getElementById('paladin_bottom_position');
+      
+      if (paladinContainer) paladinContainer.innerHTML = '';
+      if (tavernContainer) tavernContainer.innerHTML = '';
+      if (topPosition) topPosition.innerHTML = '';
+      if (middlePosition) middlePosition.innerHTML = '';
+      if (bottomPosition) bottomPosition.innerHTML = '';
+      
+      // Get current player's paladin cards
+      const paladinCards = this.uiItems.getByUiType("paladin_card");
+      const currentPlayerId = this.player_id;
+      
+      console.log("ShowPaladinSelectionModal debug:", {
+        allPaladinCards: paladinCards,
+        currentPlayerId: currentPlayerId,
+        paladinCardsLength: paladinCards.length
+      });
+      
+      const playerPaladins = paladinCards.filter(card => 
+        card.data.location === "paladinsSelection" && 
+        card.data.location_arg === currentPlayerId
+      );
+      
+      console.log("Filtered player paladins:", {
+        playerPaladins: playerPaladins,
+        playerPaladinsLength: playerPaladins.length
+      });
+      
+      // Get tavern cards
+      const tavernCards = this.uiItems.getByUiType("tavern_card");
+      
+      console.log("Tavern cards:", {
+        tavernCards: tavernCards,
+        tavernCardsLength: tavernCards.length
+      });
+      
+      // Move paladin cards to available cards section
+      playerPaladins.forEach(card => {
+        const cardClone = card.htmlNode.cloneNode(true);
+        dojo.place(cardClone, paladinContainer);
+        
+        // Make cards draggable
+        dojo.addClass(cardClone, 'draggable');
+        cardClone.draggable = true;
+        cardClone.dataset.cardId = card.data.id;
+        
+        // Add drag event listeners
+        cardClone.addEventListener('dragstart', (e) => this.handleDragStart(e, card));
+        cardClone.addEventListener('dragend', (e) => this.handleDragEnd(e));
+      });
+      
+      // Set up drop zones for the three positions
+      this.setupDropZones();
+      
+      // Move tavern cards to modal (read-only)
+      tavernCards.forEach(card => {
+        const cardClone = card.htmlNode.cloneNode(true);
+        dojo.place(cardClone, tavernContainer);
+        dojo.addClass(cardClone, 'readonly');
+      });
+      
+      // Show modal
+      const modal = document.getElementById('paladin_selection_modal');
+      if (modal) {
+        dojo.setStyle(modal, 'display', 'flex');
+      }
+      
+      // Reset selection
+      this.selectedPaladins = {
+        top: null,
+        middle: null,
+        bottom: null
+      };
+      this.updatePaladinSelectionCounter();
+    },
+
+    togglePaladinSelection: function(cardElement, cardData) {
+      const cardId = cardData.data.id;
+      const isSelected = dojo.hasClass(cardElement, 'selected');
+      
+      if (isSelected) {
+        // Deselect card
+        dojo.removeClass(cardElement, 'selected');
+        this.selectedPaladins = this.selectedPaladins.filter(id => id !== cardId);
+      } else {
+        // Select card (max 3)
+        if (this.selectedPaladins.length < 3) {
+          dojo.addClass(cardElement, 'selected');
+          this.selectedPaladins.push(cardId);
+        }
+      }
+      
+      this.updatePaladinSelectionCounter();
+    },
+
+    setupDropZones: function() {
+      const positions = ['top', 'middle', 'bottom'];
+      
+      positions.forEach(position => {
+        const dropZone = document.getElementById(`paladin_${position}_position`);
+        if (dropZone) {
+          dropZone.addEventListener('dragover', (e) => this.handleDragOver(e));
+          dropZone.addEventListener('drop', (e) => this.handleDrop(e, position));
+          dropZone.addEventListener('dragenter', (e) => this.handleDragEnter(e));
+          dropZone.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        }
+      });
+    },
+
+    handleDragStart: function(e, card) {
+      e.dataTransfer.setData('text/plain', card.data.id);
+      e.dataTransfer.effectAllowed = 'move';
+      dojo.addClass(e.target, 'dragging');
+    },
+
+    handleDragEnd: function(e) {
+      dojo.removeClass(e.target, 'dragging');
+    },
+
+    handleDragOver: function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    },
+
+    handleDragEnter: function(e) {
+      e.preventDefault();
+      dojo.addClass(e.target, 'drag_over');
+    },
+
+    handleDragLeave: function(e) {
+      dojo.removeClass(e.target, 'drag_over');
+    },
+
+    handleDrop: function(e, position) {
+      e.preventDefault();
+      dojo.removeClass(e.target, 'drag_over');
+      
+      const cardId = e.dataTransfer.getData('text/plain');
+      const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+      
+      if (cardElement && e.target.classList.contains('paladin_position_slot')) {
+        // Remove card from available cards
+        cardElement.remove();
+        
+        // Add card to the position
+        const cardClone = cardElement.cloneNode(true);
+        dojo.removeClass(cardClone, 'dragging');
+        dojo.addClass(cardClone, 'positioned');
+        cardClone.draggable = false;
+        
+        // Set the card to have relative positioning so the remove button positions correctly
+        cardClone.style.position = 'relative';
+        
+        // Add remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove_card_btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.onclick = () => this.removeCardFromPosition(position, cardId);
+        cardClone.appendChild(removeBtn);
+        
+        e.target.innerHTML = '';
+        e.target.appendChild(cardClone);
+        dojo.addClass(e.target, 'has_card');
+        
+        // Update selection
+        this.selectedPaladins[position] = cardId;
+        this.updatePaladinSelectionCounter();
+      }
+    },
+
+    removeCardFromPosition: function(position, cardId) {
+      const positionElement = document.getElementById(`paladin_${position}_position`);
+      const availableContainer = document.getElementById('paladin_cards_modal');
+      
+      if (positionElement && availableContainer) {
+        // Get the positioned card before removing it
+        const positionedCard = positionElement.querySelector('.positioned');
+        
+        // Remove from position
+        positionElement.innerHTML = '';
+        dojo.removeClass(positionElement, 'has_card');
+        
+        // Add back to available cards using the positioned card data
+        if (positionedCard) {
+          const cardClone = positionedCard.cloneNode(true);
+          dojo.removeClass(cardClone, 'positioned');
+          dojo.addClass(cardClone, 'draggable');
+          cardClone.draggable = true;
+          
+          // Remove the remove button if it exists
+          const removeBtn = cardClone.querySelector('.remove_card_btn');
+          if (removeBtn) removeBtn.remove();
+          
+          // Reset positioning styles
+          cardClone.style.position = '';
+          
+          // Re-add drag event listeners
+          cardClone.addEventListener('dragstart', (e) => this.handleDragStart(e, {data: {id: cardId}}));
+          cardClone.addEventListener('dragend', (e) => this.handleDragEnd(e));
+          
+          availableContainer.appendChild(cardClone);
+        }
+        
+        // Update selection
+        this.selectedPaladins[position] = null;
+        this.updatePaladinSelectionCounter();
+      }
+    },
+
+    updatePaladinSelectionCounter: function() {
+      const confirmBtn = document.getElementById('confirm_paladin_selection');
+      if (confirmBtn) {
+        const selectedCount = Object.values(this.selectedPaladins).filter(id => id !== null).length;
+        confirmBtn.innerHTML = `Confirm Selection (${selectedCount}/3)`;
+        confirmBtn.disabled = selectedCount !== 3;
+      }
+    },
+
+    confirmPaladinSelection: function() {
+      const selectedCount = Object.values(this.selectedPaladins).filter(id => id !== null).length;
+      if (selectedCount === 3) {
+        // Send the selection to the server in the correct order: bottom, picked, top
+        this.sendPaladins(
+          this.selectedPaladins.bottom,
+          this.selectedPaladins.middle,
+          this.selectedPaladins.top
+        );
+        
+        // Hide the modal
+        this.hidePaladinSelectionModal();
+      }
+    },
+
+    hidePaladinSelectionModal: function() {
+      const modal = document.getElementById('paladin_selection_modal');
+      if (modal) {
+        dojo.setStyle(modal, 'display', 'none');
+      }
+      
+      // Reset selection
+      this.selectedPaladins = [];
+    },
+
     //////////////////////////////////////////////////////////////////////////////
     //////////// UI HELPER METHODS
     ////////////
@@ -1018,7 +1293,8 @@ define([
         { id: 'absolve', text: 'Absolve', action: 'onAbsolve' },
         { id: 'attack', text: 'Attack', action: 'onAttack' },
         { id: 'convert', text: 'Convert', action: 'onConvert' },
-        { id: 'kingsFavor', text: 'King\'s Favor', action: 'onKingsFavor' }
+        { id: 'kingsFavor', text: 'King\'s Favor', action: 'onKingsFavor' },
+        { id: 'paladinSelection', text: 'Select Paladins', action: 'onPaladinSelection', special: true }
       ];
 
       const actionContainer = document.getElementById('action_buttons');
@@ -1031,7 +1307,16 @@ define([
         header.className = 'action_buttons_header';
         
         const isMyTurn = this.isCurrentPlayerActive();
-        const headerText = isMyTurn ? 'Your Turn - Available Actions' : 'Available Actions';
+        const currentState = this.gamedatas.gamestate.name;
+        
+        // Different header text based on state
+        let headerText;
+        if (currentState === 'pickPaladins') {
+          headerText = 'Select Your Paladins';
+        } else {
+          headerText = isMyTurn ? 'Your Turn - Available Actions' : 'Available Actions';
+        }
+        
         header.innerHTML = '<h3>' + headerText + '</h3>';
         actionContainer.appendChild(header);
         
@@ -1040,16 +1325,35 @@ define([
         buttonsContainer.className = 'action_buttons_container';
         actionContainer.appendChild(buttonsContainer);
         
-        actionButtons.forEach(button => {
+        // Filter buttons based on current state
+        let buttonsToShow = actionButtons;
+        if (currentState === 'pickPaladins') {
+          // Only show paladin selection button during pickPaladins state
+          buttonsToShow = actionButtons.filter(button => button.special);
+        } else {
+          // Show all buttons except paladin selection during other states
+          buttonsToShow = actionButtons.filter(button => !button.special);
+        }
+        
+        buttonsToShow.forEach(button => {
           const btn = document.createElement('button');
           btn.id = button.id + '_btn';
           btn.className = 'action_button';
+          
+          // Special styling for paladin selection button
+          if (button.special) {
+            btn.className += ' special';
+            btn.style.backgroundColor = '#28a745';
+            btn.style.color = 'white';
+            btn.style.fontWeight = 'bold';
+          }
+          
           btn.innerHTML = button.text;
           btn.onclick = () => this[button.action]();
           buttonsContainer.appendChild(btn);
         });
         
-        // Hide action buttons by default - they will only show during playerAction state
+        // Hide action buttons by default - they will only show during appropriate states
         dojo.setStyle(actionContainer, 'display', 'none');
       }
     },
@@ -1062,7 +1366,15 @@ define([
       // Get all action buttons
       const actionButtons = document.querySelectorAll('.action_button');
       actionButtons.forEach(btn => {
-        btn.disabled = !isMyTurn;
+        const currentState = this.gamedatas.gamestate.name;
+        
+        // Special handling for paladin selection button
+        if (btn.id === 'paladinSelection_btn') {
+          // During pickPaladins state, the button should always be enabled for the current player
+          btn.disabled = !isMyTurn || currentState !== 'pickPaladins';
+        } else {
+          btn.disabled = !isMyTurn;
+        }
         
         // Add visual feedback for available actions
         if (isMyTurn) {
@@ -1076,8 +1388,9 @@ define([
       const actionContainer = document.getElementById('action_buttons');
       if (actionContainer) {
         const currentState = this.gamedatas.gamestate.name;
-        // Only show action buttons if we're in playerAction state AND it's the current player's turn
-        const shouldShow = currentState === 'playerAction' && isMyTurn;
+        // Show action buttons if we're in playerAction state AND it's the current player's turn
+        // OR if we're in pickPaladins state AND it's the current player's turn
+        const shouldShow = (currentState === 'playerAction' || currentState === 'pickPaladins') && isMyTurn;
         dojo.setStyle(actionContainer, 'display', shouldShow ? 'flex' : 'none');
       }
       
