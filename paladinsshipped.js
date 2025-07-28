@@ -401,31 +401,146 @@ define([
       }
     },
 
-    setupPaladinSelection: function () {
-      if (this.isCurrentPlayerActive()) {
-        const paladinCards = this.uiItems.getByUiType("paladin_card");
-        for (var paladinCard of paladinCards) {
-          dojo.place(paladinCard.htmlNode, "paladinsSelection");
-          this.uiItems.setBackgroundUiItem(paladinCard);
-          dojo.setStyle(paladinCard.htmlNode, "top", "");
-          dojo.setStyle(paladinCard.htmlNode, "left", "");
-          // this.removeTooltip(dojo.getAttr(paladinCard.htmlNode, "id"));
-        }
-        dojo.setStyle("paladinsSelection", "display", "flex");
-        dojo.setStyle("paladinsSelection", "justify-content", "center");
-        this.uiItems.makeSelectable(paladinCards);
-
-        const tavernCards = this.uiItems.getByUiType("tavern_card");
-        for (var tavernCard of tavernCards) {
-          dojo.place(tavernCard.htmlNode, "tavernsSelection");
-          this.uiItems.setBackgroundUiItem(tavernCard);
-          dojo.setStyle(tavernCard.htmlNode, "top", "");
-          dojo.setStyle(tavernCard.htmlNode, "left", "");
-          // this.removeTooltip(dojo.getAttr(tavernCard.htmlNode, "id"));
-        }
-        this.displayTaverns();
-        // this.uiItems.makeSelectable(tavernCards);
+    setupPaladinSelection: function() {
+      console.log("=== SETUP PALADIN SELECTION START ===");
+      
+      // Clear previous content
+      const paladinContainer = document.getElementById('paladin_cards_inline');
+      const tavernContainer = document.getElementById('tavern_cards_inline');
+      const topPosition = document.getElementById('paladin_top_position');
+      const middlePosition = document.getElementById('paladin_middle_position');
+      const bottomPosition = document.getElementById('paladin_bottom_position');
+      
+      console.log("Containers found:", {
+        paladinContainer: !!paladinContainer,
+        tavernContainer: !!tavernContainer,
+        topPosition: !!topPosition,
+        middlePosition: !!middlePosition,
+        bottomPosition: !!bottomPosition
+      });
+      
+      if (paladinContainer) paladinContainer.innerHTML = '';
+      if (tavernContainer) tavernContainer.innerHTML = '';
+      if (topPosition) topPosition.innerHTML = '';
+      if (middlePosition) middlePosition.innerHTML = '';
+      if (bottomPosition) bottomPosition.innerHTML = '';
+      
+      // Get current player's paladin cards
+      const allPaladinCards = this.uiItems.getByUiType("paladin_card");
+      const currentPlayerId = this.player_id;
+      
+      console.log("All paladin cards:", allPaladinCards);
+      console.log("Current player ID:", currentPlayerId);
+      console.log("Game data paladin_hand:", this.paladin_hand);
+      
+      // If no paladin cards exist in UI items but they exist in game data, create them
+      if (allPaladinCards.length === 0 && this.paladin_hand) {
+        console.log("No paladin cards in UI items, creating from game data...");
+        this.createPaladinUiItems(this.paladin_hand);
+        // Get the cards again after creation
+        const newPaladinCards = this.uiItems.getByUiType("paladin_card");
+        console.log("Created paladin cards:", newPaladinCards);
       }
+      
+      // Get the paladin cards again (in case we just created them)
+      const updatedPaladinCards = this.uiItems.getByUiType("paladin_card");
+      
+      // Try different location filters to find the cards
+      const playerPaladins = updatedPaladinCards.filter(card => {
+        console.log("Checking card:", card.data.id, "location:", card.data.location, "location_arg:", card.data.location_arg);
+        return (card.data.location === "paladinsSelection" || card.data.location === "paladin_hand") && 
+               card.data.location_arg == currentPlayerId;
+      });
+      
+      console.log("Filtered player paladins:", playerPaladins);
+      
+      // If no cards found with paladinsSelection location, try to find any paladin cards for this player
+      if (playerPaladins.length === 0) {
+        console.log("No paladin cards found with paladinsSelection location, trying alternative locations...");
+        const alternativePaladins = updatedPaladinCards.filter(card => 
+          card.data.location_arg == currentPlayerId
+        );
+        console.log("Alternative paladin cards found:", alternativePaladins);
+        
+        if (alternativePaladins.length > 0) {
+          // Use the alternative cards
+          alternativePaladins.forEach(card => {
+            const cardClone = card.htmlNode.cloneNode(true);
+            if (paladinContainer) {
+              dojo.place(cardClone, paladinContainer);
+              
+              // Make cards draggable
+              dojo.addClass(cardClone, 'draggable');
+              cardClone.draggable = true;
+              cardClone.dataset.cardId = card.data.id;
+              
+              // Add drag event listeners
+              cardClone.addEventListener('dragstart', (e) => this.handleDragStart(e, card));
+              cardClone.addEventListener('dragend', (e) => this.handleDragEnd(e));
+              
+              console.log("Added alternative paladin card to container:", card.data.id);
+            }
+          });
+        }
+      } else {
+        // Use the original filtered cards
+        playerPaladins.forEach(card => {
+          const cardClone = card.htmlNode.cloneNode(true);
+          if (paladinContainer) {
+            dojo.place(cardClone, paladinContainer);
+            
+            // Make cards draggable
+            dojo.addClass(cardClone, 'draggable');
+            cardClone.draggable = true;
+            cardClone.dataset.cardId = card.data.id;
+            
+            // Add drag event listeners
+            cardClone.addEventListener('dragstart', (e) => this.handleDragStart(e, card));
+            cardClone.addEventListener('dragend', (e) => this.handleDragEnd(e));
+            
+            console.log("Added paladin card to container:", card.data.id);
+          }
+        });
+      }
+      
+      // Get tavern cards
+      const tavernCards = this.uiItems.getByUiType("tavern_card");
+      console.log("Tavern cards found:", tavernCards);
+      
+      // If no tavern cards exist in UI items but they exist in game data, create them
+      if (tavernCards.length === 0 && this.tavern_display) {
+        console.log("No tavern cards in UI items, creating from game data...");
+        this.createTavernUiItems(this.tavern_display);
+        // Get the cards again after creation
+        const newTavernCards = this.uiItems.getByUiType("tavern_card");
+        console.log("Created tavern cards:", newTavernCards);
+      }
+      
+      // Get the tavern cards again (in case we just created them)
+      const updatedTavernCards = this.uiItems.getByUiType("tavern_card");
+      
+      // Move tavern cards to inline area (read-only)
+      updatedTavernCards.forEach(card => {
+        const cardClone = card.htmlNode.cloneNode(true);
+        if (tavernContainer) {
+          dojo.place(cardClone, tavernContainer);
+          dojo.addClass(cardClone, 'readonly');
+          console.log("Added tavern card to container:", card.data.id);
+        }
+      });
+      
+      // Set up drop zones for the three positions
+      this.setupDropZones();
+      
+      // Reset selection
+      this.selectedPaladins = {
+        top: null,
+        middle: null,
+        bottom: null
+      };
+      this.updatePaladinSelectionCounter();
+      
+      console.log("=== SETUP PALADIN SELECTION END ===");
     },
 
     setupTownsfolkSelection: function () {
@@ -583,14 +698,77 @@ define([
 
       switch (stateName) {
         case "pickPaladins":
-          // Show paladin selection button and automatically open the modal
+          // Show paladin selection area and automatically set it up
           this.setupActionButtons();
           this.updateActionButtons();
-          
-          // Automatically show the paladin selection modal for the current player
-          if (this.isCurrentPlayerActive()) {
-            this.showPaladinSelectionModal();
-          }
+          // Direct call to setup paladin selection with longer delay
+          setTimeout(() => {
+            console.log("Checking if containers exist in DOM...");
+            console.log("paladin_cards_inline:", document.getElementById('paladin_cards_inline'));
+            console.log("tavern_cards_inline:", document.getElementById('tavern_cards_inline'));
+            console.log("paladin_top_position:", document.getElementById('paladin_top_position'));
+            
+            // Create containers manually if they don't exist
+            const actionButtons = document.getElementById('action_buttons');
+            if (actionButtons && !document.getElementById('paladin_cards_inline')) {
+              console.log("Creating missing containers manually...");
+              
+              // Create paladin selection area if it doesn't exist
+              let paladinSelectionArea = document.getElementById('paladin_selection_area');
+              if (!paladinSelectionArea) {
+                paladinSelectionArea = document.createElement('div');
+                paladinSelectionArea.id = 'paladin_selection_area';
+                paladinSelectionArea.className = 'paladin_selection_area';
+                actionButtons.appendChild(paladinSelectionArea);
+              }
+              
+              // Create the inner structure
+              paladinSelectionArea.innerHTML = `
+                <div class="paladin_selection_description">
+                  <p>Choose 3 paladin cards from your hand. You can see the available tavern cards below to help inform your decision.</p>
+                </div>
+                
+                <div class="paladin_selection_content">
+                  <div class="paladin_cards_section">
+                    <h4>Your Paladin Cards</h4>
+                    <div class="paladin_selection_positions">
+                      <div class="paladin_position">
+                        <div class="position_label">TOP</div>
+                        <div id="paladin_top_position" class="paladin_position_slot"></div>
+                      </div>
+                      <div class="paladin_position">
+                        <div class="position_label">PICKED</div>
+                        <div id="paladin_middle_position" class="paladin_position_slot"></div>
+                      </div>
+                      <div class="paladin_position">
+                        <div class="position_label">BOTTOM</div>
+                        <div id="paladin_bottom_position" class="paladin_position_slot"></div>
+                      </div>
+                    </div>
+                    <div class="paladin_available_cards">
+                      <h5>Available Cards</h5>
+                      <div id="paladin_cards_inline" class="paladin_cards_container"></div>
+                    </div>
+                  </div>
+                  
+                  <div class="tavern_cards_section">
+                    <h4>Available Tavern Cards</h4>
+                    <div id="tavern_cards_inline" class="tavern_cards_container"></div>
+                  </div>
+                </div>
+                
+                <div class="paladin_selection_actions">
+                  <button class="action_button primary" id="confirm_paladin_selection" onclick="gameui.confirmPaladinSelection()">
+                    Confirm Selection (0/3)
+                  </button>
+                </div>
+              `;
+              
+              console.log("Containers created manually");
+            }
+            
+            this.setupPaladinSelection();
+          }, 500);
           break;
 
         case "pickTavern":
@@ -624,9 +802,8 @@ define([
 
       switch (stateName) {
         case "pickPaladins":
-          // Hide the old inline selection and the modal
+          // Hide the old inline selection
           dojo.setStyle("paladinsSelection", "display", "none");
-          this.hidePaladinSelectionModal();
           this.uiItems.resetAllSelectable();
           break;
         case "playerAction":
@@ -1118,9 +1295,7 @@ define([
       this.showWorkerSelectionMenu('kingsFavor', { kings_favor_id: null });
     },
 
-    onPaladinSelection: function() {
-      this.showPaladinSelectionModal();
-    },
+
 
     hasPaladinsToSelect: function() {
       // Check if the current player has paladin cards in their hand
@@ -1133,87 +1308,7 @@ define([
       );
     },
 
-    showPaladinSelectionModal: function() {
-      // Clear previous content
-      const paladinContainer = document.getElementById('paladin_cards_modal');
-      const tavernContainer = document.getElementById('tavern_cards_modal');
-      const topPosition = document.getElementById('paladin_top_position');
-      const middlePosition = document.getElementById('paladin_middle_position');
-      const bottomPosition = document.getElementById('paladin_bottom_position');
-      
-      if (paladinContainer) paladinContainer.innerHTML = '';
-      if (tavernContainer) tavernContainer.innerHTML = '';
-      if (topPosition) topPosition.innerHTML = '';
-      if (middlePosition) middlePosition.innerHTML = '';
-      if (bottomPosition) bottomPosition.innerHTML = '';
-      
-      // Get current player's paladin cards
-      const paladinCards = this.uiItems.getByUiType("paladin_card");
-      const currentPlayerId = this.player_id;
-      
-      console.log("ShowPaladinSelectionModal debug:", {
-        allPaladinCards: paladinCards,
-        currentPlayerId: currentPlayerId,
-        paladinCardsLength: paladinCards.length
-      });
-      
-      const playerPaladins = paladinCards.filter(card => 
-        card.data.location === "paladinsSelection" && 
-        card.data.location_arg === currentPlayerId
-      );
-      
-      console.log("Filtered player paladins:", {
-        playerPaladins: playerPaladins,
-        playerPaladinsLength: playerPaladins.length
-      });
-      
-      // Get tavern cards
-      const tavernCards = this.uiItems.getByUiType("tavern_card");
-      
-      console.log("Tavern cards:", {
-        tavernCards: tavernCards,
-        tavernCardsLength: tavernCards.length
-      });
-      
-      // Move paladin cards to available cards section
-      playerPaladins.forEach(card => {
-        const cardClone = card.htmlNode.cloneNode(true);
-        dojo.place(cardClone, paladinContainer);
-        
-        // Make cards draggable
-        dojo.addClass(cardClone, 'draggable');
-        cardClone.draggable = true;
-        cardClone.dataset.cardId = card.data.id;
-        
-        // Add drag event listeners
-        cardClone.addEventListener('dragstart', (e) => this.handleDragStart(e, card));
-        cardClone.addEventListener('dragend', (e) => this.handleDragEnd(e));
-      });
-      
-      // Set up drop zones for the three positions
-      this.setupDropZones();
-      
-      // Move tavern cards to modal (read-only)
-      tavernCards.forEach(card => {
-        const cardClone = card.htmlNode.cloneNode(true);
-        dojo.place(cardClone, tavernContainer);
-        dojo.addClass(cardClone, 'readonly');
-      });
-      
-      // Show modal
-      const modal = document.getElementById('paladin_selection_modal');
-      if (modal) {
-        dojo.setStyle(modal, 'display', 'flex');
-      }
-      
-      // Reset selection
-      this.selectedPaladins = {
-        top: null,
-        middle: null,
-        bottom: null
-      };
-      this.updatePaladinSelectionCounter();
-    },
+
 
     togglePaladinSelection: function(cardElement, cardData) {
       const cardId = cardData.data.id;
@@ -1311,7 +1406,7 @@ define([
 
     removeCardFromPosition: function(position, cardId) {
       const positionElement = document.getElementById(`paladin_${position}_position`);
-      const availableContainer = document.getElementById('paladin_cards_modal');
+      const availableContainer = document.getElementById('paladin_cards_inline');
       
       if (positionElement && availableContainer) {
         // Get the positioned card before removing it
@@ -1358,40 +1453,46 @@ define([
     },
 
     confirmPaladinSelection: function() {
-      const selectedCount = Object.values(this.selectedPaladins).filter(id => id !== null).length;
-      if (selectedCount === 3) {
-        // Send the selection to the server in the correct order: bottom, picked, top
-        this.sendPaladins(
-          this.selectedPaladins.bottom,
-          this.selectedPaladins.middle,
-          this.selectedPaladins.top
-        );
-        
-        // Hide the modal
-        this.hidePaladinSelectionModal();
-      }
-    },
-
-    hidePaladinSelectionModal: function() {
-      const modal = document.getElementById('paladin_selection_modal');
-      if (modal) {
-        dojo.setStyle(modal, 'display', 'none');
+      // Check if all three positions are filled
+      const topCard = this.selectedPaladins.top;
+      const middleCard = this.selectedPaladins.middle;
+      const bottomCard = this.selectedPaladins.bottom;
+      
+      if (!topCard || !middleCard || !bottomCard) {
+        console.error("Not all paladin positions are filled");
+        return;
       }
       
-      // Reset selection
-      this.selectedPaladins = [];
+      console.log("Confirming paladin selection:", {
+        top: topCard,
+        middle: middleCard,
+        bottom: bottomCard
+      });
+      
+      // Submit the selection to the server
+      this.ajaxcall('/paladinsshipped/paladinsshipped/selectPaladins.html', {
+        top_paladin_id: topCard.data.id,
+        middle_paladin_id: middleCard.data.id,
+        bottom_paladin_id: bottomCard.data.id
+      }, this, function(result) {
+        console.log("Paladin selection confirmed successfully");
+      }, function(is_error) {
+        console.error("Error confirming paladin selection:", is_error);
+      });
     },
+
+
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// UI HELPER METHODS
     ////////////
 
     setupActionButtons: function() {
-      // Create action buttons for the player board
       const actionButtons = [
         { id: 'pass', text: 'Pass', action: 'onPass' },
         { id: 'pray', text: 'Pray', action: 'onPray' },
-        { id: 'recruit', text: 'Recruit', action: 'onRecruitHire' },
+        { id: 'recruitDiscard', text: 'Recruit (Discard)', action: 'onRecruitDiscard' },
+        { id: 'recruitHire', text: 'Recruit (Hire)', action: 'onRecruitHire' },
         { id: 'develop', text: 'Develop', action: 'onDevelop' },
         { id: 'hunt', text: 'Hunt', action: 'onHunt' },
         { id: 'trade', text: 'Trade', action: 'onTrade' },
@@ -1402,8 +1503,7 @@ define([
         { id: 'absolve', text: 'Absolve', action: 'onAbsolve' },
         { id: 'attack', text: 'Attack', action: 'onAttack' },
         { id: 'convert', text: 'Convert', action: 'onConvert' },
-        { id: 'kingsFavor', text: 'King\'s Favor', action: 'onKingsFavor' },
-        { id: 'paladinSelection', text: 'Select Paladins', action: 'onPaladinSelection', special: true }
+        { id: 'kingsFavor', text: 'King\'s Favor', action: 'onKingsFavor' }
       ];
 
       const actionContainer = document.getElementById('action_buttons');
@@ -1429,41 +1529,39 @@ define([
         header.innerHTML = '<h3>' + headerText + '</h3>';
         actionContainer.appendChild(header);
         
-        // Add buttons container
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.className = 'action_buttons_container';
-        actionContainer.appendChild(buttonsContainer);
-        
-        // Filter buttons based on current state
-        let buttonsToShow = actionButtons;
-        if (currentState === 'pickPaladins') {
-          // Only show paladin selection button during pickPaladins state
-          buttonsToShow = actionButtons.filter(button => button.special);
-        } else {
-          // Show all buttons except paladin selection during other states
-          buttonsToShow = actionButtons.filter(button => !button.special);
+        // Add paladin selection area (will be shown/hidden based on state)
+        const paladinSelectionArea = document.getElementById('paladin_selection_area');
+        if (paladinSelectionArea) {
+          if (currentState === 'pickPaladins' && isMyTurn) {
+            dojo.setStyle(paladinSelectionArea, 'display', 'block');
+            // Add a small delay to ensure DOM is ready and cards are created
+            setTimeout(() => {
+              this.setupPaladinSelection();
+            }, 100);
+          } else {
+            dojo.setStyle(paladinSelectionArea, 'display', 'none');
+          }
         }
         
-        buttonsToShow.forEach(button => {
-          const btn = document.createElement('button');
-          btn.id = button.id + '_btn';
-          btn.className = 'action_button';
+        // Add buttons container (only show during non-paladin states)
+        if (currentState !== 'pickPaladins') {
+          const buttonsContainer = document.createElement('div');
+          buttonsContainer.className = 'action_buttons_container';
+          actionContainer.appendChild(buttonsContainer);
           
-          // Special styling for paladin selection button
-          if (button.special) {
-            btn.className += ' special';
-            btn.style.backgroundColor = '#28a745';
-            btn.style.color = 'white';
-            btn.style.fontWeight = 'bold';
-          }
-          
-          btn.innerHTML = button.text;
-          btn.onclick = () => this[button.action]();
-          buttonsContainer.appendChild(btn);
-        });
+          // Show all action buttons during non-paladin states
+          actionButtons.forEach(button => {
+            const btn = document.createElement('button');
+            btn.id = button.id + '_btn';
+            btn.className = 'action_button';
+            btn.innerHTML = button.text;
+            btn.onclick = () => this[button.action]();
+            buttonsContainer.appendChild(btn);
+          });
+        }
         
-        // Hide action buttons by default - they will only show during appropriate states
-        dojo.setStyle(actionContainer, 'display', 'none');
+        // Show action buttons area
+        dojo.setStyle(actionContainer, 'display', 'block');
       }
     },
 
