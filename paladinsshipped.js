@@ -424,8 +424,13 @@ define([
 
     setupTownsfolkSelection: function () {
       if (this.isCurrentPlayerActive()) {
-        const townsfolkCards = this.uiItems.getByUiType("townsfolk_uiitem");
-        this.uiItems.makeSelectable(townsfolkCards);
+        const allTownsfolkCards = this.uiItems.getByUiType("townsfolk_uiitem");
+        // Only make display cards selectable, not player cards
+        const displayCards = allTownsfolkCards.filter(card => 
+          card.data.location !== "playerboard_cards"
+        );
+        console.log("Making display cards selectable:", displayCards.length, "out of", allTownsfolkCards.length, "total cards");
+        this.uiItems.makeSelectable(displayCards);
         this.uiItems.resetSelectableAnimation();
       }
     },
@@ -1007,6 +1012,9 @@ define([
       tempCard.style.position = 'absolute';
       tempCard.style.zIndex = '1000';
       tempCard.style.pointerEvents = 'none';
+      // Apply the same scaling as player cards
+      tempCard.style.transform = 'scale(0.58)';
+      tempCard.style.transformOrigin = 'top left';
       document.body.appendChild(tempCard);
       
       // Hide the original card and make it non-selectable
