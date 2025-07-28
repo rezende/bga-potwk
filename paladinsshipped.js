@@ -377,6 +377,9 @@ define([
       // Initialize player area reordering tracking
       this.lastReorderedUser = null;
       
+      // Set data attributes for player identification
+      this.setPlayerBoardAttributes();
+      
       // Reorder player areas to show current user first
       this.reorderPlayerAreas();
     },
@@ -566,6 +569,9 @@ define([
       this.currentMoveArgs = args.args;
       console.log("Entering state: " + stateName);
 
+      // Update player board attributes to reflect current state
+      this.setPlayerBoardAttributes();
+
       switch (stateName) {
         case "pickPaladins":
           // Show paladin selection button and automatically open the modal
@@ -602,66 +608,7 @@ define([
       this.reorderPlayerAreas();
     },
 
-    // Function to reorder player areas so current user appears first
-    reorderPlayerAreas: function() {
-      if (!this.gamedatas || !this.gamedatas.players) {
-        return;
-      }
 
-      const playersBoardContainer = document.getElementById('playersBoardContainer');
-      if (!playersBoardContainer) {
-        return;
-      }
-
-      // Get the current user's player ID (not the active player)
-      const currentUserId = this.player_id;
-      if (!currentUserId) {
-        return;
-      }
-
-      // Check if we already reordered for this user
-      if (this.lastReorderedUser === currentUserId) {
-        console.log("Already reordered for user:", currentUserId);
-        return;
-      }
-
-      console.log("Reordering player areas...");
-      console.log("Current user ID:", currentUserId);
-      console.log("Active player ID:", this.gamedatas.gamestate.active_player);
-      console.log("All player IDs:", Object.keys(this.gamedatas.players));
-
-      // Get all player board elements
-      const playerBoards = playersBoardContainer.querySelectorAll('.playerboard');
-      if (playerBoards.length <= 1) {
-        return; // No need to reorder if there's only one player
-      }
-
-      // Create the desired order: current user first, then others in turn order
-      const allPlayerIds = Object.keys(this.gamedatas.players);
-      const desiredOrder = [currentUserId];
-      
-      // Add other players in turn order (clockwise from current user)
-      const currentUserIndex = allPlayerIds.indexOf(currentUserId);
-      for (let i = 1; i < allPlayerIds.length; i++) {
-        const nextIndex = (currentUserIndex + i) % allPlayerIds.length;
-        desiredOrder.push(allPlayerIds[nextIndex]);
-      }
-
-      console.log("Desired player order:", desiredOrder);
-
-      // Reorder the player boards
-      desiredOrder.forEach(playerId => {
-        const playerBoard = document.getElementById('playerboard_' + playerId);
-        if (playerBoard) {
-          playersBoardContainer.appendChild(playerBoard);
-        }
-      });
-
-      // Update the order tracking
-      this.lastReorderedUser = currentUserId;
-      
-      console.log("Player areas reordered. New order:", desiredOrder);
-    },
 
     // onLeavingState: this method is called each time we are leaving a game state.
     //                 You can use this method to perform some user interface changes at this moment.
@@ -2114,6 +2061,177 @@ define([
           this.updatePlayerResourceTable(player_id, this.gamedatas.players[player_id]);
         }
       }
+    },
+
+    // Function to set data attributes on player boards for identification
+    setPlayerBoardAttributes: function() {
+      if (!this.gamedatas || !this.gamedatas.players) {
+        return;
+      }
+
+      const currentUserId = this.player_id;
+      const activePlayerId = this.gamedatas.gamestate.active_player;
+
+      console.log("Setting player board attributes:");
+      console.log("Current user ID:", currentUserId);
+      console.log("Active player ID:", activePlayerId);
+
+      // Set attributes for each player board
+      for (const playerId in this.gamedatas.players) {
+        const playerBoard = document.getElementById('playerboard_' + playerId);
+        const playerNameHeader = document.getElementById('player_name_' + playerId);
+        
+        if (playerBoard) {
+          // Set current user attribute
+          if (playerId == currentUserId) {
+            playerBoard.setAttribute('data-current-user', 'true');
+            console.log("Marked player board as current user:", playerId);
+          } else {
+            playerBoard.setAttribute('data-current-user', 'false');
+          }
+
+          // Set active player attribute
+          if (playerId == activePlayerId) {
+            playerBoard.setAttribute('data-active-player', 'true');
+            console.log("Marked player board as active player:", playerId);
+          } else {
+            playerBoard.setAttribute('data-active-player', 'false');
+          }
+        }
+        
+        // Update player name header with actual player name
+        if (playerNameHeader) {
+          const playerData = this.gamedatas.players[playerId];
+          const playerName = playerData ? playerData.name : 'Unknown Player';
+          const headerText = `${playerName} (ID: ${playerId})`;
+          
+          // Add indicators for current user and active player
+          let indicators = '';
+          if (playerId == currentUserId) {
+            indicators += ' [YOU]';
+          }
+          if (playerId == activePlayerId) {
+            indicators += ' [ACTIVE]';
+          }
+          
+          playerNameHeader.querySelector('h3').textContent = headerText + indicators;
+          
+          // Apply player color to the header
+          if (playerData && playerData.color) {
+            const playerColor = '#' + playerData.color;
+            console.log("Applying player color to header:", playerId, playerColor);
+            
+            // Set the background color to the player's color
+            playerNameHeader.style.background = `linear-gradient(135deg, ${playerColor}, ${this.darkenColor(playerColor, 0.2)})`;
+            
+            // Adjust text color for better contrast
+            const textColor = this.getContrastColor(playerColor);
+            playerNameHeader.style.color = textColor;
+            playerNameHeader.querySelector('h3').style.color = textColor;
+          }
+          
+          console.log("Updated player name header for", playerId, ":", headerText + indicators);
+        }
+      }
+    },
+
+    // Function to reorder player areas so current user appears first
+    reorderPlayerAreas: function() {
+      if (!this.gamedatas || !this.gamedatas.players) {
+        return;
+      }
+
+      const playersBoardContainer = document.getElementById('playersBoardContainer');
+      if (!playersBoardContainer) {
+        return;
+      }
+
+      // Get the current user's player ID (not the active player)
+      const currentUserId = this.player_id;
+      if (!currentUserId) {
+        return;
+      }
+
+      // Check if we already reordered for this user
+      if (this.lastReorderedUser === currentUserId) {
+        console.log("Already reordered for user:", currentUserId);
+        return;
+      }
+
+      console.log("Reordering player areas...");
+      console.log("Current user ID:", currentUserId);
+      console.log("Active player ID:", this.gamedatas.gamestate.active_player);
+      console.log("All player IDs:", Object.keys(this.gamedatas.players));
+
+      // Get all player board elements
+      const playerBoards = playersBoardContainer.querySelectorAll('.playerboard');
+      if (playerBoards.length <= 1) {
+        return; // No need to reorder if there's only one player
+      }
+
+      // Create the desired order: current user first, then others in turn order
+      const allPlayerIds = Object.keys(this.gamedatas.players);
+      const desiredOrder = [currentUserId];
+      
+      // Add other players in turn order (clockwise from current user)
+      const currentUserIndex = allPlayerIds.indexOf(currentUserId);
+      for (let i = 1; i < allPlayerIds.length; i++) {
+        const nextIndex = (currentUserIndex + i) % allPlayerIds.length;
+        desiredOrder.push(allPlayerIds[nextIndex]);
+      }
+
+      console.log("Desired player order:", desiredOrder);
+
+      // Reorder the player boards
+      desiredOrder.forEach(playerId => {
+        const playerBoard = document.getElementById('playerboard_' + playerId);
+        if (playerBoard) {
+          playersBoardContainer.appendChild(playerBoard);
+        }
+      });
+
+      // Update the order tracking
+      this.lastReorderedUser = currentUserId;
+      
+      console.log("Player areas reordered. New order:", desiredOrder);
+    },
+
+    // Helper function to darken a color
+    darkenColor: function(hexColor, factor) {
+      // Remove the # if present
+      hexColor = hexColor.replace('#', '');
+      
+      // Parse the hex color
+      const r = parseInt(hexColor.substr(0, 2), 16);
+      const g = parseInt(hexColor.substr(2, 2), 16);
+      const b = parseInt(hexColor.substr(4, 2), 16);
+      
+      // Darken by the factor
+      const newR = Math.max(0, Math.floor(r * (1 - factor)));
+      const newG = Math.max(0, Math.floor(g * (1 - factor)));
+      const newB = Math.max(0, Math.floor(b * (1 - factor)));
+      
+      // Convert back to hex
+      return '#' + newR.toString(16).padStart(2, '0') + 
+                   newG.toString(16).padStart(2, '0') + 
+                   newB.toString(16).padStart(2, '0');
+    },
+
+    // Helper function to get contrasting text color (black or white)
+    getContrastColor: function(hexColor) {
+      // Remove the # if present
+      hexColor = hexColor.replace('#', '');
+      
+      // Parse the hex color
+      const r = parseInt(hexColor.substr(0, 2), 16);
+      const g = parseInt(hexColor.substr(2, 2), 16);
+      const b = parseInt(hexColor.substr(4, 2), 16);
+      
+      // Calculate luminance
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      
+      // Return black for light colors, white for dark colors
+      return luminance > 0.5 ? '#000000' : '#ffffff';
     },
   });
 });

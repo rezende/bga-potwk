@@ -101,6 +101,11 @@
     <div id="playersBoardContainer">
       <!-- BEGIN playerboard -->
       <div class="playerboard" id="playerboard_{PLAYER_ID}">
+        <!-- Player Name Header -->
+        <div class="player_name_header" id="player_name_{PLAYER_ID}">
+          <h3>Player Area {PLAYER_ID}</h3>
+        </div>
+        
         <!-- Player Resources Table -->
         <div class="player_resources_table" id="player_resources_{PLAYER_ID}">
           <table class="resources_table">

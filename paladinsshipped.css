@@ -1251,20 +1251,34 @@
 .paladin_cards_container .selectable {
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  border: 2px solid transparent;
+  border: 3px solid #007bff; /* Blue border always visible */
+  border-radius: 15px; /* Match the card's border radius */
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3); /* Blue glow effect */
+  animation: paladin_selectable_pulse 2s ease-in-out infinite; /* Subtle pulsing animation */
+}
+
+@keyframes paladin_selectable_pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.5);
+  }
 }
 
 .paladin_cards_container .selectable:hover {
   transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border-color: #007bff;
+  box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4); /* Enhanced glow on hover */
+  border-color: #0056b3; /* Darker blue on hover */
+  animation: none; /* Stop pulsing on hover */
 }
 
 .paladin_cards_container .selectable.selected {
   transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border-color: #28a745;
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4); /* Green glow when selected */
+  border-color: #28a745; /* Green border when selected */
   background-color: rgba(40, 167, 69, 0.1);
+  animation: none; /* Stop pulsing when selected */
 }
 
 .paladin_cards_container .readonly {
@@ -1338,4 +1352,35 @@
   background-color: #6c757d !important;
   border-color: #6c757d !important;
   opacity: 0.6;
+}
+
+/* Player name header styling */
+.player_name_header {
+  background: linear-gradient(135deg, #4a90e2, #357abd);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 8px 8px 0 0;
+  text-align: center;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.player_name_header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Highlight current user's player area */
+.playerboard[data-current-user="true"] .player_name_header {
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+  border: 2px solid #ffc107;
+}
+
+/* Highlight active player's area */
+.playerboard[data-active-player="true"] .player_name_header {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
+  border: 2px solid #28a745;
 }
