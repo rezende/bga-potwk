@@ -1,49 +1,50 @@
 {OVERALL_GAME_HEADER}
 
 <div id="zoomBox">
-  <!-- Action Buttons Container - Moved to top -->
-  <div id="action_buttons">
-    <!-- Paladin Selection Area (will be shown/hidden based on game state) -->
-    <div id="paladin_selection_area" class="paladin_selection_area" style="display: none;">
-      <div class="paladin_selection_description">
-        <p>Choose 3 paladin cards from your hand. You can see the available tavern cards below to help inform your decision.</p>
-      </div>
-      
-      <div class="paladin_selection_content">
-        <div class="paladin_cards_section">
-          <h4>Your Paladin Cards</h4>
-          <div class="paladin_selection_positions">
-            <div class="paladin_position">
-              <div class="position_label">TOP</div>
-              <div id="paladin_top_position" class="paladin_position_slot"></div>
-            </div>
-            <div class="paladin_position">
-              <div class="position_label">PICKED</div>
-              <div id="paladin_middle_position" class="paladin_position_slot"></div>
-            </div>
-            <div class="paladin_position">
-              <div class="position_label">BOTTOM</div>
-              <div id="paladin_bottom_position" class="paladin_position_slot"></div>
-            </div>
+  <!-- Paladin Selection Area (separate from action buttons) -->
+  <div id="paladin_selection_area" class="paladin_selection_area" style="display: none;">
+    <div class="paladin_selection_description">
+      <p>Select Your Paladins</p>
+    </div>
+    
+    <div class="paladin_selection_content">
+      <div class="paladin_cards_section">
+        <h4>Your Paladin Cards</h4>
+        <div class="paladin_selection_positions">
+          <div class="paladin_position">
+            <div class="position_label">TOP</div>
+            <div id="paladin_top_position" class="paladin_position_slot"></div>
           </div>
-          <div class="paladin_available_cards">
-            <h5>Available Cards</h5>
-            <div id="paladin_cards_inline" class="paladin_cards_container"></div>
+          <div class="paladin_position">
+            <div class="position_label">PICKED</div>
+            <div id="paladin_middle_position" class="paladin_position_slot"></div>
+          </div>
+          <div class="paladin_position">
+            <div class="position_label">BOTTOM</div>
+            <div id="paladin_bottom_position" class="paladin_position_slot"></div>
           </div>
         </div>
-        
-        <div class="tavern_cards_section">
-          <h4>Available Tavern Cards</h4>
-          <div id="tavern_cards_inline" class="tavern_cards_container"></div>
+        <div class="paladin_available_cards">
+          <h5>Available Cards</h5>
+          <div id="paladin_cards_inline" class="paladin_cards_container"></div>
         </div>
       </div>
       
-      <div class="paladin_selection_actions">
-        <button class="action_button primary" id="confirm_paladin_selection" onclick="gameui.confirmPaladinSelection()">
-          Confirm Selection (0/3)
-        </button>
+      <div class="tavern_cards_section">
+        <h4>Available Tavern Cards</h4>
+        <div id="tavern_cards_inline" class="tavern_cards_container"></div>
       </div>
     </div>
+    
+    <div class="paladin_selection_actions">
+      <button class="action_button primary" id="confirm_paladin_selection" onclick="gameui.confirmPaladinSelection()">
+        Confirm Selection (0/3)
+      </button>
+    </div>
+  </div>
+
+  <!-- Action Buttons Container - Only for actual game actions -->
+  <div id="action_buttons">
   </div>
 
   <!-- containter on the top to select cards -->

@@ -683,137 +683,36 @@ define([
     //                  You can use this method to perform some user interface changes at this moment.
     //
     onEnteringState: function (stateName, args) {
-      this.currentMove = stateName;
-      this.currentMoveArgs = args.args;
-      console.log("Entering state: " + stateName);
-
+      console.log('Entering state: ' + stateName);
+      
       // Update player board attributes to reflect current state
       this.setPlayerBoardAttributes();
-
-      // Reorder player areas to ensure current user is first
-      // Use a small delay to ensure DOM is ready
+      
+      // Reorder player areas with a small delay to ensure DOM is ready
       setTimeout(() => {
         this.reorderPlayerAreas();
       }, 100);
-
-      switch (stateName) {
-        case "pickPaladins":
-          // Show paladin selection area and automatically set it up
-          this.setupActionButtons();
-          this.updateActionButtons();
-          // Direct call to setup paladin selection with longer delay
-          setTimeout(() => {
-            console.log("Checking if containers exist in DOM...");
-            console.log("paladin_cards_inline:", document.getElementById('paladin_cards_inline'));
-            console.log("tavern_cards_inline:", document.getElementById('tavern_cards_inline'));
-            console.log("paladin_top_position:", document.getElementById('paladin_top_position'));
-            
-            // Create containers manually if they don't exist
-            const actionButtons = document.getElementById('action_buttons');
-            if (actionButtons && !document.getElementById('paladin_cards_inline')) {
-              console.log("Creating missing containers manually...");
-              
-              // Create paladin selection area if it doesn't exist
-              let paladinSelectionArea = document.getElementById('paladin_selection_area');
-              if (!paladinSelectionArea) {
-                paladinSelectionArea = document.createElement('div');
-                paladinSelectionArea.id = 'paladin_selection_area';
-                paladinSelectionArea.className = 'paladin_selection_area';
-                actionButtons.appendChild(paladinSelectionArea);
-              }
-              
-              // Create the inner structure
-              paladinSelectionArea.innerHTML = `
-                <div class="paladin_selection_description">
-                  <p>Choose 3 paladin cards from your hand. You can see the available tavern cards below to help inform your decision.</p>
-                </div>
-                
-                <div class="paladin_selection_content">
-                  <div class="paladin_cards_section">
-                    <h4>Your Paladin Cards</h4>
-                    <div class="paladin_selection_positions">
-                      <div class="paladin_position">
-                        <div class="position_label">TOP</div>
-                        <div id="paladin_top_position" class="paladin_position_slot"></div>
-                      </div>
-                      <div class="paladin_position">
-                        <div class="position_label">PICKED</div>
-                        <div id="paladin_middle_position" class="paladin_position_slot"></div>
-                      </div>
-                      <div class="paladin_position">
-                        <div class="position_label">BOTTOM</div>
-                        <div id="paladin_bottom_position" class="paladin_position_slot"></div>
-                      </div>
-                    </div>
-                    <div class="paladin_available_cards">
-                      <h5>Available Cards</h5>
-                      <div id="paladin_cards_inline" class="paladin_cards_container"></div>
-                    </div>
-                  </div>
-                  
-                  <div class="tavern_cards_section">
-                    <h4>Available Tavern Cards</h4>
-                    <div id="tavern_cards_inline" class="tavern_cards_container"></div>
-                  </div>
-                </div>
-                
-                <div class="paladin_selection_actions">
-                  <button class="action_button primary" id="confirm_paladin_selection" onclick="gameui.confirmPaladinSelection()">
-                    Confirm Selection (0/3)
-                  </button>
-                </div>
-              `;
-              
-              console.log("Containers created manually");
-            }
-            
-            this.setupPaladinSelection();
-          }, 500);
-          break;
-
-        case "pickTavern":
-          this.setupTavernSelection();
-          break;
-
-        case "hireInitialTownsfolk":
-          this.setupTownsfolkSelection();
-          break;
-
-        case "playerAction":
-          this.setupActionButtons();
-          this.updateActionButtons();
-          break;
-
-        case "cleanupTaverns":
-          dojo.setStyle("tavernsSelection", "display", "none");
-
-        case "dummmy":
-          break;
-      }
+      
+      // Setup action buttons for actual game actions
+      this.setupActionButtons();
+      
+      // Setup paladin selection area separately
+      this.setupPaladinSelectionArea();
     },
-
-
 
     // onLeavingState: this method is called each time we are leaving a game state.
     //                 You can use this method to perform some user interface changes at this moment.
     //
     onLeavingState: function (stateName) {
-      console.log("Leaving state: " + stateName);
-
+      console.log('Leaving state: ' + stateName);
+      
       switch (stateName) {
         case "pickPaladins":
-          // Hide the old inline selection
-          dojo.setStyle("paladinsSelection", "display", "none");
-          this.uiItems.resetAllSelectable();
-          break;
-        case "playerAction":
-          // Hide action buttons when leaving playerAction state
-          const actionContainer = document.getElementById('action_buttons');
-          if (actionContainer) {
-            dojo.setStyle(actionContainer, 'display', 'none');
+          // Hide paladin selection area when leaving this state
+          const paladinSelectionArea = document.getElementById('paladin_selection_area');
+          if (paladinSelectionArea) {
+            dojo.setStyle(paladinSelectionArea, 'display', 'none');
           }
-          break;
-        case "dummmy":
           break;
       }
     },
@@ -1488,80 +1387,68 @@ define([
     ////////////
 
     setupActionButtons: function() {
-      const actionButtons = [
-        { id: 'pass', text: 'Pass', action: 'onPass' },
-        { id: 'pray', text: 'Pray', action: 'onPray' },
-        { id: 'recruitDiscard', text: 'Recruit (Discard)', action: 'onRecruitDiscard' },
-        { id: 'recruitHire', text: 'Recruit (Hire)', action: 'onRecruitHire' },
-        { id: 'develop', text: 'Develop', action: 'onDevelop' },
-        { id: 'hunt', text: 'Hunt', action: 'onHunt' },
-        { id: 'trade', text: 'Trade', action: 'onTrade' },
-        { id: 'conspire', text: 'Conspire', action: 'onConspire' },
-        { id: 'commission', text: 'Commission', action: 'onCommission' },
-        { id: 'fortify', text: 'Fortify', action: 'onFortify' },
-        { id: 'garrison', text: 'Garrison', action: 'onGarrison' },
-        { id: 'absolve', text: 'Absolve', action: 'onAbsolve' },
-        { id: 'attack', text: 'Attack', action: 'onAttack' },
-        { id: 'convert', text: 'Convert', action: 'onConvert' },
-        { id: 'kingsFavor', text: 'King\'s Favor', action: 'onKingsFavor' }
-      ];
-
       const actionContainer = document.getElementById('action_buttons');
-      if (actionContainer) {
-        // Clear existing content
-        actionContainer.innerHTML = '';
-        
-        // Add header with current player info
+      if (!actionContainer) return;
+
+      const currentState = this.gamedatas.gamestate.name;
+      const isMyTurn = this.isCurrentPlayerActive();
+
+      // Clear existing content
+      actionContainer.innerHTML = '';
+
+      // Only show action buttons during actual game action states (not paladin selection)
+      if (currentState === 'playerAction' && isMyTurn) {
+        // Create header
         const header = document.createElement('div');
         header.className = 'action_buttons_header';
-        
-        const isMyTurn = this.isCurrentPlayerActive();
-        const currentState = this.gamedatas.gamestate.name;
-        
-        // Different header text based on state
-        let headerText;
-        if (currentState === 'pickPaladins') {
-          headerText = 'Select Your Paladins';
-        } else {
-          headerText = isMyTurn ? 'Your Turn - Available Actions' : 'Available Actions';
-        }
-        
-        header.innerHTML = '<h3>' + headerText + '</h3>';
+        header.innerHTML = '<h3>Your Turn - Available Actions</h3>';
         actionContainer.appendChild(header);
-        
-        // Add paladin selection area (will be shown/hidden based on state)
-        const paladinSelectionArea = document.getElementById('paladin_selection_area');
-        if (paladinSelectionArea) {
-          if (currentState === 'pickPaladins' && isMyTurn) {
-            dojo.setStyle(paladinSelectionArea, 'display', 'block');
-            // Add a small delay to ensure DOM is ready and cards are created
-            setTimeout(() => {
-              this.setupPaladinSelection();
-            }, 100);
-          } else {
-            dojo.setStyle(paladinSelectionArea, 'display', 'none');
-          }
-        }
-        
-        // Add buttons container (only show during non-paladin states)
-        if (currentState !== 'pickPaladins') {
-          const buttonsContainer = document.createElement('div');
-          buttonsContainer.className = 'action_buttons_container';
-          actionContainer.appendChild(buttonsContainer);
-          
-          // Show all action buttons during non-paladin states
-          actionButtons.forEach(button => {
-            const btn = document.createElement('button');
-            btn.id = button.id + '_btn';
-            btn.className = 'action_button';
-            btn.innerHTML = button.text;
-            btn.onclick = () => this[button.action]();
-            buttonsContainer.appendChild(btn);
-          });
-        }
-        
+
+        // Add buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'action_buttons_container';
+        actionContainer.appendChild(buttonsContainer);
+
+        // Define action buttons for actual game actions
+        const actionButtons = [
+          { id: 'conspire', text: 'Conspire', action: 'onConspire' },
+          { id: 'garrison', text: 'Garrison', action: 'onGarrison' },
+          { id: 'commission', text: 'Commission', action: 'onCommission' }
+        ];
+
+        // Show all action buttons
+        actionButtons.forEach(button => {
+          const btn = document.createElement('button');
+          btn.id = button.id + '_btn';
+          btn.className = 'action_button';
+          btn.innerHTML = button.text;
+          btn.onclick = () => this[button.action]();
+          buttonsContainer.appendChild(btn);
+        });
+
         // Show action buttons area
         dojo.setStyle(actionContainer, 'display', 'block');
+      } else {
+        // Hide action buttons area during non-action states
+        dojo.setStyle(actionContainer, 'display', 'none');
+      }
+    },
+
+    setupPaladinSelectionArea: function() {
+      const paladinSelectionArea = document.getElementById('paladin_selection_area');
+      if (!paladinSelectionArea) return;
+
+      const currentState = this.gamedatas.gamestate.name;
+      const isMyTurn = this.isCurrentPlayerActive();
+
+      if (currentState === 'pickPaladins' && isMyTurn) {
+        dojo.setStyle(paladinSelectionArea, 'display', 'block');
+        // Add a small delay to ensure DOM is ready and cards are created
+        setTimeout(() => {
+          this.setupPaladinSelection();
+        }, 500);
+      } else {
+        dojo.setStyle(paladinSelectionArea, 'display', 'none');
       }
     },
 

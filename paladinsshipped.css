@@ -545,19 +545,11 @@
 
 /* Action Buttons */
 #action_buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 248, 255, 0.95));
-  border-radius: 12px;
-  margin: 15px 0 25px 0;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 2px solid rgba(74, 144, 226, 0.3);
-  position: sticky;
-  top: 10px;
-  z-index: 100;
+  text-align: center;
+  margin: 20px 0;
+  background: transparent;
+  padding: 15px;
+  border-radius: 8px;
 }
 
 .action_buttons_header {
@@ -999,10 +991,12 @@
 .paladin_selection_area {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 248, 255, 0.95));
   border-radius: 12px;
-  margin: 15px 0 25px 0;
+  margin: 15px auto 25px auto;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 2px solid rgba(74, 144, 226, 0.3);
+  width: 75%;
+  max-width: 1200px;
 }
 
 .paladin_selection_description {
