@@ -847,6 +847,17 @@ class PaladinsShipped extends Table
                 "tavern_name" => $tavern_name,
             ]
         );
+        
+        // Update the tavern display data for all clients
+        $remaining_tavern_cards = $this->deck->getCardsInLocation('tavern_display');
+        self::notifyAllPlayers(
+            "tavernDisplayUpdated",
+            clienttranslate('Tavern display updated'),
+            [
+                "tavern_display" => $remaining_tavern_cards
+            ]
+        );
+        
         $this->gamestate->nextState("");
     }
 

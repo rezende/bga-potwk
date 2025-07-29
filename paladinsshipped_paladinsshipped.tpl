@@ -43,6 +43,19 @@
     </div>
   </div>
 
+  <!-- Tavern Selection Modal -->
+  <div id="tavern_selection_modal" class="tavern_selection_modal" style="display: none;">
+    <div class="tavern_selection_content">
+      <div class="tavern_selection_header">
+        <h3>Select Your Tavern Card</h3>
+      </div>
+      
+      <div class="tavern_selection_body">
+        <div id="tavern_selection_cards" class="tavern_selection_cards_container"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Action Buttons Container - Only for actual game actions -->
   <div id="action_buttons">
   </div>
