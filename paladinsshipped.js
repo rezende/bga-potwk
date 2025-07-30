@@ -711,27 +711,19 @@ define([
       console.log("=== CREATING ABSOLVE JAR TOKENS ===");
       
       // Define the absolve jar types (these correspond to the order_index values)
-      const jarTypes = [0,1,2,3,4,5,6]; // Based on your jars array
-      
       for (const playerId in this.gamedatas.players) {
-        console.log(`Creating absolve jars for player ${playerId}`);
-        
-        jarTypes.forEach((orderIndex, arrayIndex) => {
-          const uiType = "absolve_jar_uiitem";
-          const params = {
-            id: `absolve_jar_${orderIndex}_${playerId}`,
-            type: "absolve_jar",
-            type_arg: orderIndex,
-            location: "playerboard",
-            location_arg: playerId,
-            order_index: orderIndex,
-            player_id: playerId
-          };
-          
-          console.log(`Creating absolve jar ${orderIndex} for player ${playerId}:`, params);
-          const createdItem = this.uiItems.createAndAddItem(uiType, params);
-          console.log(`Created item:`, createdItem);
-        });
+        for (let i = 0; i < 8; i++) {
+            const params = {
+              id: `absolve_jar_${i}_${playerId}`,
+              type: "absolve_jar",
+              type_arg: i,
+              location: "playerboard",
+              location_arg: playerId,
+              order_index: i,
+              player_id: playerId
+            };
+            this.uiItems.createAndAddItem("absolve_jar_uiitem", params);
+        }
       }
     },
 
