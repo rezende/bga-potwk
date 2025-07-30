@@ -193,11 +193,11 @@
 
 #boardLeft {
   position: relative;
-  width: 733px; /* Original size */
-  height: 180px; /* Original size */
+  width: 1109px; /* Figma size */
+  height: 272px; /* Figma size */
   background-image: url("img/main_board_1.png");
-  background-size: 733px 180px;
-  margin-top: 167px; /* Original margins */
+  background-size: 1109px 272px;
+  margin-top: 243px; /* Changed margin for original board */
   margin-bottom: 167px; /* Original margins */
 }
 
@@ -338,14 +338,13 @@
 }
 
 #wall_deck {
-  display: flex;
-  position: relative;
-  top: -196px;
-  left: 648px;
+  position: absolute;
+  top: -160px; 
+  left: 986px;
 }
 
 #wall_deck .wall_card {
-  transform: scale(0.59);
+  transform: scale(0.8);
 }
 
 .townsfolk_box {
@@ -354,10 +353,11 @@
 }
 
 #townsfolk_cards {
-  position: relative;
-  width: 50%;
-  left: 59px; /* Moved further right to restore original position */
-  top: -140px; /* Original positioning */
+  position: absolute;
+  /* TODO: Replace with actual Figma coordinates */
+  left: 27px; /* Figma coordinate - replace with actual value */
+  top: 0px; /* Figma coordinate - replace with actual value */
+  width: 690px; /* Figma coordinate - replace with actual value */
   display: flex;
   gap: 40px; /* Increased gap between cards */
   align-items: flex-start;
@@ -373,12 +373,42 @@
   align-items: flex-start;
 }
 
+#townsfolk_spot_0 {
+  position: absolute;
+  left: 50px;
+  top: -210px;
+}
+
+#townsfolk_spot_1 {
+  position: absolute;
+  left: 230px;
+  top: -210px;
+}
+
+#townsfolk_spot_2 {
+  position: absolute;
+  left: 410px;
+  top: -210px;
+}
+
+#townsfolk_spot_3 {
+  position: absolute;
+  left: 590px;
+  top: -210px;
+}
+
+#townsfolk_spot_4 {
+  position: absolute;
+  left: 770px;
+  top: -210px;
+}
+
 /* Individual spot positioning is now handled by flexbox */
 
 #townsfolk_cards .townsfolk {
   width: 94px; /* Original card width */
   height: 145px; /* 250px * 0.58 */
-  transform: scale(0.58); /* Scale down to fit 94px width (94/153 ≈ 0.61) */
+  transform: scale(0.8);
   transform-origin: top left;
   position: relative;
 }
@@ -394,13 +424,13 @@
 }
 
 #kingsorder_cards {
-  display: none;
-  /* display: flex; */
+  display: flex;
   gap: 15px;
-  width: 50%;
-  left: 11px;
-  position: relative;
-  top: -340px;
+  position: absolute;
+  /* TODO: Replace with actual Figma coordinates */
+  left: 20px; /* Figma coordinate - replace with actual value */
+  top: 284px; /* Figma coordinate - replace with actual value */
+  width: 321px; /* Figma coordinate - replace with actual value */
 }
 
 #kingsorder_cards .kingsorder_card {
@@ -412,13 +442,13 @@
 }
 
 #kingsfavour_cards {
-  display: none;
-  /* display: flex; */
+  display: flex;
   gap: 15px;
-  width: 50%;
-  left: 282px;
-  position: relative;
-  top: -420px;
+  position: absolute;
+  /* TODO: Replace with actual Figma coordinates */
+  left: 575px; /* Figma coordinate - replace with actual value */
+  top: 284px; /* Figma coordinate - replace with actual value */
+  width: 321px; /* Figma coordinate - replace with actual value */
 }
 
 #kingsfavour_cards .kingsfavour_card {

@@ -123,7 +123,7 @@ $machinestates = array(
             "absolve",
             "attack",
             "convert",
-            "kingsFavor"
+            "kingsFavour"
         ),
         "transitions" => array("nextPlayer" => 12, "endOfRound" => 5, "inquisition" => 9, "selectBoardPosition" => 14)
     ),

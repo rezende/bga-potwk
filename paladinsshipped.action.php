@@ -221,12 +221,12 @@ class action_paladinsshipped extends APP_GameAction
         self::ajaxResponse();
     }
 
-    public function kingsFavor()
+    public function kingsFavour()
     {
         self::setAjaxMode();
         $worker_id = self::getArg("worker_id", AT_int, true);
-        $kings_favor_id = self::getArg("kings_favor_id", AT_int, true);
-        $this->game->kingsFavor($worker_id, $kings_favor_id);
+        $kings_favour_id = self::getArg("kings_favour_id", AT_int, true);
+        $this->game->kingsFavour($worker_id, $kings_favour_id);
         self::ajaxResponse();
     }
 

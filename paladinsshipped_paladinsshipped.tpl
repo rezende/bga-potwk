@@ -43,19 +43,6 @@
     </div>
   </div>
 
-  <!-- Tavern Selection Modal -->
-  <div id="tavern_selection_modal" class="tavern_selection_modal" style="display: none;">
-    <div class="tavern_selection_content">
-      <div class="tavern_selection_header">
-        <h3>Select Your Tavern Card</h3>
-      </div>
-      
-      <div class="tavern_selection_body">
-        <div id="tavern_selection_cards" class="tavern_selection_cards_container"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- Action Buttons Container - Only for actual game actions -->
   <div id="action_buttons">
   </div>
@@ -96,8 +83,18 @@
           <div id="townsfolk_spot_4" class="townsfolk_spot"></div>
         </div>
         <div id="wall_deck"></div>
-        <div id="kingsorder_cards"></div>
-        <div id="kingsfavour_cards"></div>
+        <div id="kingsorder_cards">
+          <div id="kingsorder_spot_0"></div>
+          <div id="kingsorder_spot_1"></div>
+          <div id="kingsorder_spot_2"></div>
+        </div>
+        <div id="kingsfavour_cards">
+          <div id="kingsfavour_spot_0"></div>
+          <div id="kingsfavour_spot_1"></div>
+          <div id="kingsfavour_spot_2"></div>
+          <div id="kingsfavour_spot_3"></div>
+          <div id="kingsfavour_spot_4"></div>
+        </div>
       </div>
     </div>
 

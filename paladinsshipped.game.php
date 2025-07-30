@@ -2167,18 +2167,18 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function kingsFavor($worker_id, $kings_favor_id)
+    public function kingsFavour($worker_id, $kings_favour_id)
     {
-        self::checkAction('kingsFavor');
+        self::checkAction('kingsFavour');
         $player_id = self::getCurrentPlayerId();
         
-        // Validate worker and kings favor card
+        // Validate worker and kings favour card
         // TODO: Add validation logic
         
-        // Use kings favor and gain rewards
-        // TODO: Implement kings favor logic
+        // Use kings favour and gain rewards
+        // TODO: Implement kings favour logic
         
-        self::notifyAllPlayers('kingsFavor', clienttranslate('${player_name} uses a King\'s Favor'), [
+        self::notifyAllPlayers('kingsFavour', clienttranslate('${player_name} uses a King\'s Favour'), [
             'player_name' => self::getCurrentPlayerName(),
             'player_id' => $player_id
         ]);

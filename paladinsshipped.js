@@ -816,10 +816,8 @@ define([
       if (parentContainer != null) {
         // Special handling for player townsfolk cards
         if (uiItem.uiType == "townsfolk_uiitem" && uiItem.data.location == "playerboard_cards") {
-
           
           const playerboardCardsElement = document.getElementById(parentContainer);
-          
           
           if (playerboardCardsElement) {
             dojo.place(uiItem.htmlNode, playerboardCardsElement);
@@ -829,20 +827,18 @@ define([
             // Ensure the card is visible
             dojo.setStyle(uiItem.htmlNode, 'display', 'block');
             dojo.setStyle(uiItem.htmlNode, 'position', 'relative');
-            
-            
-          } else {
-          }
-        } else if (uiItem.uiType == "townsfolk_uiitem" && parentContainer.startsWith("townsfolk_spot_")) {
-          // Special handling for display townsfolk cards - place in specific spots
-
+          } 
+        } else if (
+          uiItem.uiType == "townsfolk_uiitem" && parentContainer.startsWith("townsfolk_spot_") ||
+          uiItem.uiType == "kingsorder_card" && parentContainer.startsWith("kingsorder_spot_") ||
+          uiItem.uiType == "kingsfavour_card" && parentContainer.startsWith("kingsfavour_spot_")
+        ) {
           const spotElement = document.getElementById(parentContainer);
           if (spotElement) {
             dojo.place(uiItem.htmlNode, spotElement);
-            
-          } else {
-          }
-        } else {
+          } 
+        } 
+        else {
           dojo.place(uiItem.htmlNode, parentContainer);
         }
         this.positionUiItem(uiItem);
@@ -858,7 +854,6 @@ define([
       if (uiItem.uiType == "townsfolk_uiitem") {
         if (uiItem.data.location == "playerboard_cards") {
           containerName = "playerboard_cards_" + uiItem.data.location_arg;
-  
         } else {
           // Place cards in their specific spots based on location_arg (position in display)
           containerName = "townsfolk_spot_" + uiItem.data.location_arg;
@@ -874,10 +869,10 @@ define([
         containerName = "wall_deck";
       }
       if (uiItem.uiType == "kingsorder_card") {
-        containerName = "kingsorder_cards";
+        containerName = "kingsorder_spot_" + uiItem.data.location_arg;
       }
       if (uiItem.uiType == "kingsfavour_card") {
-        containerName = "kingsfavour_cards";
+        containerName = "kingsfavour_spot_" + uiItem.data.location_arg;
       }
       return containerName;
     },
@@ -1236,8 +1231,8 @@ define([
       this.showWorkerSelectionMenu('convert', { outsider_card_id: null });
     },
 
-    onKingsFavor: function() {
-      this.showWorkerSelectionMenu('kingsFavor', { kings_favor_id: null });
+    onKingsFavour: function() {
+      this.showWorkerSelectionMenu('kingsFavour', { kings_favour_id: null });
     },
 
 
@@ -1760,8 +1755,8 @@ define([
       // Update UI to show conversion
     },
 
-    notif_kingsFavor: function(notif) {
-      // Update UI to show King's Favor use
+    notif_kingsFavour: function(notif) {
+      // Update UI to show King's Favour use
     },
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1800,7 +1795,7 @@ define([
         'absolve': { workers: 3, specific: ['black_worker', 'blue_worker'] },
         'attack': { workers: 3, specific: ['green_worker', 'red_worker'] },
         'convert': { workers: 3, specific: ['red_worker', 'black_worker'] },
-        'kingsFavor': { workers: 1, specific: [] }
+        'kingsFavour': { workers: 1, specific: [] }
       };
 
       return requirements[actionType] || { workers: 0, specific: [] };
@@ -1975,7 +1970,7 @@ define([
         'absolve': () => this.ajaxcall('/paladinsshipped/paladinsshipped/absolve.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, jar_position: params.jar_position }, this, function(result) {}, function(is_error) {}),
         'attack': () => this.ajaxcall('/paladinsshipped/paladinsshipped/attack.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, outsider_card_id: params.outsider_card_id, silver_cost: params.silver_cost }, this, function(result) {}, function(is_error) {}),
         'convert': () => this.ajaxcall('/paladinsshipped/paladinsshipped/convert.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, outsider_card_id: params.outsider_card_id }, this, function(result) {}, function(is_error) {}),
-        'kingsFavor': () => this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavor.html', { worker_id: params.worker1_id, kings_favor_id: params.kings_favor_id }, this, function(result) {}, function(is_error) {})
+        'kingsFavour': () => this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavour.html', { worker_id: params.worker1_id, kings_favour_id: params.kings_favour_id }, this, function(result) {}, function(is_error) {})
       };
 
       // Execute the action
@@ -2403,38 +2398,55 @@ define([
         }
         
         console.log("Card element found:", cardElement);
-        console.log("Current card position:", dojo.position(cardElement));
         
-        // Calculate new position (assuming cards are 125px wide with 5px margin)
-        const cardWidth = 125;
-        const margin = 5;
-        const newLeft = newPosition * (cardWidth + margin);
+        // Get the target container for the new position
+        const targetContainer = document.getElementById("townsfolk_spot_" + newPosition);
+        if (!targetContainer) {
+          console.error(`Target container not found: townsfolk_spot_${newPosition}`);
+          resolve();
+          return;
+        }
         
-        console.log(`Calculated new left position: ${newLeft}px`);
-        console.log(`Card width: ${cardWidth}px, margin: ${margin}px`);
-        
-        // Make sure the card is visible and positioned
-        dojo.setStyle(cardElement, "display", "block");
-        dojo.setStyle(cardElement, "position", "absolute");
-        
-        // Get current position to ensure smooth animation
+        // Get current position for smooth animation
         const currentPos = dojo.position(cardElement);
-        const currentLeft = currentPos.x;
+        const targetPos = dojo.position(targetContainer);
         
-        console.log(`Current left position: ${currentLeft}px, Target left position: ${newLeft}px`);
+        console.log(`Current position: x=${currentPos.x}, y=${currentPos.y}`);
+        console.log(`Target position: x=${targetPos.x}, y=${targetPos.y}`);
         
-        // Set a longer, smoother transition
-        dojo.setStyle(cardElement, "transition", "left 1.5s ease-out");
+        // Calculate the distance to move
+        const deltaX = targetPos.x - currentPos.x;
+        const deltaY = targetPos.y - currentPos.y;
         
-        // Animate the card to its new position
-        console.log("Starting animation...");
-        dojo.setStyle(cardElement, "left", newLeft + "px");
+        console.log(`Moving card by: deltaX=${deltaX}px, deltaY=${deltaY}px`);
+        
+        // Set up the card for smooth animation
+        dojo.setStyle(cardElement, "position", "absolute");
+        dojo.setStyle(cardElement, "z-index", "1000");
+        dojo.setStyle(cardElement, "transition", "transform 1.5s ease-out");
+        
+        // Animate the card using transform
+        dojo.setStyle(cardElement, "transform", `translate(${deltaX}px, ${deltaY}px) scale(0.58)`);
         
         // Update the card's data
         card.data.location_arg = newPosition;
         
-        console.log("Animation started, resolving in 1500ms");
-        setTimeout(resolve, 1500); // Match the transition duration
+        // After animation completes, move the card to the correct container
+        setTimeout(() => {
+          console.log(`Animation completed, moving card to container townsfolk_spot_${newPosition}`);
+          
+          // Reset the card's position and move it to the target container
+          dojo.setStyle(cardElement, "position", "relative");
+          dojo.setStyle(cardElement, "transform", "scale(0.58)");
+          dojo.setStyle(cardElement, "z-index", "auto");
+          dojo.setStyle(cardElement, "transition", "none");
+          
+          // Move the card to the target container
+          targetContainer.appendChild(cardElement);
+          
+          console.log(`Card successfully moved to position ${newPosition}`);
+          resolve();
+        }, 1500); // Match the transition duration
       });
     },
 
@@ -2520,38 +2532,38 @@ define([
       const cardElement = newCard.htmlNode;
       console.log("New card element:", cardElement);
       
-      // Position the card off-screen to the right initially
-      dojo.setStyle(cardElement, "position", "absolute");
-      dojo.setStyle(cardElement, "left", "800px"); // Start off-screen
-      dojo.setStyle(cardElement, "opacity", "0");
-      dojo.setStyle(cardElement, "transition", "left 0.5s ease-out, opacity 0.5s ease-out");
-      
-      // Add the card to the display container
+      // Get the target container
       const displayContainer = document.getElementById("townsfolk_spot_" + position);
-      if (displayContainer) {
-        console.log(`Adding card to container: townsfolk_spot_${position}`);
-        displayContainer.appendChild(cardElement);
-        
-        // Animate the card sliding in from the right
-        setTimeout(() => {
-          console.log(`Animating card ${cardData.id} to position ${position}`);
-          const cardWidth = 125;
-          const margin = 5;
-          const finalLeft = position * (cardWidth + margin);
-          
-          dojo.setStyle(cardElement, "left", finalLeft + "px");
-          dojo.setStyle(cardElement, "opacity", "1");
-          
-          // Call the completion callback after the animation finishes
-          setTimeout(() => {
-            console.log(`Card ${cardData.id} animation finished`);
-            if (onComplete) onComplete();
-          }, 500); // Match the transition duration
-        }, position * 100); // Stagger the animations
-      } else {
+      if (!displayContainer) {
         console.error(`Display container not found: townsfolk_spot_${position}`);
         if (onComplete) onComplete();
+        return;
       }
+      
+      console.log(`Adding card to container: townsfolk_spot_${position}`);
+      
+      // Set up the card for animation
+      dojo.setStyle(cardElement, "position", "relative");
+      dojo.setStyle(cardElement, "transform", "scale(0.58)");
+      dojo.setStyle(cardElement, "opacity", "0");
+      dojo.setStyle(cardElement, "transition", "opacity 0.5s ease-out");
+      
+      // Add the card to the display container
+      displayContainer.appendChild(cardElement);
+      
+      // Animate the card fading in
+      setTimeout(() => {
+        console.log(`Animating card ${cardData.id} to position ${position}`);
+        
+        // Fade in the card
+        dojo.setStyle(cardElement, "opacity", "1");
+        
+        // Call the completion callback after the animation finishes
+        setTimeout(() => {
+          console.log(`Card ${cardData.id} animation finished`);
+          if (onComplete) onComplete();
+        }, 500); // Match the transition duration
+      }, position * 100); // Stagger the animations
     },
 
     // Track selected tavern cards to prevent them from reappearing
