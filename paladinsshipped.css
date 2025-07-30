@@ -324,7 +324,6 @@
   min-height: 198px;
   border-radius: 15px;
   background: url("img/sprite_kingsorders.png");
-  background-color: white;
   transform-origin: 0px 0px;
 }
 
@@ -333,7 +332,6 @@
   min-height: 198px;
   border-radius: 15px;
   background: url("img/sprite_kingsfavours.png");
-  background-color: white;
   transform-origin: 0px 0px;
 }
 
@@ -424,39 +422,111 @@
 }
 
 #kingsorder_cards {
-  display: flex;
-  gap: 15px;
   position: absolute;
-  /* TODO: Replace with actual Figma coordinates */
-  left: 20px; /* Figma coordinate - replace with actual value */
-  top: 284px; /* Figma coordinate - replace with actual value */
-  width: 321px; /* Figma coordinate - replace with actual value */
+  /* Figma coordinates from CSV */
+  left: 20px; /* -488 - (-508) = 20px */
+  top: 69px; /* -48 - (-117) = 69px */
+  width: 321px; /* 3 cards * 107px width */
+  /* Removed flexbox since individual spots are absolutely positioned */
 }
 
 #kingsorder_cards .kingsorder_card {
-  transform: scale(0.58);
+  transform: scale(0.85);
   transform-origin: top left;
   margin-right: -52px;
   margin-bottom: -108px;
   position: relative;
 }
 
-#kingsfavour_cards {
-  display: flex;
-  gap: 15px;
+/* Individual kings order spot positioning from CSV */
+#kingsorder_spot_0 {
   position: absolute;
-  /* TODO: Replace with actual Figma coordinates */
-  left: 575px; /* Figma coordinate - replace with actual value */
-  top: 284px; /* Figma coordinate - replace with actual value */
-  width: 321px; /* Figma coordinate - replace with actual value */
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 0px; /* -488 - (-508) = 20px, but container is at 20px */
+  top: 0px;
+  /* Debug: make spots visible */
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+#kingsorder_spot_1 {
+  position: absolute;
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 136px; /* -352 - (-488) = 136px */
+  top: 0px;
+  /* Debug: make spots visible */
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+#kingsorder_spot_2 {
+  position: absolute;
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 272px; /* -216 - (-488) = 272px */
+  top: 0px;
+  /* Debug: make spots visible */
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+#kingsfavour_cards {
+  position: absolute;
+  /* Figma coordinates from CSV */
+  left: 428px; /* -80 - (-508) = 428px */
+  top: 69px; /* -48 - (-117) = 69px */
+  width: 749px; /* 7 cards * 107px width */
+  /* Removed flexbox since individual spots are absolutely positioned */
 }
 
 #kingsfavour_cards .kingsfavour_card {
-  transform: scale(0.58);
+  transform: scale(0.85);
   transform-origin: top left;
   margin-right: -52px;
   position: relative;
 }
+
+/* Individual kings favour spot positioning from CSV */
+#kingsfavour_spot_0 {
+  position: absolute;
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 0px; /* -80 - (-80) = 0px */
+  top: 0px;
+}
+
+#kingsfavour_spot_1 {
+  position: absolute;
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 147px; /* 67 - (-80) = 147px */
+  top: 0px;
+}
+
+#kingsfavour_spot_2 {
+  position: absolute;
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 283px; /* 203 - (-80) = 283px */
+  top: 0px;
+}
+
+#kingsfavour_spot_3 {
+  position: absolute;
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 419px; /* 339 - (-80) = 419px */
+  top: 0px;
+}
+
+#kingsfavour_spot_4 {
+  position: absolute;
+  width: 107px; /* From CSV */
+  height: 171px; /* From CSV */
+  left: 555px; /* 475 - (-80) = 555px */
+  top: 0px;
+}
+
+
 
 /*maiboard top end*/
 /*mainboard middle start*/
@@ -1387,3 +1457,137 @@
   justify-content: center;
   align-items: center;
 }
+
+/* Absolve Jars Styling */
+.absolve_jars {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  margin: 10px;
+  /* Debug: make container visible */
+  border: 2px solid green;
+  background-color: rgba(0, 255, 0, 0.2);
+}
+
+.absolve_jar {
+  width: 189px;
+  height: 189px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-image: url("img/sprite_wooden_components.png");
+}
+
+.absolve_jar.used {
+  display: none;
+}
+
+/* Add labels to show which container is which */
+.absolve_jar_0::before {
+  content: "0";
+  position: absolute;
+  top: 419px;
+  left: 548px;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.absolve_jar_1::before {
+  content: "1";
+  position: absolute;
+  top: 419px;
+  left: 581px;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.absolve_jar_2::before {
+  content: "2";
+  position: absolute;
+  top: 419px;
+  left: 581px;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.absolve_jar_3::before {
+  content: "3";
+  position: absolute;
+  top: 419px;
+  left: 648px;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.absolve_jar_4::before {
+  content: "4";
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.absolve_jar_5::before {
+  content: "5";
+  position: absolute;
+  top: 419px;
+  left: 714px;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.absolve_jar_6::before {
+  content: "6";
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+

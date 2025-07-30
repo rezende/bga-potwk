@@ -153,7 +153,16 @@
         </div>
         
         <div class="playerboard_box_middle">
-          <div class="playerboard_box"></div>
+          <div class="playerboard_box">
+            <div class="absolve_jars">
+              <div id="absolve_jar_0_{PLAYER_ID}" class="absolve_jar_0"></div>
+              <div id="absolve_jar_1_{PLAYER_ID}" class="absolve_jar_1"></div>
+              <div id="absolve_jar_2_{PLAYER_ID}" class="absolve_jar_2"></div>
+              <div id="absolve_jar_3_{PLAYER_ID}" class="absolve_jar_3"></div>
+              <div id="absolve_jar_4_{PLAYER_ID}" class="absolve_jar_4"></div>
+              <div id="absolve_jar_5_{PLAYER_ID}" class="absolve_jar_5"></div>
+            </div>
+          </div>
           <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>
         </div>
       </div>

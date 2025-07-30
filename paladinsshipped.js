@@ -57,6 +57,7 @@ define([
         wall_card: { cssClass: "wall_card" },
         kingsorder_card: { cssClass: "kingsorder_card" },
         kingsfavour_card: { cssClass: "kingsfavour_card" },
+        absolve_jar_uiitem: { cssClass: "absolve_jar" },
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -102,6 +103,14 @@ define([
           height: 198,
           type_property: "type_arg",
         },
+        absolve_jar_uiitem: {
+          one_row: true,
+          items_per_row: 7,
+          width: 168,
+          start_x: -41,
+          start_y: 257,
+          type_property: "order_index",
+        },
       };
 
       this.uiItems.getByUiType = function (uiType) {
@@ -117,19 +126,114 @@ define([
       };
 
       this.uiItems.getBackgroundPosition = function (uiType, typeArg) {
-        var background = { x: 0, y: 0 };
-        background.x =
+        var background = { 
+          x: this.itemBackgroundConfig[uiType]?.["start_x"] || 0,
+          y: this.itemBackgroundConfig[uiType]?.["start_y"] || 0
+        };
+        if (uiType === "absolve_jar_uiitem") {
+          console.log("==JAR==", this.itemBackgroundConfig[uiType], typeArg);
+        }
+        background.x +=
           (typeArg % this.itemBackgroundConfig[uiType].items_per_row) *
           -1 *
           this.itemBackgroundConfig[uiType]["width"];
-        background.y =
-          Math.floor(
-            typeArg / this.itemBackgroundConfig[uiType].items_per_row,
-          ) *
-          -1 *
-          this.itemBackgroundConfig[uiType]["height"];
+        if (!this.itemBackgroundConfig[uiType]?.one_row) {
+          background.y +=
+            Math.floor(
+              typeArg / this.itemBackgroundConfig[uiType].items_per_row,
+            ) *
+            -1 *
+            this.itemBackgroundConfig[uiType]["height"];
+        }
+        if (uiType === "absolve_jar_uiitem") {
+          console.log("JAR BACKGROUND", background);
+        }
         return background;
       };
+
+      /*
+      this.uiItems.getBackgroundPositionForToken = function (uiItem) {
+        var background = { x: 0, y: 0 };
+        switch (uiItem.name) {
+          case "white_worker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "green_worker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "blue_worker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "black_worker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "red_worker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "purple_worker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "influence_marker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "faith_marker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "strength_marker":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "development_house":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "monk":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "fort":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "absolve_0":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "absolve_1":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "absolve_3":
+            background.x = 0;
+            background.y = 0;
+          case "absolve_5":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "absolve_7":
+            background.x = 0;
+            background.y = 0;
+            break;o
+          case "absolve_8":
+            background.x = 0;
+            background.y = 0;
+            break;
+          case "absolve_9":
+            background.x = 0;
+            background.y = 0;
+            break;
+        }
+        return background;
+      };
+      */
 
       this.uiItems.getBackgroundPositionForUiItem = function (uiItem) {
         var background = { x: 0, y: 0 };
@@ -313,6 +417,8 @@ define([
         this.kingsfavour_display = gamedatas.kingsfavour_display;
         this.attachFunctionsToUiItems();
         
+        this.createTokens();
+        this.drawUi(); // Ensure all UI items are drawn after creating tokens
         // this.uiItems.createItems(
         //   "outsider",
         //   this.getValuesFromObject(this.outsider_display)
@@ -332,12 +438,19 @@ define([
         }
         // TODO: so far, it only creates the deck background, not the cards
         this.setupWallCards(this.getValuesFromObject(this.wall_cards));
-        this.setupKingsOrderCards(
-          this.getValuesFromObject(this.kingsorder_display),
-        );
-        this.setupKingsFavourCards(
-          this.getValuesFromObject(this.kingsfavour_display),
-        );
+        
+        console.log("=== SETUP KINGS CARDS FROM GAMEDATAS ===");
+        console.log("kingsorder_display from gamedatas:", this.kingsorder_display);
+        console.log("kingsfavour_display from gamedatas:", this.kingsfavour_display);
+        
+        const kingsOrderCards = this.getValuesFromObject(this.kingsorder_display);
+        const kingsFavourCards = this.getValuesFromObject(this.kingsfavour_display);
+        
+        console.log("kingsOrderCards after getValuesFromObject:", kingsOrderCards);
+        console.log("kingsFavourCards after getValuesFromObject:", kingsFavourCards);
+        
+        this.setupKingsOrderCards(kingsOrderCards);
+        this.setupKingsFavourCards(kingsFavourCards);
         this.setupNotifications();
         this.setupActionButtons();
         this.updateActionButtons(); // Ensure action buttons are properly hidden/shown based on initial state
@@ -594,6 +707,34 @@ define([
       }
     },
 
+    createTokens: function () {
+      console.log("=== CREATING ABSOLVE JAR TOKENS ===");
+      
+      // Define the absolve jar types (these correspond to the order_index values)
+      const jarTypes = [0,1,2,3,4,5,6]; // Based on your jars array
+      
+      for (const playerId in this.gamedatas.players) {
+        console.log(`Creating absolve jars for player ${playerId}`);
+        
+        jarTypes.forEach((orderIndex, arrayIndex) => {
+          const uiType = "absolve_jar_uiitem";
+          const params = {
+            id: `absolve_jar_${orderIndex}_${playerId}`,
+            type: "absolve_jar",
+            type_arg: orderIndex,
+            location: "playerboard",
+            location_arg: playerId,
+            order_index: orderIndex,
+            player_id: playerId
+          };
+          
+          console.log(`Creating absolve jar ${orderIndex} for player ${playerId}:`, params);
+          const createdItem = this.uiItems.createAndAddItem(uiType, params);
+          console.log(`Created item:`, createdItem);
+        });
+      }
+    },
+
     createPaladinUiItems: function (cards) {
       for (var cardId in cards) {
         const card = cards[cardId];
@@ -607,7 +748,6 @@ define([
     },
 
     createAllPlayersTownsfolkUiItems: function (allPlayersCards) {
-      
       for (var playerId in allPlayersCards) {
         const playerCards = allPlayersCards[playerId];
         
@@ -630,27 +770,87 @@ define([
     },
 
     setupKingsOrderCards: function (cards) {
+      console.log("=== SETUP KINGS ORDER CARDS ===");
+      console.log("Cards data:", cards);
+      console.log("Cards length:", cards.length);
+      
       /*
         There will always be 3 king's order cards.
         If there are less than 3 cards, the missing cards are replaced by a background card.
       */
-      const deckBackground = { type: 6, type_arg: 6 };
-      const uiItems = Array(3)
-        .fill(deckBackground)
-        .map((background, i) => cards[i] || background);
-      this.uiItems.createItems("kingsorder_card", uiItems);
+      const uiItems = Array(3).fill(null).map((_, i) => {
+        if (cards[i]) {
+          return cards[i];
+        } else {
+          // Create background card with location_arg
+          return { 
+            type: 6, 
+            type_arg: 6, 
+            location_arg: i,
+            id: `background_kingsorder_${i}`
+          };
+        }
+      });
+      
+      console.log("UI items to create:", uiItems);
+      console.log("UI items length:", uiItems.length);
+      
+      const createdItems = this.uiItems.createItems("kingsorder_card", uiItems);
+      console.log("Created kings order items:", createdItems);
+      
+      // Check if items were placed correctly
+      setTimeout(() => {
+        const kingsOrderItems = this.uiItems.getByUiType("kingsorder_card");
+        console.log("All kings order items after creation:", kingsOrderItems);
+        kingsOrderItems.forEach((item, index) => {
+          console.log(`Kings order item ${index}:`, item);
+          console.log(`  - Data:`, item.data);
+          console.log(`  - HTML node:`, item.htmlNode);
+          console.log(`  - Parent:`, item.htmlNode?.parentNode);
+        });
+      }, 100);
     },
 
     setupKingsFavourCards: function (cards) {
+      console.log("=== SETUP KINGS FAVOUR CARDS ===");
+      console.log("Cards data:", cards);
+      console.log("Cards length:", cards.length);
+      
       /*
         There will always be 5 king's favour cards.
         If there are less than 5 cards, the missing cards are replaced by a background card.
       */
-      const deckBackground = { type: 10, type_arg: 10 };
-      const uiItems = Array(5)
-        .fill(deckBackground)
-        .map((background, i) => cards[i] || background);
-      this.uiItems.createItems("kingsfavour_card", uiItems);
+      const uiItems = Array(5).fill(null).map((_, i) => {
+        if (cards[i]) {
+          return cards[i];
+        } else {
+          // Create background card with location_arg
+          return { 
+            type: 10, 
+            type_arg: 10, 
+            location_arg: i,
+            id: `background_kingsfavour_${i}`
+          };
+        }
+      });
+      
+      console.log("UI items to create:", uiItems);
+      console.log("UI items length:", uiItems.length);
+      
+      const createdItems = this.uiItems.createItems("kingsfavour_card", uiItems);
+      console.log("Created kings favour items:", createdItems);
+      
+      // Check if items were placed correctly
+      setTimeout(() => {
+        const kingsFavourItems = this.uiItems.getByUiType("kingsfavour_card");
+        console.log("All kings favour items after creation:", kingsFavourItems);
+        kingsFavourItems.forEach((item, index) => {
+          console.log(`Kings favour item ${index}:`, item);
+          console.log(`  - Data:`, item.data);
+          console.log(`  - HTML node:`, item.htmlNode);
+          console.log(`  - Parent:`, item.htmlNode?.parentNode);
+        });
+      }, 100);
     },
 
     // State functions
@@ -831,7 +1031,8 @@ define([
         } else if (
           uiItem.uiType == "townsfolk_uiitem" && parentContainer.startsWith("townsfolk_spot_") ||
           uiItem.uiType == "kingsorder_card" && parentContainer.startsWith("kingsorder_spot_") ||
-          uiItem.uiType == "kingsfavour_card" && parentContainer.startsWith("kingsfavour_spot_")
+          uiItem.uiType == "kingsfavour_card" && parentContainer.startsWith("kingsfavour_spot_") ||
+          uiItem.uiType == "absolve_jar_uiitem" && parentContainer.startsWith("absolve_jar_")
         ) {
           const spotElement = document.getElementById(parentContainer);
           if (spotElement) {
@@ -870,9 +1071,14 @@ define([
       }
       if (uiItem.uiType == "kingsorder_card") {
         containerName = "kingsorder_spot_" + uiItem.data.location_arg;
+        console.log(`Kings order card ${uiItem.data.id} -> container: ${containerName}`);
       }
       if (uiItem.uiType == "kingsfavour_card") {
         containerName = "kingsfavour_spot_" + uiItem.data.location_arg;
+        console.log(`Kings favour card ${uiItem.data.id} -> container: ${containerName}`);
+      }
+      if (uiItem.uiType == "absolve_jar_uiitem") {
+        containerName = "absolve_jar_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
       }
       return containerName;
     },
@@ -880,6 +1086,12 @@ define([
     drawUiItem: function (uiItem) {
       
       var parentContainer = this.getParentContainerForUiItem(uiItem);
+      
+      if (uiItem.uiType === "absolve_jar_uiitem") {
+        console.log(`Drawing absolve jar ${uiItem.data.id} to container: ${parentContainer}`);
+        console.log(`  - Container element exists:`, !!document.getElementById(parentContainer));
+        console.log(`  - UI item HTML node:`, uiItem.htmlNode);
+      }
       
       this.moveUiItemToParentContainer(uiItem, parentContainer);
     },
@@ -1053,12 +1265,8 @@ define([
     },
 
     notif_townsfolkHired: function (notif) {
-      
-      
       const hiredCard = notif.args.card;
       const playerId = notif.args.player_id;
-      
-      
       
       // Find the source card in the display
       const townsfolkCards = this.uiItems.getByUiType("townsfolk_uiitem");
@@ -1070,8 +1278,6 @@ define([
         this.uiItems.createItems("townsfolk_uiitem", [hiredCard]);
         return;
       }
-      
-      
       
       // Get positions BEFORE hiding the card
       const sourcePos = dojo.position(sourceCard.htmlNode);
