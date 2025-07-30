@@ -155,13 +155,23 @@
         <div class="playerboard_box_middle">
           <div class="playerboard_box">
             <div class="absolve_jars">
-              <div id="absolve_jar_0_{PLAYER_ID}" class="absolve_jar_0"></div>
-              <div id="absolve_jar_1_{PLAYER_ID}" class="absolve_jar_1"></div>
-              <div id="absolve_jar_2_{PLAYER_ID}" class="absolve_jar_2"></div>
-              <div id="absolve_jar_3_{PLAYER_ID}" class="absolve_jar_3"></div>
-              <div id="absolve_jar_4_{PLAYER_ID}" class="absolve_jar_4"></div>
-              <div id="absolve_jar_5_{PLAYER_ID}" class="absolve_jar_5"></div>
-              <div id="absolve_jar_6_{PLAYER_ID}" class="absolve_jar_6"></div>
+              <div id="absolve_jar_0_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_0"></div>
+              <div id="absolve_jar_1_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_1"></div>
+              <div id="absolve_jar_2_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_2"></div>
+              <div id="absolve_jar_3_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_3"></div>
+              <div id="absolve_jar_4_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_4"></div>
+              <div id="absolve_jar_5_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_5"></div>
+              <div id="absolve_jar_6_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_6"></div>
+            </div>
+            <div class="development_houses">
+              <div id="development_house_0_{PLAYER_ID}" class="development_house_spot development_house_spot_0"></div>
+              <div id="development_house_1_{PLAYER_ID}" class="development_house_spot development_house_spot_1"></div>
+              <div id="development_house_2_{PLAYER_ID}" class="development_house_spot development_house_spot_2"></div>
+              <div id="development_house_3_{PLAYER_ID}" class="development_house_spot development_house_spot_3"></div>
+              <div id="development_house_4_{PLAYER_ID}" class="development_house_spot development_house_spot_4"></div>
+              <div id="development_house_5_{PLAYER_ID}" class="development_house_spot development_house_spot_5"></div>
+              <div id="development_house_6_{PLAYER_ID}" class="development_house_spot development_house_spot_6"></div>
+              <div id="development_house_7_{PLAYER_ID}" class="development_house_spot development_house_spot_7"></div>
             </div>
           </div>
           <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>

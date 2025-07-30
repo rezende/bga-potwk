@@ -58,6 +58,7 @@ define([
         kingsorder_card: { cssClass: "kingsorder_card" },
         kingsfavour_card: { cssClass: "kingsfavour_card" },
         absolve_jar_uiitem: { cssClass: "absolve_jar" },
+        development_house_uiitem: { cssClass: "development_house" },
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -130,9 +131,6 @@ define([
           x: this.itemBackgroundConfig[uiType]?.["start_x"] || 0,
           y: this.itemBackgroundConfig[uiType]?.["start_y"] || 0
         };
-        if (uiType === "absolve_jar_uiitem") {
-          console.log("==JAR==", this.itemBackgroundConfig[uiType], typeArg);
-        }
         background.x +=
           (typeArg % this.itemBackgroundConfig[uiType].items_per_row) *
           -1 *
@@ -145,13 +143,13 @@ define([
             -1 *
             this.itemBackgroundConfig[uiType]["height"];
         }
-        if (uiType === "absolve_jar_uiitem") {
-          console.log("JAR BACKGROUND", background);
-        }
         return background;
       };
 
       this.uiItems.getBackgroundPositionForUiItem = function (uiItem) {
+        if (uiItem.uiType == "development_house_uiitem") {
+          return { x: -596, y: 451 };
+        }
         var background = { x: 0, y: 0 };
         if (this.itemBackgroundConfig[uiItem.uiType] != undefined) {
           var propertyName =
@@ -334,7 +332,6 @@ define([
         this.attachFunctionsToUiItems();
         
         this.createTokens();
-        this.drawUi(); // Ensure all UI items are drawn after creating tokens
         // this.uiItems.createItems(
         //   "outsider",
         //   this.getValuesFromObject(this.outsider_display)
@@ -603,13 +600,22 @@ define([
 
     createTokens: function () {
       for (const playerId in this.gamedatas.players) {
+        for (let i = 0; i < 8; i++) {
+          const params = {
+            id: `development_house_${i}_${playerId}`,
+            type: "development_house",
+            location: "playerboard",
+            order_index: i,
+            background_index: 0, // All houses use the same background image
+            player_id: playerId
+          };
+          this.uiItems.createAndAddItem("development_house_uiitem", params);
+        }
         for (let i = 0; i < 7; i++) {
             const params = {
               id: `absolve_jar_${i}_${playerId}`,
               type: "absolve_jar",
-              type_arg: i,
               location: "playerboard",
-              location_arg: playerId,
               order_index: i,
               player_id: playerId
             };
@@ -826,30 +832,7 @@ define([
             
             */
 
-    getPositionForUiItem: function (uiItem) {
-      var position = { top: null, left: null };
-      return position;
-    },
-
-    positionUiItem: function (uiItem) {
-      // Skip positioning for player cards since they use flex layout
-      if (uiItem.uiType == "townsfolk_uiitem" && uiItem.data.location == "playerboard_cards") {
-
-        return;
-      }
-      
-      var position = this.getPositionForUiItem(uiItem);
-      if (position.top != null && position.left != null) {
-        dojo.setStyle(uiItem.htmlNode, "top", position.top + "px");
-        dojo.setStyle(uiItem.htmlNode, "left", position.left + "px");
-
-      } else {
-
-      }
-    },
-
     moveUiItemToParentContainer: function (uiItem, parentContainer) {
-      
       if (parentContainer != null) {
         // Special handling for player townsfolk cards
         if (uiItem.uiType == "townsfolk_uiitem" && uiItem.data.location == "playerboard_cards") {
@@ -869,7 +852,8 @@ define([
           uiItem.uiType == "townsfolk_uiitem" && parentContainer.startsWith("townsfolk_spot_") ||
           uiItem.uiType == "kingsorder_card" && parentContainer.startsWith("kingsorder_spot_") ||
           uiItem.uiType == "kingsfavour_card" && parentContainer.startsWith("kingsfavour_spot_") ||
-          uiItem.uiType == "absolve_jar_uiitem" && parentContainer.startsWith("absolve_jar_")
+          uiItem.uiType == "absolve_jar_uiitem" && parentContainer.startsWith("absolve_jar_") ||
+          uiItem.uiType == "development_house_uiitem" && parentContainer.startsWith("development_house_")
         ) {
           const spotElement = document.getElementById(parentContainer);
           if (spotElement) {
@@ -879,9 +863,7 @@ define([
         else {
           dojo.place(uiItem.htmlNode, parentContainer);
         }
-        this.positionUiItem(uiItem);
-      } else {
-      }
+      } 
     },
 
     getParentContainerForUiItem: function (uiItem) {
@@ -915,18 +897,15 @@ define([
       if (uiItem.uiType == "absolve_jar_uiitem") {
         containerName = "absolve_jar_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
       }
+      if (uiItem.uiType == "development_house_uiitem") {
+        containerName = "development_house_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
+      }
       return containerName;
     },
 
     drawUiItem: function (uiItem) {
       
       var parentContainer = this.getParentContainerForUiItem(uiItem);
-      
-      if (uiItem.uiType === "absolve_jar_uiitem") {
-        console.log(`Drawing absolve jar ${uiItem.data.id} to container: ${parentContainer}`);
-        console.log(`  - Container element exists:`, !!document.getElementById(parentContainer));
-        console.log(`  - UI item HTML node:`, uiItem.htmlNode);
-      }
       
       this.moveUiItemToParentContainer(uiItem, parentContainer);
     },
