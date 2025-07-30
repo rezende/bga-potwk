@@ -151,90 +151,6 @@ define([
         return background;
       };
 
-      /*
-      this.uiItems.getBackgroundPositionForToken = function (uiItem) {
-        var background = { x: 0, y: 0 };
-        switch (uiItem.name) {
-          case "white_worker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "green_worker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "blue_worker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "black_worker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "red_worker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "purple_worker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "influence_marker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "faith_marker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "strength_marker":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "development_house":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "monk":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "fort":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "absolve_0":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "absolve_1":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "absolve_3":
-            background.x = 0;
-            background.y = 0;
-          case "absolve_5":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "absolve_7":
-            background.x = 0;
-            background.y = 0;
-            break;o
-          case "absolve_8":
-            background.x = 0;
-            background.y = 0;
-            break;
-          case "absolve_9":
-            background.x = 0;
-            background.y = 0;
-            break;
-        }
-        return background;
-      };
-      */
-
       this.uiItems.getBackgroundPositionForUiItem = function (uiItem) {
         var background = { x: 0, y: 0 };
         if (this.itemBackgroundConfig[uiItem.uiType] != undefined) {
@@ -439,15 +355,8 @@ define([
         // TODO: so far, it only creates the deck background, not the cards
         this.setupWallCards(this.getValuesFromObject(this.wall_cards));
         
-        console.log("=== SETUP KINGS CARDS FROM GAMEDATAS ===");
-        console.log("kingsorder_display from gamedatas:", this.kingsorder_display);
-        console.log("kingsfavour_display from gamedatas:", this.kingsfavour_display);
-        
         const kingsOrderCards = this.getValuesFromObject(this.kingsorder_display);
         const kingsFavourCards = this.getValuesFromObject(this.kingsfavour_display);
-        
-        console.log("kingsOrderCards after getValuesFromObject:", kingsOrderCards);
-        console.log("kingsFavourCards after getValuesFromObject:", kingsFavourCards);
         
         this.setupKingsOrderCards(kingsOrderCards);
         this.setupKingsFavourCards(kingsFavourCards);
@@ -510,8 +419,6 @@ define([
     },
 
     setupPaladinSelection: function() {
-      console.log("setupPaladinSelection called");
-      
       // Clear previous content
       const paladinContainer = document.getElementById('paladin_cards_inline');
       const tavernContainer = document.getElementById('tavern_cards_inline');
@@ -529,17 +436,9 @@ define([
       const allPaladinCards = this.uiItems.getByUiType("paladin_card");
       const currentPlayerId = this.player_id;
       
-      console.log(`All paladin cards:`, allPaladinCards);
-      console.log(`Current player ID:`, currentPlayerId);
-      console.log(`Paladin hand data:`, this.paladin_hand);
-      
       // If no paladin cards exist in UI items but they exist in game data, create them
       if (allPaladinCards.length === 0 && this.paladin_hand) {
-        console.log("Creating paladin UI items from paladin_hand data");
         this.createPaladinUiItems(this.paladin_hand);
-        // Get the cards again after creation
-        const newPaladinCards = this.uiItems.getByUiType("paladin_card");
-        console.log("New paladin cards after creation:", newPaladinCards);
       }
       
       // Get the paladin cards again (in case we just created them)
@@ -647,8 +546,6 @@ define([
 
     // Handle tavern card click
     handleTavernCardClick: function(event, card) {
-      console.log(`Tavern card ${card.data.id} clicked`);
-      
       // Check if the current player is the active player
       const currentPlayerId = this.player_id;
       const activePlayerId = this.gamedatas.gamestate.active_player;
@@ -666,7 +563,6 @@ define([
       
       // Add the card to the selected cards tracking array
       this.selectedTavernCards.push(card.data.id);
-      console.log(`Added card ${card.data.id} to selected cards. Total selected: ${this.selectedTavernCards.length}`);
       
       // Remove selectable class from all cards
       const allCards = document.querySelectorAll('#tavern_selection_cards .selectable');
@@ -678,8 +574,6 @@ define([
       // Disable the click event on this card
       event.target.style.pointerEvents = 'none';
       event.target.style.opacity = '0.5';
-      
-      console.log(`Card ${card.data.id} selected and disabled`);
       
       // Send the selection to the server
       this.ajaxcall('/paladinsshipped/paladinsshipped/pickTavern.html', {
@@ -708,11 +602,8 @@ define([
     },
 
     createTokens: function () {
-      console.log("=== CREATING ABSOLVE JAR TOKENS ===");
-      
-      // Define the absolve jar types (these correspond to the order_index values)
       for (const playerId in this.gamedatas.players) {
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 7; i++) {
             const params = {
               id: `absolve_jar_${i}_${playerId}`,
               type: "absolve_jar",
@@ -762,10 +653,6 @@ define([
     },
 
     setupKingsOrderCards: function (cards) {
-      console.log("=== SETUP KINGS ORDER CARDS ===");
-      console.log("Cards data:", cards);
-      console.log("Cards length:", cards.length);
-      
       /*
         There will always be 3 king's order cards.
         If there are less than 3 cards, the missing cards are replaced by a background card.
@@ -784,30 +671,10 @@ define([
         }
       });
       
-      console.log("UI items to create:", uiItems);
-      console.log("UI items length:", uiItems.length);
-      
-      const createdItems = this.uiItems.createItems("kingsorder_card", uiItems);
-      console.log("Created kings order items:", createdItems);
-      
-      // Check if items were placed correctly
-      setTimeout(() => {
-        const kingsOrderItems = this.uiItems.getByUiType("kingsorder_card");
-        console.log("All kings order items after creation:", kingsOrderItems);
-        kingsOrderItems.forEach((item, index) => {
-          console.log(`Kings order item ${index}:`, item);
-          console.log(`  - Data:`, item.data);
-          console.log(`  - HTML node:`, item.htmlNode);
-          console.log(`  - Parent:`, item.htmlNode?.parentNode);
-        });
-      }, 100);
+      this.uiItems.createItems("kingsorder_card", uiItems);
     },
 
     setupKingsFavourCards: function (cards) {
-      console.log("=== SETUP KINGS FAVOUR CARDS ===");
-      console.log("Cards data:", cards);
-      console.log("Cards length:", cards.length);
-      
       /*
         There will always be 5 king's favour cards.
         If there are less than 5 cards, the missing cards are replaced by a background card.
@@ -826,23 +693,7 @@ define([
         }
       });
       
-      console.log("UI items to create:", uiItems);
-      console.log("UI items length:", uiItems.length);
-      
-      const createdItems = this.uiItems.createItems("kingsfavour_card", uiItems);
-      console.log("Created kings favour items:", createdItems);
-      
-      // Check if items were placed correctly
-      setTimeout(() => {
-        const kingsFavourItems = this.uiItems.getByUiType("kingsfavour_card");
-        console.log("All kings favour items after creation:", kingsFavourItems);
-        kingsFavourItems.forEach((item, index) => {
-          console.log(`Kings favour item ${index}:`, item);
-          console.log(`  - Data:`, item.data);
-          console.log(`  - HTML node:`, item.htmlNode);
-          console.log(`  - Parent:`, item.htmlNode?.parentNode);
-        });
-      }, 100);
+      this.uiItems.createItems("kingsfavour_card", uiItems);
     },
 
     // State functions
@@ -919,10 +770,6 @@ define([
       
       // Handle paladin selection state
       if (stateName === 'pickPaladins') {
-        console.log(`Entering pickPaladins state. Showing paladin selection immediately.`);
-        console.log(`Current paladin_hand data:`, this.paladin_hand);
-        console.log(`Current paladin UI items:`, this.uiItems.getByUiType("paladin_card"));
-        
         // Show the paladin selection area immediately
         const paladinSelectionArea = document.getElementById('paladin_selection_area');
         if (paladinSelectionArea) {
@@ -935,8 +782,6 @@ define([
       
       // Handle tavern selection state
       if (stateName === 'pickTavern') {
-        console.log(`Entering pickTavern state. Showing tavern selection modal.`);
-        
         // Show the tavern selection modal
         this.showTavernSelectionModal();
       }
@@ -1063,11 +908,9 @@ define([
       }
       if (uiItem.uiType == "kingsorder_card") {
         containerName = "kingsorder_spot_" + uiItem.data.location_arg;
-        console.log(`Kings order card ${uiItem.data.id} -> container: ${containerName}`);
       }
       if (uiItem.uiType == "kingsfavour_card") {
         containerName = "kingsfavour_spot_" + uiItem.data.location_arg;
-        console.log(`Kings favour card ${uiItem.data.id} -> container: ${containerName}`);
       }
       if (uiItem.uiType == "absolve_jar_uiitem") {
         containerName = "absolve_jar_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
@@ -1228,17 +1071,12 @@ define([
     },
 
     notif_paladinCards: function (notif) {
-      console.log("Received paladin cards notification:", notif);
-      console.log("Notification args:", notif.args);
-      console.log("Cards data:", notif.args.cards);
       
       // Update the client-side paladin hand data
       this.paladin_hand = notif.args.cards;
-      console.log("Updated paladin_hand data:", this.paladin_hand);
       
       // Create the UI items
       this.createPaladinUiItems(notif.args.cards);
-      console.log("Created paladin UI items");
       
       // Check if we're in the pickPaladins state and need to show the selection
       const currentState = this.gamedatas.gamestate.name;
@@ -2516,13 +2354,14 @@ define([
       
       // Debug: Log each card individually
       allDisplayCards.forEach((card, index) => {
-        console.log(`Card ${index}: ID=${card.data.id}, Position=${card.data.location_arg}, Visible=${card.htmlNode ? card.htmlNode.style.display !== "none" : false}, Display=${card.htmlNode ? card.htmlNode.style.display : "no node"}`);
+      });
+      
+      //   console.log(`Card ${index}: ID=${card.data.id}, Position=${card.data.location_arg}, Visible=${card.htmlNode ? card.htmlNode.style.display !== "none" : false}, Display=${card.htmlNode ? card.htmlNode.style.display : "no node"}`);
         if (card.htmlNode) {
           console.log(`  Card ${index} classes:`, card.htmlNode.className);
           console.log(`  Card ${index} attributes:`, Array.from(card.htmlNode.attributes).map(attr => `${attr.name}="${attr.value}"`).join(', '));
         }
-      });
-      
+
       // Get current display cards - only include visible cards
       const currentDisplayCards = allDisplayCards.filter(card => 
         card.htmlNode && 
@@ -2714,12 +2553,8 @@ define([
     },
 
     drawNewCard: function(cardData, position, onComplete) {
-      console.log(`=== DRAWING NEW CARD AT POSITION ${position} ===`);
-      console.log("Card data:", cardData);
-      
       // Create a new UI item for the card
       const newCard = this.uiItems.createAndAddItem("townsfolk_uiitem", cardData);
-      console.log("Created new card UI item:", newCard);
       
       if (!newCard || !newCard.htmlNode) {
         console.error("Failed to create new card UI item");
@@ -2728,7 +2563,6 @@ define([
       }
       
       const cardElement = newCard.htmlNode;
-      console.log("New card element:", cardElement);
       
       // Get the target container
       const displayContainer = document.getElementById("townsfolk_spot_" + position);
@@ -2737,8 +2571,6 @@ define([
         if (onComplete) onComplete();
         return;
       }
-      
-      console.log(`Adding card to container: townsfolk_spot_${position}`);
       
       // Set up the card for animation
       dojo.setStyle(cardElement, "position", "relative");
@@ -2751,14 +2583,11 @@ define([
       
       // Animate the card fading in
       setTimeout(() => {
-        console.log(`Animating card ${cardData.id} to position ${position}`);
-        
         // Fade in the card
         dojo.setStyle(cardElement, "opacity", "1");
         
         // Call the completion callback after the animation finishes
         setTimeout(() => {
-          console.log(`Card ${cardData.id} animation finished`);
           if (onComplete) onComplete();
         }, 500); // Match the transition duration
       }, position * 100); // Stagger the animations
@@ -2769,8 +2598,6 @@ define([
 
     // Show tavern selection modal
     showTavernSelectionModal: function() {
-      console.log("Showing tavern selection modal...");
-      
       // Clear previous content
       const tavernSelectionCards = document.getElementById('tavern_selection_cards');
       if (tavernSelectionCards) {
@@ -2781,7 +2608,6 @@ define([
       this.selectedTavernCards.forEach(cardId => {
         const cardUiItem = this.uiItems.getByUiType("tavern_card").find(item => item.data.id === cardId);
         if (cardUiItem && cardUiItem.htmlNode) {
-          console.log(`Preemptively removing selected card ${cardId} from uiItems`);
           cardUiItem.htmlNode.remove();
         }
       });
@@ -2804,19 +2630,10 @@ define([
         !this.selectedTavernCards.includes(card.data.id)
       );
       
-      console.log(`Total tavern cards: ${updatedTavernCards.length}, Available: ${availableTavernCards.length}, Selected: ${this.selectedTavernCards.length}`);
-      console.log(`Selected card IDs:`, this.selectedTavernCards);
-      
       // Check if current player is the active player
       const currentPlayerId = this.player_id;
       const activePlayerId = this.gamedatas.gamestate.active_player;
       const isActivePlayer = String(currentPlayerId) === String(activePlayerId);
-      
-      console.log(`Current player: ${currentPlayerId}, Active player: ${activePlayerId}, Is active: ${isActivePlayer}`);
-      console.log(`Current player type: ${typeof currentPlayerId}, Active player type: ${typeof activePlayerId}`);
-      console.log(`Current player === Active player: ${currentPlayerId === activePlayerId}`);
-      console.log(`Current player == Active player: ${currentPlayerId == activePlayerId}`);
-      console.log(`String comparison: ${String(currentPlayerId)} === ${String(activePlayerId)}: ${String(currentPlayerId) === String(activePlayerId)}`);
       
       // Display available tavern cards in the modal
       availableTavernCards.forEach(card => {
@@ -2831,7 +2648,6 @@ define([
             cardClone.style.pointerEvents = 'none';
             cardClone.style.opacity = '0.5';
             cardClone.style.cursor = 'default';
-            console.log(`Card ${card.data.id} already selected, disabling in modal`);
           } else {
             // Card is available - make it selectable for active player
             if (isActivePlayer) {
@@ -2858,8 +2674,6 @@ define([
 
     // Hide tavern selection modal
     hideTavernSelectionModal: function() {
-      console.log("Hiding tavern selection modal...");
-      
       const tavernModal = document.getElementById('tavern_selection_modal');
       if (tavernModal) {
         tavernModal.style.display = 'none';
@@ -2867,18 +2681,14 @@ define([
       
       // Clear the selected cards tracking when leaving the state
       this.selectedTavernCards = [];
-      console.log("Cleared selected tavern cards tracking and reset modal flag");
     },
 
     // Handle tavern card updates - remove selected cards from uiItems
     notif_tavernCardsUpdated: function(notif) {
-      console.log("Tavern cards updated notification received:", notif);
-      
       // Remove selected cards from uiItems
       this.selectedTavernCards.forEach(cardId => {
         const cardUiItem = this.uiItems.getByUiType("tavern_card").find(item => item.data.id === cardId);
         if (cardUiItem && cardUiItem.htmlNode) {
-          console.log(`Removing selected card ${cardId} from uiItems`);
           cardUiItem.htmlNode.remove();
         }
       });
@@ -2886,11 +2696,8 @@ define([
 
     // Handle tavern display updates from server
     notif_tavernDisplayUpdated: function(notif) {
-      console.log("Tavern display updated notification received:", notif);
-      
       // Update the client-side tavern display data
       this.tavern_display = notif.args.tavern_display;
-      console.log("Updated tavern_display data:", this.tavern_display);
       
       // Remove all existing tavern card UI items
       const existingTavernCards = this.uiItems.getByUiType("tavern_card");
@@ -2903,12 +2710,10 @@ define([
       // Recreate tavern card UI items with the updated data
       if (this.tavern_display) {
         this.createTavernUiItems(this.tavern_display);
-        console.log("Recreated tavern card UI items with updated data");
       }
       
       // Clear the selected cards tracking since the server has updated the display
       this.selectedTavernCards = [];
-      console.log("Cleared selected tavern cards tracking due to server update");
     },
   });
 });

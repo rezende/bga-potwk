@@ -1459,6 +1459,12 @@
 }
 
 /* Absolve Jars Styling */
+.absolve_jars {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .absolve_jar {
   width: 189px;
   height: 189px;
