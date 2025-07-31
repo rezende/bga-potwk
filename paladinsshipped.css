@@ -1571,3 +1571,107 @@
 .development_house_spot_7 {
   left: 426px;
 }
+
+/* Monk pieces styling */
+.monk_piece {
+  width: 158px;
+  height: 155px;
+  transition: all 0.2s ease;
+  background-image: url("img/sprite_wooden_components.png");
+  transform: scale(0.229);
+  transform-origin: 0px 0px;
+  background-color: lightgoldenrodyellow;
+}
+
+/* .monk_pieces {
+  position: relative;
+} */
+
+.monk_piece.used {
+  display: none;
+}
+
+.monk_piece_spot {
+  position: absolute;
+  top: 94px;
+}
+
+.monk_piece_spot_0 {
+  left: 655px;
+}
+
+.monk_piece_spot_1 {
+  left: 694px;
+}
+
+.monk_piece_spot_2 {
+  left: 734px;
+}
+
+.monk_piece_spot_3 {
+  left: 773px;
+}
+
+.monk_piece_spot_4 {
+  left: 812px;
+}
+
+.monk_piece_spot_5 {
+  left: 853px;
+}
+
+.monk_piece_spot_6 {
+  left: 892px;
+}
+
+/* Fort pieces styling */
+.fort_piece {
+  width: 158px;
+  height: 155px;
+  transition: all 0.2s ease;
+  background-image: url("img/sprite_wooden_components.png");
+  transform: scale(0.229);
+  transform-origin: 0px 0px;
+  background-color: lightgoldenrodyellow;
+}
+
+/* .fort_pieces {
+  position: relative;
+} */
+
+.fort_piece.used {
+  display: none;
+}
+
+.fort_piece_spot {
+  position: absolute;
+  top: 94px;
+}
+
+.fort_piece_spot_0 {
+  left: 989px;
+}
+
+.fort_piece_spot_1 {
+  left: 1028px;
+}
+
+.fort_piece_spot_2 {
+  left: 1068px;
+}
+
+.fort_piece_spot_3 {
+  left: 1107px;
+}
+
+.fort_piece_spot_4 {
+  left: 1147px;
+}
+
+.fort_piece_spot_5 {
+  left: 1187px;
+}
+
+.fort_piece_spot_6 {
+  left: 1226px;
+}

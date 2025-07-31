@@ -59,6 +59,8 @@ define([
         kingsfavour_card: { cssClass: "kingsfavour_card" },
         absolve_jar_uiitem: { cssClass: "absolve_jar" },
         development_house_uiitem: { cssClass: "development_house" },
+        fort_piece_uiitem: { cssClass: "fort_piece" },
+        monk_piece_uiitem: { cssClass: "monk_piece" },
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -147,8 +149,15 @@ define([
       };
 
       this.uiItems.getBackgroundPositionForUiItem = function (uiItem) {
+        // Items that only have one piece
         if (uiItem.uiType == "development_house_uiitem") {
           return { x: -596, y: 451 };
+        }
+        if (uiItem.uiType == "monk_piece_uiitem") {
+          return { x: -792, y: 430 };
+        }
+        if (uiItem.uiType == "fort_piece_uiitem") {
+          return { x: -975, y: 430 };
         }
         var background = { x: 0, y: 0 };
         if (this.itemBackgroundConfig[uiItem.uiType] != undefined) {
@@ -612,7 +621,7 @@ define([
           this.uiItems.createAndAddItem("development_house_uiitem", params);
         }
         for (let i = 0; i < 7; i++) {
-            const params = {
+            var params = {
               id: `absolve_jar_${i}_${playerId}`,
               type: "absolve_jar",
               location: "playerboard",
@@ -620,6 +629,22 @@ define([
               player_id: playerId
             };
             this.uiItems.createAndAddItem("absolve_jar_uiitem", params);
+            params = {
+              id: `fort_piece_${i}_${playerId}`,
+              type: "fort_piece",
+              location: "playerboard",
+              order_index: i,
+              player_id: playerId
+            };
+            this.uiItems.createAndAddItem("fort_piece_uiitem", params);
+            params = {
+              id: `monk_piece_${i}_${playerId}`,
+              type: "monk_piece",
+              location: "playerboard",
+              order_index: i,
+              player_id: playerId
+            };
+            this.uiItems.createAndAddItem("monk_piece_uiitem", params);
         }
       }
     },
@@ -853,7 +878,9 @@ define([
           uiItem.uiType == "kingsorder_card" && parentContainer.startsWith("kingsorder_spot_") ||
           uiItem.uiType == "kingsfavour_card" && parentContainer.startsWith("kingsfavour_spot_") ||
           uiItem.uiType == "absolve_jar_uiitem" && parentContainer.startsWith("absolve_jar_") ||
-          uiItem.uiType == "development_house_uiitem" && parentContainer.startsWith("development_house_")
+          uiItem.uiType == "development_house_uiitem" && parentContainer.startsWith("development_house_") ||
+          uiItem.uiType == "fort_piece_uiitem" && parentContainer.startsWith("fort_piece_") ||
+          uiItem.uiType == "monk_piece_uiitem" && parentContainer.startsWith("monk_piece_")
         ) {
           const spotElement = document.getElementById(parentContainer);
           if (spotElement) {
@@ -899,6 +926,12 @@ define([
       }
       if (uiItem.uiType == "development_house_uiitem") {
         containerName = "development_house_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
+      }
+      if (uiItem.uiType == "fort_piece_uiitem") {
+        containerName = "fort_piece_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
+      }
+      if (uiItem.uiType == "monk_piece_uiitem") {
+        containerName = "monk_piece_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
       }
       return containerName;
     },
