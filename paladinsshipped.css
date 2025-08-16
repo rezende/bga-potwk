@@ -812,27 +812,7 @@
   background-color: rgba(220, 53, 69, 0.1);
 }
 
-/* Action space indicators */
-.action_space {
-  position: relative;
-  display: inline-block;
-  margin: 5px;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid #ddd;
-}
-
-.action_space.available {
-  border-color: #28a745;
-  background-color: rgba(40, 167, 69, 0.1);
-}
-
-.action_space.unavailable {
-  border-color: #dc3545;
-  background-color: rgba(220, 53, 69, 0.1);
-  opacity: 0.6;
-}
+/* Action space indicators - removed conflicting styles */
 
 /* Resource counters */
 .resource_counter {
@@ -1537,6 +1517,8 @@
 .development_house_spot {
   position: absolute;
   top: -560px;
+  width: 42px;
+  height: 41px;
 }
 
 /* Add labels to show which container is which */
@@ -1594,6 +1576,8 @@
 .monk_piece_spot {
   position: absolute;
   top: 94px;
+  width: 37px;
+  height: 35px;
 }
 
 .monk_piece_spot_0 {
@@ -1646,6 +1630,8 @@
 .fort_piece_spot {
   position: absolute;
   top: 94px;
+  width: 37px;
+  height: 35px;
 }
 
 .fort_piece_spot_0 {
@@ -1674,4 +1660,181 @@
 
 .fort_piece_spot_6 {
   left: 1226px;
+}
+
+/* Worker Spots Styling */
+.worker_spots {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.action_space {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 3px solid #ff6b6b;
+  border-radius: 50%;
+  background-color: rgba(255, 107, 107, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+  animation: worker_spot_pulse 2s ease-in-out infinite;
+}
+
+@keyframes worker_spot_pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+    transform: scale(1.1);
+  }
+}
+
+.action_space:hover {
+  background-color: rgba(255, 107, 107, 0.4);
+  border-color: #ff4757;
+  transform: scale(1.2);
+  box-shadow: 0 0 25px rgba(255, 107, 107, 0.9);
+  animation: none;
+}
+
+.action_space.occupied {
+  background-color: rgba(46, 204, 113, 0.3);
+  border-color: #2ecc71;
+  box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
+  animation: occupied_spot_pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes occupied_spot_pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(46, 204, 113, 0.9);
+  }
+}
+
+.action_space.available {
+  background-color: rgba(52, 152, 219, 0.3);
+  border-color: #3498db;
+  box-shadow: 0 0 15px rgba(52, 152, 219, 0.6);
+  animation: available_spot_pulse 2s ease-in-out infinite;
+}
+
+@keyframes available_spot_pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(52, 152, 219, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(52, 152, 219, 0.9);
+  }
+}
+
+.action_space.unavailable {
+  background-color: rgba(149, 165, 166, 0.3);
+  border-color: #95a5a6;
+  box-shadow: 0 0 10px rgba(149, 165, 166, 0.4);
+  opacity: 0.6;
+  cursor: not-allowed;
+  animation: none;
+}
+
+/* Commission worker spots positioning */
+[id*="commision_worker_spot_0_"] {
+  top: 300px;
+  left: 200px;
+}
+
+[id*="commision_worker_spot_1_"] {
+  top: 300px;
+  left: 250px;
+}
+
+[id*="commision_worker_spot_2_"] {
+  top: 300px;
+  left: 300px;
+}
+
+/* Add labels to worker spots */
+.action_space::before {
+  content: attr(data-worker-type);
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Worker spot with worker indicator */
+.action_space::after {
+  content: "👤";
+  font-size: 16px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.action_space.occupied::after {
+  opacity: 1;
+}
+
+/* Debug mode - make all worker spots visible */
+.debug-mode .action_space {
+  background-color: rgba(255, 255, 0, 0.3);
+  border-color: #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+}
+
+/* Responsive design for worker spots */
+@media (max-width: 768px) {
+  .action_space {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  
+  .action_space::before {
+    font-size: 8px;
+    top: -20px;
+  }
+  
+  .action_space::after {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .action_space {
+    width: 25px;
+    height: 25px;
+    font-size: 10px;
+  }
+  
+  .action_space::before {
+    font-size: 7px;
+    top: -18px;
+  }
+  
+  .action_space::after {
+    font-size: 10px;
+  }
 }

@@ -191,102 +191,13 @@
               <div id="monk_piece_5_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_5"></div>
               <div id="monk_piece_6_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_6"></div>
             </div>
-            <div class="action_spaces">
-              <div class="development_action_space" class="action_space">
-                <div class="development_space_label">Development</div>
-                <div class="development_worker_spots">
-                  <div id="development_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="development_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <div class="hunt_action_space" class="action_space">
-                {* <div class="hunt_space_label">Hunt</div> *}
-                <div class="hunt_worker_spots">
-                  <div id="hunt_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="hunt_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- trade space -->
-              <div class="trade_action_space" class="action_space">
-                {* <div class="trade_space_label">Trade</div> *}
-                <div class="trade_worker_spots">
-                  <div id="trade_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="trade_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- recruit space -->
-              <div class="recruit_action_space" class="action_space">
-                {* <div class="recruit_space_label">Recruit</div> *}
-                <div class="recruit_worker_spots">
-                  <div id="recruit_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="recruit_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- conspire space -->
-              <div class="conspire_action_space" class="action_space">
-                {* <div class="conspire_space_label">Conspire</div> *}
-                <div class="conspire_worker_spots">
-                  <div id="conspire_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- pray space -->
-              <div class="pray_action_space" class="action_space">
-                {* <div class="pray_space_label">Pray</div> *}
-                <div class="pray_worker_spots">
-                  <div id="pray_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- commission space -->
-              <div class="commission_action_space" class="action_space">
-                {* <div class="commission_space_label">Commission</div> *}
-                <div class="commission_worker_spots">
-                  <div id="commission_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="commission_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="commission_worker_spot_2_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- fortify space -->
-              <div class="fortify_action_space" class="action_space">
-                {* <div class="fortify_space_label">Fortify</div> *}
-                <div class="fortify_worker_spots">
-                  <div id="fortify_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="fortify_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="fortify_worker_spot_2_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- garrison space -->
-              <div class="garrison_action_space" class="action_space">
-                {* <div class="garrison_space_label">Garrison</div> *}
-                <div class="garrison_worker_spots">
-                  <div id="garrison_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="garrison_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="garrison_worker_spot_2_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- attack space -->
-              <div class="attack_action_space" class="action_space">
-                {* <div class="attack_space_label">Attack</div> *}
-                <!-- TODO: space to pile attacked cards -->
-                <div class="attack_worker_spots">
-                  <div id="attack_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="attack_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="attack_worker_spot_2_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
-              <!-- convert space -->
-              <div class="convert_action_space" class="action_space">
-                {* <div class="convert_space_label">Convert</div> *}
-                <div class="convert_worker_spots">
-                  <div id="convert_worker_spot_0_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="convert_worker_spot_1_{PLAYER_ID}" class="worker_spot"></div>
-                  <div id="convert_worker_spot_2_{PLAYER_ID}" class="worker_spot"></div>
-                </div>
-              </div>
+            <div class="worker_spots">
+              <div id="commision_worker_spot_0_{PLAYER_ID}" class="action_space"></div>
+              <div id="commision_worker_spot_1_{PLAYER_ID}" class="action_space"></div>
+              <div id="commision_worker_spot_2_{PLAYER_ID}" class="action_space"></div>
             </div>
           </div>
           <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>
-        </div>
-        <div action_spots>
         </div>
       </div>
       <!-- END playerboard -->
