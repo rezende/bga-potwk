@@ -70,6 +70,29 @@
   </div>
   <div style="clear: both"></div>
 
+  <!-- Tavern Selection Area (inline modal on top of page) -->
+  <div id="tavern_selection_area" class="tavern_selection_area" style="display: none;">
+    <div class="tavern_selection_description">
+      <p>Select Your Tavern Card</p>
+    </div>
+    
+    <div class="tavern_selection_content">
+      <div class="tavern_cards_section">
+        <h4>Available Tavern Cards</h4>
+        <div id="tavern_selection_cards" class="tavern_selection_cards_container"></div>
+      </div>
+    </div>
+    
+    <div class="tavern_selection_actions">
+      <button id="confirm_tavern_selection" class="action_button primary" style="display: none;">
+        Confirm Selection
+      </button>
+      <button id="cancel_tavern_selection" class="action_button secondary">
+        Cancel
+      </button>
+    </div>
+  </div>
+
   <!-- boardContainer contains both the player boards and the main board -->
   <div id="boardContainer">
     <!-- mainBoardContainer contains the main board -->
@@ -190,11 +213,6 @@
               <div id="monk_piece_4_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_4"></div>
               <div id="monk_piece_5_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_5"></div>
               <div id="monk_piece_6_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_6"></div>
-            </div>
-            <div class="worker_spots">
-              <div id="commision_worker_spot_0_{PLAYER_ID}" class="action_space"></div>
-              <div id="commision_worker_spot_1_{PLAYER_ID}" class="action_space"></div>
-              <div id="commision_worker_spot_2_{PLAYER_ID}" class="action_space"></div>
             </div>
           </div>
           <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>

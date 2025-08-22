@@ -64,7 +64,7 @@ $machinestates = array(
 
     2 => array(
         "name" => "prepareTownsfolk",
-        "type" => "game",
+        "type" => "game", // temporary state that serves to prepare things for the next state, and to make decisions
         "action" => "stGameHireInitialTownsfolk",
         "transitions" => array("transHireInitialTownsfolk" => 3, "transStartGame" => 5)
     ),
@@ -75,7 +75,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must hire your initial assistant'),
         "type" => "activeplayer",
         "possibleactions" => array("hireInitialTownsfolk"),
-        "transitions" => array("" => 2)
+        "transitions" => array("end_picking_card" => 2)
     ),
 
     5 => array(

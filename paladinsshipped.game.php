@@ -638,19 +638,33 @@ class PaladinsShipped extends Table
         $this->deck->shuffle('kingsfavour_deck');
 
         $paladin_sets = $this->getCollectionFromDB("SELECT player_id, paladin_board FROM player", true);
+        self::warn("Paladin sets found: " . json_encode($paladin_sets));
+        
         foreach ($paladin_sets as $player_id => $set_name) {
+            self::warn("Creating paladin deck for player {$player_id} with set {$set_name}");
+            
             $cards_from_set = array_filter(
                 $this->paladins_cards_material,
                 function ($card_type) use ($set_name) {
                     return $card_type['set'] == $set_name;
                 }
             );
+            
+            self::warn("Cards found for set {$set_name}: " . count($cards_from_set));
+            self::warn("Cards from set: " . json_encode($cards_from_set));
+            
             $paladin_cards = [];
             foreach ($cards_from_set as $paladin_card_id => $paladin_card_type) {
                 $paladin_cards[] = ['type' => CARD_TYPE_PALADIN, 'type_arg' => $paladin_card_id, 'nbr' => 1];
             }
+            
+            self::warn("Paladin cards array for player {$player_id}: " . json_encode($paladin_cards));
+            
             $this->deck->createCards($paladin_cards, "paladin_deck_{$player_id}");
             $this->deck->shuffle("paladin_deck_{$player_id}");
+            
+            $deck_count = $this->deck->countCardInLocation("paladin_deck_{$player_id}");
+            self::warn("Paladin deck {$player_id} created with {$deck_count} cards");
         }
     }
 
@@ -1051,7 +1065,18 @@ class PaladinsShipped extends Table
 
         // Deal 3 paladin cards to each player
         foreach ($players as $player_id => $player) {
+            // Debug: Check deck before picking
+            $deck_count_before = $this->deck->countCardInLocation("paladin_deck_{$player_id}");
+            self::warn("Player {$player_id} deck count before: {$deck_count_before}");
+            
             $cards = $this->deck->pickCardsForLocation(3, "paladin_deck_{$player_id}", 'paladin_hand', $player_id);
+            
+            // Debug: Check cards picked and deck after
+            $deck_count_after = $this->deck->countCardInLocation("paladin_deck_{$player_id}");
+            $cards_count = count($cards);
+            self::warn("Player {$player_id} picked {$cards_count} cards, deck count after: {$deck_count_after}");
+            self::warn("Player {$player_id} cards: " . json_encode($cards));
+            
             // Notify only the specific player about their cards
             self::notifyPlayer($player_id, "paladinCards", '', array(
                 'cards' => $cards
