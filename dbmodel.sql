@@ -70,6 +70,8 @@ ALTER TABLE `player` ADD `develop_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0'
 ALTER TABLE `player` ADD `commission_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of commissions done. Max 7.';
 ALTER TABLE `player` ADD `garrison_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of garrisons done. Max 7.';
 
+-- Note: Tax supply is stored as a game state value, not in the database
+
 ALTER TABLE `player` ADD `abs_free_hire` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "free hire" bonus taken. Max 1';
 ALTER TABLE `player` ADD `abs_labourer` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "labourer" bonus taken. Max 1';
 ALTER TABLE `player` ADD `abs_pray` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Absolve "pray" bonus taken. Max 2';
@@ -80,27 +82,53 @@ ALTER TABLE `player` ADD `abs_pay_debt` tinyint(10) UNSIGNED NOT NULL DEFAULT '0
 
 -- Is the space occupied by workers
 
-ALTER TABLE `player` ADD `spaces_develop` varchar(32); -- Example: green,green
-ALTER TABLE `player` ADD `spaces_hunt` varchar(32);
-ALTER TABLE `player` ADD `spaces_trade` varchar(32);
-ALTER TABLE `player` ADD `spaces_recruit` varchar(32);
-ALTER TABLE `player` ADD `spaces_pray` varchar(32);
-ALTER TABLE `player` ADD `spaces_conspire` varchar(32);
+-- Game logic tracking: simple boolean flags for action availability
+ALTER TABLE `player` ADD `action_develop_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used develop action this round';
+ALTER TABLE `player` ADD `action_hunt_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used hunt action this round';
+ALTER TABLE `player` ADD `action_trade_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used trade action this round';
+ALTER TABLE `player` ADD `action_recruit_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used recruit action this round';
+ALTER TABLE `player` ADD `action_pray_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used pray action this round';
+ALTER TABLE `player` ADD `action_conspire_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used conspire action this round';
+ALTER TABLE `player` ADD `action_commission_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used commission action this round';
+ALTER TABLE `player` ADD `action_fortify_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used fortify action this round';
+ALTER TABLE `player` ADD `action_garrison_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used garrison action this round';
+ALTER TABLE `player` ADD `action_absolve_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used absolve action this round';
+ALTER TABLE `player` ADD `action_attack_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used attack action this round';
+ALTER TABLE `player` ADD `action_convert_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used convert action this round';
+
+-- Visual representation: JSON strings storing worker placement and development info
+ALTER TABLE `player` ADD `action_develop_workers` text COMMENT 'JSON array of worker types placed on develop action';
+ALTER TABLE `player` ADD `action_hunt_workers` text COMMENT 'JSON array of worker types placed on hunt action';
+ALTER TABLE `player` ADD `action_trade_workers` text COMMENT 'JSON array of worker types placed on trade action';
+ALTER TABLE `player` ADD `action_recruit_workers` text COMMENT 'JSON array of worker types placed on recruit action';
+ALTER TABLE `player` ADD `action_pray_workers` text COMMENT 'JSON array of worker types placed on pray action';
+ALTER TABLE `player` ADD `action_conspire_workers` text COMMENT 'JSON array of worker types placed on conspire action';
+ALTER TABLE `player` ADD `action_commission_workers` text COMMENT 'JSON array of worker types placed on commission action';
+ALTER TABLE `player` ADD `action_fortify_workers` text COMMENT 'JSON array of worker types placed on fortify action';
+ALTER TABLE `player` ADD `action_garrison_workers` text COMMENT 'JSON array of worker types placed on garrison action';
+ALTER TABLE `player` ADD `action_absolve_workers` text COMMENT 'JSON array of worker types placed on absolve action';
+ALTER TABLE `player` ADD `action_attack_workers` text COMMENT 'JSON array of worker types placed on attack action';
+ALTER TABLE `player` ADD `action_convert_workers` text COMMENT 'JSON array of worker types placed on convert action';
+
+-- Development tracking: number of developments on each action space (0, 1, or 2)
+ALTER TABLE `player` ADD `develop_develop_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on develop action (0-2)';
+ALTER TABLE `player` ADD `develop_hunt_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on hunt action (0-2)';
+ALTER TABLE `player` ADD `develop_trade_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on trade action (0-2)';
+ALTER TABLE `player` ADD `develop_recruit_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on recruit action (0-2)';
+ALTER TABLE `player` ADD `develop_pray_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on pray action (0-2)';
+ALTER TABLE `player` ADD `develop_conspire_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on conspire action (0-2)';
+ALTER TABLE `player` ADD `develop_commission_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on commission action (0-2)';
+ALTER TABLE `player` ADD `develop_fortify_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on fortify action (0-2)';
+ALTER TABLE `player` ADD `develop_garrison_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on garrison action (0-2)';
+ALTER TABLE `player` ADD `develop_absolve_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on absolve action (0-2)';
+ALTER TABLE `player` ADD `develop_attack_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on attack action (0-2)';
+ALTER TABLE `player` ADD `develop_convert_count` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Number of developments on convert action (0-2)';
+
+-- Board position tracking for commission and garrison actions
+ALTER TABLE `player` ADD `board_positions` text COMMENT 'JSON object mapping board position indices to piece types (commission/garrison)';
+
+-- Paladin board set assignment
+ALTER TABLE `player` ADD `paladin_board` varchar(32) NOT NULL DEFAULT 'castle' COMMENT 'Paladin board set assigned to player (castle, barracks, fountain, tower)';
 
 -- Spaces that can be developed
-ALTER TABLE `player` ADD `spaces_commission` varchar(32); -- Possible values: null, purple or dev
-ALTER TABLE `player` ADD `spaces_fortify` varchar(32);
-ALTER TABLE `player` ADD `spaces_garrison` varchar(32);
-ALTER TABLE `player` ADD `spaces_absolve` varchar(32);
-ALTER TABLE `player` ADD `spaces_attack` varchar(32);
-ALTER TABLE `player` ADD `spaces_convert` varchar(32);
-
-ALTER TABLE `player` ADD `paladin_board` varchar(16);
-
--- Other player stuff
--- suspicion: deck of cards: location: hand
--- townsfolk: deck of cards, location: hand
--- fortify: deck of cards, location: hand
--- attack: deck of cards, location: attack_pile
--- convert: deck of cards, location: hand
--- paladins: deck of cards, location: hand, deck
+ALTER TABLE `player`

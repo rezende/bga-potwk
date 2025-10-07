@@ -64,7 +64,7 @@ $machinestates = array(
 
     2 => array(
         "name" => "prepareTownsfolk",
-        "type" => "game",
+        "type" => "game", // temporary state that serves to prepare things for the next state, and to make decisions
         "action" => "stGameHireInitialTownsfolk",
         "transitions" => array("transHireInitialTownsfolk" => 3, "transStartGame" => 5)
     ),
@@ -75,7 +75,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must hire your initial assistant'),
         "type" => "activeplayer",
         "possibleactions" => array("hireInitialTownsfolk"),
-        "transitions" => array("" => 2)
+        "transitions" => array("end_picking_card" => 2)
     ),
 
     5 => array(
@@ -123,9 +123,9 @@ $machinestates = array(
             "absolve",
             "attack",
             "convert",
-            "kingsFavor"
+            "kingsFavour"
         ),
-        "transitions" => array("nextPlayer" => 8, "endOfRound" => 5, "inquisition" => 9)
+        "transitions" => array("nextPlayer" => 12, "endOfRound" => 5, "inquisition" => 9, "selectBoardPosition" => 14)
     ),
 
     9 => array(
@@ -164,6 +164,33 @@ $machinestates = array(
         "type" => "game",
         "action" => "stGameCleanupTaverns",
         "transitions" => ["" => 8]
+    ],
+
+    14 => [
+        "name" => "selectBoardPosition",
+        "description" => clienttranslate('${actplayer} must select a board position for their monk'),
+        "descriptionmyturn" => clienttranslate('${you} must select a board position for your monk'),
+        "type" => "activeplayer",
+        "possibleactions" => array("selectCommissionPosition", "selectGarrisonPosition"),
+        "transitions" => array("freeRecruit" => 15, "selectPraySpace" => 16, "nextPlayer" => 12)
+    ],
+
+    15 => [
+        "name" => "freeRecruit",
+        "description" => clienttranslate('${actplayer} must recruit a townsfolk for free'),
+        "descriptionmyturn" => clienttranslate('${you} must recruit a townsfolk for free'),
+        "type" => "activeplayer",
+        "possibleactions" => array("recruitHire"),
+        "transitions" => array("nextPlayer" => 12)
+    ],
+
+    16 => [
+        "name" => "selectPraySpace",
+        "description" => clienttranslate('${actplayer} must select a space to clear with prayer'),
+        "descriptionmyturn" => clienttranslate('${you} must select a space to clear with prayer'),
+        "type" => "activeplayer",
+        "possibleactions" => array("pray"),
+        "transitions" => array("nextPlayer" => 12)
     ],
 
     98 => array(
