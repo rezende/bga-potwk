@@ -60,6 +60,7 @@ define([
         absolve_jar_uiitem: { cssClass: "absolve_jar" },
         development_house_uiitem: { cssClass: "development_house" },
         fort_piece_uiitem: { cssClass: "fort_piece" },
+        fort_mock_piece_uiitem: { cssClass: "fort_mock_piece" },
         monk_piece_uiitem: { cssClass: "monk_piece" },
       };
 
@@ -149,7 +150,7 @@ define([
       };
 
       this.uiItems.getBackgroundPositionForUiItem = function (uiItem) {
-        // Items that only have one piece
+        // Gets the background position for the item in the sprite sheet
         if (uiItem.uiType == "development_house_uiitem") {
           return { x: -596, y: 451 };
         }
@@ -157,6 +158,9 @@ define([
           return { x: -792, y: 430 };
         }
         if (uiItem.uiType == "fort_piece_uiitem") {
+          return { x: -975, y: 430 };
+        }
+        if (uiItem.uiType == "fort_mock_piece_uiitem") {
           return { x: -975, y: 430 };
         }
         var background = { x: 0, y: 0 };
@@ -725,6 +729,26 @@ define([
             };
             this.uiItems.createAndAddItem("monk_piece_uiitem", params);
         }
+        // develop spaces
+        params = {
+          id: `develop_space_0_${playerId}`,
+          type: "fort_mock_piece",
+          location: "playerboard",
+          order_index: 0,
+          player_id: playerId,
+          parentContainer: "develop_spaces"
+        };
+        this.uiItems.createAndAddItem("fort_mock_piece_uiitem", params);
+        params = {
+          id: `develop_space_1_${playerId}`,
+          type: "fort_mock_piece",
+          location: "playerboard",
+          order_index: 1,
+          player_id: playerId,
+          parentContainer: "develop_spaces"
+        };
+        this.uiItems.createAndAddItem("fort_mock_piece_uiitem", params);
+
       }
     },
 
@@ -983,7 +1007,8 @@ define([
           uiItem.uiType == "absolve_jar_uiitem" && parentContainer.startsWith("absolve_jar_") ||
           uiItem.uiType == "development_house_uiitem" && parentContainer.startsWith("development_house_") ||
           uiItem.uiType == "fort_piece_uiitem" && parentContainer.startsWith("fort_piece_") ||
-          uiItem.uiType == "monk_piece_uiitem" && parentContainer.startsWith("monk_piece_")
+          uiItem.uiType == "monk_piece_uiitem" && parentContainer.startsWith("monk_piece_") ||
+          uiItem.uiType == "fort_mock_piece_uiitem"
         ) {
           const spotElement = document.getElementById(parentContainer);
           if (spotElement) {
@@ -1032,6 +1057,9 @@ define([
       }
       if (uiItem.uiType == "fort_piece_uiitem") {
         containerName = "fort_piece_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
+      }
+      if (uiItem.uiType == "fort_mock_piece_uiitem") {
+        containerName = uiItem.data.parentContainer + "_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
       }
       if (uiItem.uiType == "monk_piece_uiitem") {
         containerName = "monk_piece_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
