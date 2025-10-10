@@ -214,6 +214,68 @@
               <div id="monk_piece_5_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_5"></div>
               <div id="monk_piece_6_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_6"></div>
             </div>
+            <div id="develop_spaces">
+              <div id="develop_space_0_{PLAYER_ID}" class="develop_space_spot develop_space_spot_0"></div>
+              <div id="develop_space_1_{PLAYER_ID}" class="develop_space_spot develop_space_spot_1"></div>
+            </div>
+            <div id="hunt_spaces">
+              <div id="hunt_space_0_{PLAYER_ID}" class="hunt_space_spot hunt_space_spot_0"></div>
+              <div id="hunt_space_1_{PLAYER_ID}" class="hunt_space_spot hunt_space_spot_1"></div>
+            </div>
+            <div id="trade_spaces">
+              <div id="trade_space_0_{PLAYER_ID}" class="trade_space_spot trade_space_spot_0"></div>
+              <div id="trade_space_1_{PLAYER_ID}" class="trade_space_spot trade_space_spot_1"></div>
+            </div>
+            <div class="recruit_spaces">
+              <div id="recruit_space_0_{PLAYER_ID}" class="recruit_space_spot recruit_space_spot_0"></div>
+              <div id="recruit_space_1_{PLAYER_ID}" class="recruit_space_spot recruit_space_spot_1"></div>
+            </div>
+            <div id="pray_spaces">
+              <div id="pray_space_0_{PLAYER_ID}" class="pray_space_spot pray_space_spot_0"></div>
+            </div>
+            <div id="conspire_spaces">
+              <div id="conspire_space_0_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_0"></div>
+            </div>
+            <div class="commission_spaces">
+              <div id="commission_space_0_{PLAYER_ID}" class="commission_space_spot commission_space_spot_0"></div>
+              <div id="commission_space_1_{PLAYER_ID}" class="commission_space_spot commission_space_spot_1"></div>
+              <div id="commission_space_2_{PLAYER_ID}" class="commission_space_spot commission_space_spot_2"></div>
+            </div>
+            <div class="garrison_spaces">
+              <div id="garrison_space_0_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_0"></div>
+              <div id="garrison_space_1_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_1"></div>
+              <div id="garrison_space_2_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_2"></div>
+            </div>
+            <div class="conspire_spaces">
+              <div id="conspire_space_0_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_0"></div>
+              <div id="conspire_space_1_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_1"></div>
+              <div id="conspire_space_2_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_2"></div>
+            </div>
+            <div class="absolve_spaces">
+              <div id="absolve_space_0_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_0"></div>
+              <div id="absolve_space_1_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_1"></div>
+              <div id="absolve_space_2_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_2"></div>
+            </div>
+            <div class="attack_spaces">
+              <div id="attack_space_0_{PLAYER_ID}" class="attack_space_spot attack_space_spot_0"></div>
+              <div id="attack_space_1_{PLAYER_ID}" class="attack_space_spot attack_space_spot_1"></div>
+              <div id="attack_space_2_{PLAYER_ID}" class="attack_space_spot attack_space_spot_2"></div>
+            </div>
+            <div class="convert_spaces">
+              <div id="convert_space_0_{PLAYER_ID}" class="convert_space_spot convert_space_spot_0"></div>
+              <div id="convert_space_1_{PLAYER_ID}" class="convert_space_spot convert_space_spot_1"></div>
+              <div id="convert_space_2_{PLAYER_ID}" class="convert_space_spot convert_space_spot_2"></div>
+            </div>
+            <div class="develop_spaces">
+              <div id="develop_space_0_{PLAYER_ID}" class="develop_space_spot develop_space_spot_0"></div>
+              <div id="develop_space_1_{PLAYER_ID}" class="develop_space_spot develop_space_spot_1"></div>
+              <div id="develop_space_2_{PLAYER_ID}" class="develop_space_spot develop_space_spot_2"></div>
+            </div>
+            <div class="trade_spaces">
+              <div id="trade_space_0_{PLAYER_ID}" class="trade_space_spot trade_space_spot_0"></div>
+              <div id="trade_space_1_{PLAYER_ID}" class="trade_space_spot trade_space_spot_1"></div>
+              <div id="trade_space_2_{PLAYER_ID}" class="trade_space_spot trade_space_spot_2"></div>
+            </div>
           </div>
           <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>
         </div>
