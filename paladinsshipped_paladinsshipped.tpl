@@ -287,8 +287,34 @@
 
 <script type="text/javascript">
   const jstpl_player_panel_extension =
-    '<div id="panel_${player_id}" class="panel_player">\
-<span class="panel_parchment" id="panel_parchment_${player_id}" style="display:none;"></span></div>';
+    '<div class="panel_player_wrap">\
+<div id="panel_${player_id}" class="panel_player">\
+<div id="panel_paladin_${player_id}" class="panel_paladin" style="display:none;"></div>\
+<div class="panel_section panel_section_attributes">\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_attr panel_icon_faith"></span><span id="panel_value_faith_${player_id}" class="panel_resource"></span><span id="panel_bonus_faith_${player_id}" class="panel_resource panel_resource_bonus"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_attr panel_icon_strength"></span><span id="panel_value_strength_${player_id}" class="panel_resource"></span><span id="panel_bonus_strength_${player_id}" class="panel_resource panel_resource_bonus"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_attr panel_icon_influence"></span><span id="panel_value_influence_${player_id}" class="panel_resource"></span><span id="panel_bonus_influence_${player_id}" class="panel_resource panel_resource_bonus"></span></span>\
+</div>\
+<div class="panel_section panel_section_resources">\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_resource panel_icon_provision"></span><span id="panel_value_provision_${player_id}" class="panel_resource"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_resource panel_icon_coin"></span><span id="panel_value_coin_${player_id}" class="panel_resource"></span></span>\
+</div>\
+<div class="panel_section panel_section_workers">\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_worker panel_icon_white_worker"></span><span id="panel_value_white_worker_${player_id}" class="panel_resource"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_worker panel_icon_green_worker"></span><span id="panel_value_green_worker_${player_id}" class="panel_resource"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_worker panel_icon_red_worker"></span><span id="panel_value_red_worker_${player_id}" class="panel_resource"></span></span><br />\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_worker panel_icon_blue_worker"></span><span id="panel_value_blue_worker_${player_id}" class="panel_resource"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_worker panel_icon_black_worker"></span><span id="panel_value_black_worker_${player_id}" class="panel_resource"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_worker panel_icon_purple_worker"></span><span id="panel_value_purple_worker_${player_id}" class="panel_resource"></span></span>\
+</div>\
+<div class="panel_section panel_section_cards">\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_card panel_icon_suspicion"></span><span id="panel_value_suspicion_${player_id}" class="panel_resource"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_card panel_icon_unpaid_debt"></span><span id="panel_value_unpaid_debt_${player_id}" class="panel_resource"></span></span>\
+<span class="panel_resource_wrapper"><span class="panel_icon panel_icon_card panel_icon_paid_debt"></span><span id="panel_value_paid_debt_${player_id}" class="panel_resource"></span></span>\
+</div>\
+</div>\
+<span class="panel_parchment" id="panel_parchment_${player_id}" style="display:none;"></span>\
+</div>';
 </script>
 
 {OVERALL_GAME_FOOTER}

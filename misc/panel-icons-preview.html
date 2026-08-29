@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paladins — Side Panel Icon Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #2b2b2b;
+      color: #eee;
+      margin: 0;
+      padding: 24px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    p.lead {
+      color: #bbb;
+      margin: 0 0 24px;
+      max-width: 960px;
+      line-height: 1.5;
+    }
+    section {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    section h2 {
+      margin: 0 0 6px;
+      font-size: 1.1rem;
+      color: #f0d090;
+    }
+    section .source {
+      margin: 0 0 16px;
+      font-size: 0.85rem;
+      color: #888;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .icon-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 130px;
+      padding: 12px 8px;
+      background: #333;
+      border-radius: 8px;
+      border: 1px solid #555;
+    }
+    .icon-card.provisional {
+      border-color: #a07030;
+    }
+    .icon-card img {
+      object-fit: contain;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 4px;
+    }
+    .icon-card .label {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      text-align: center;
+      font-weight: 600;
+    }
+    .icon-card .meta {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      color: #999;
+      text-align: center;
+      word-break: break-all;
+    }
+    .icon-card .badge {
+      margin-top: 6px;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #444;
+      color: #ccc;
+    }
+    .icon-card.provisional .badge {
+      background: #5a3d18;
+      color: #f0d090;
+    }
+
+    /* --- Panel mock (Marco Polo style) --- */
+    .panel-preview h3 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: #ccc;
+    }
+    .panel_player {
+      width: 230px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #222;
+      border-radius: 6px;
+      padding: 8px 10px 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+    .panel_player .player-name {
+      font-weight: bold;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #4a90e2;
+    }
+    .panel_section { margin-top: 6px; }
+    .panel_section_title {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #666;
+      margin: 4px 0 2px;
+    }
+    .panel_resource_wrapper {
+      white-space: nowrap;
+      margin-right: 2px;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 28px;
+    }
+    .panel_icon {
+      display: inline-block;
+      vertical-align: middle;
+      object-fit: contain;
+      object-position: center center;
+    }
+    .panel_icon--attr { height: 26px; width: auto; }
+    .panel_icon--resource { height: 24px; width: auto; }
+    .panel_icon--worker { height: 24px; width: auto; }
+    .panel_icon--card { height: 22px; width: auto; }
+    .panel_resource {
+      display: inline-block;
+      font-size: 0.85rem;
+      font-weight: bold;
+      min-width: 12px;
+      vertical-align: middle;
+    }
+    .panel_resource--bonus {
+      font-size: 0.7rem;
+      color: #2a6b2a;
+      font-weight: bold;
+      margin-left: 1px;
+    }
+    .panel_paladin {
+      margin: 4px 0 6px;
+      padding: 4px 6px;
+      background: #f3ead6;
+      border: 1px solid #c9b88a;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      color: #443820;
+    }
+    .panel_paladin strong {
+      display: block;
+      font-size: 0.75rem;
+      color: #2a2418;
+    }
+    .panel_paladin span {
+      color: #5a4a28;
+    }
+    .panel_mocks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .panel_mock_block h3 {
+      margin: 0 0 8px;
+      font-size: 0.85rem;
+      color: #ccc;
+      font-weight: 600;
+    }
+
+    /* --- BGA side panel frame (first-player parchment) --- */
+    .bga_side_panel_frame {
+      width: 300px;
+      min-height: 320px;
+      background: #4a4a4a;
+      border: 1px solid #666;
+      border-radius: 4px;
+      padding: 10px 12px 16px;
+      overflow: visible;
+      position: relative;
+    }
+    .bga_player_board_header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      background: #4a90e2;
+      color: #fff;
+      border-radius: 3px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .bga_player_board_header .score {
+      margin-left: auto;
+      font-size: 0.82rem;
+      opacity: 0.95;
+    }
+    .bga_player_color {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4a90e2;
+      border: 2px solid #fff;
+      flex-shrink: 0;
+    }
+    .panel_player_wrap {
+      position: relative;
+      width: calc(100% - 40px);
+      margin-top: 5px;
+      min-height: 60px;
+      overflow: visible;
+    }
+    .panel_player--bga {
+      position: relative;
+      width: 100%;
+      overflow: visible;
+      background: transparent;
+      color: #eee;
+      padding: 0;
+      box-shadow: none;
+      border-radius: 0;
+      min-height: 0;
+      margin-top: 0;
+    }
+    .panel_player--bga .panel_section_title {
+      color: #bbb;
+    }
+    .panel_player--bga .panel_resource {
+      color: #fff;
+    }
+    .panel_player--bga .panel_paladin {
+      background: rgba(243, 234, 214, 0.92);
+    }
+    /* Marco Polo hourglass-style: sibling of panel, bottom-right of wrap */
+    .panel_parchment {
+      background-image: url("../img/scroll_small.png");
+      background-repeat: no-repeat;
+      background-size: contain;
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 46px;
+      height: 29px;
+      z-index: 100;
+      display: none;
+    }
+    .panel_parchment.is_visible {
+      display: inline;
+    }
+    .bga_parchment_mocks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 48px;
+      align-items: flex-start;
+    }
+    .bga_parchment_note {
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: #888;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Paladins — Side Panel Icon Preview</h1>
+  <p class="lead">
+    Preview for the BGA player side panel (<code>player_board_*</code>).
+    Open via a local server from the <code>bga-potwk</code> folder, e.g.
+    <code>python3 -m http.server 8765</code> then visit
+    <code>http://localhost:8765/misc/panel-icons-preview.html</code>.
+  </p>
+
+  <section>
+    <h2>Attributes</h2>
+    <p class="source">
+      Extracted from <code>img/WoodenComponents-01.png</code> row 2 —
+      black = Faith, red = Strength, blue = Influence
+    </p>
+    <div class="grid">
+      <div class="icon-card">
+        <img src="../img/panel/faith.png?v=4" height="80" alt="Faith" />
+        <span class="label">Faith</span>
+        <span class="meta">-407px -311px</span>
+        <span class="badge">black banner</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/panel/strength.png?v=4" height="80" alt="Strength" />
+        <span class="label">Strength</span>
+        <span class="meta">-238px -311px</span>
+        <span class="badge">red banner</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/panel/influence.png?v=4" height="80" alt="Influence" />
+        <span class="label">Influence</span>
+        <span class="meta">-69px -311px</span>
+        <span class="badge">blue banner</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Resources</h2>
+    <p class="source">
+      Standalone art: <code>img/Provisions.png</code> and <code>img/Silver.png</code>
+    </p>
+    <div class="grid">
+      <div class="icon-card">
+        <img src="../img/Provisions.png" height="72" alt="Provisions" />
+        <span class="label">Provisions</span>
+        <span class="meta">img/Provisions.png</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/Silver.png" height="56" alt="Gold (Silver)" />
+        <span class="label">Gold (Silver)</span>
+        <span class="meta">img/Silver.png</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Workers</h2>
+    <p class="source">
+      Extracted from <code>img/WoodenComponents-01.png</code> row 1 meeples —
+      black = Cleric, blue = Merchant
+    </p>
+    <div class="grid">
+      <div class="icon-card">
+        <img src="../img/panel/white_worker.png?v=4" height="72" alt="White worker" />
+        <span class="label">White</span><span class="meta">Labourer</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/panel/green_worker.png?v=4" height="72" alt="Green worker" />
+        <span class="label">Green</span><span class="meta">Scout</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/panel/red_worker.png?v=4" height="72" alt="Red worker" />
+        <span class="label">Red</span><span class="meta">Fighter</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/panel/blue_worker.png?v=4" height="72" alt="Blue worker" />
+        <span class="label">Blue</span><span class="meta">Merchant</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/panel/black_worker.png?v=4" height="72" alt="Black worker" />
+        <span class="label">Black</span><span class="meta">Cleric</span>
+      </div>
+      <div class="icon-card">
+        <img src="../img/panel/purple_worker.png?v=4" height="72" alt="Purple worker" />
+        <span class="label">Purple</span><span class="meta">Criminal</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cards</h2>
+    <p class="source">
+      Suspicion / debt icons are provisional placeholders — replace when dedicated art is available
+    </p>
+    <div class="grid">
+      <div class="icon-card provisional">
+        <img src="../img/panel/suspicion.png" height="48" alt="Suspicion" />
+        <span class="label">Suspicion</span>
+        <span class="meta">panel/suspicion.png</span>
+        <span class="badge">provisional</span>
+      </div>
+      <div class="icon-card provisional">
+        <img src="../img/panel/unpaid_debt.png" height="48" alt="Unpaid debt" />
+        <span class="label">Unpaid Debt</span>
+        <span class="meta">panel/unpaid_debt.png</span>
+        <span class="badge">provisional</span>
+      </div>
+      <div class="icon-card provisional">
+        <img src="../img/panel/paid_debt.png" height="48" alt="Paid debt" />
+        <span class="label">Paid Debt</span>
+        <span class="meta">panel/paid_debt.png</span>
+        <span class="badge">provisional</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Mock side panel</h2>
+    <p class="source">
+      Attribute totals show base + temporary paladin bonus. Bonus is green when active.
+      Sample paladin: Oliver (+4 Faith).
+    </p>
+    <div class="panel-preview">
+      <div class="panel_mocks">
+        <div class="panel_mock_block">
+          <h3>No active paladin</h3>
+          <div class="panel_player">
+            <div class="player-name">Player Name</div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Attributes</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/faith.png?v=4" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/strength.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/influence.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Resources</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Provisions.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Silver.png" alt="" />
+                <span class="panel_resource">6</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Workers</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/white_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/green_worker.png?v=4" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/red_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span><br />
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/blue_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/black_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/purple_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Cards</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/suspicion.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/unpaid_debt.png" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/paid_debt.png" alt="" />
+                <span class="panel_resource">3</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel_mock_block">
+          <h3>Active paladin bonus</h3>
+          <div class="panel_player">
+            <div class="player-name">Player Name</div>
+            <div class="panel_paladin">
+              <strong>Active: Oliver</strong>
+              <span>+4 Faith (temporary)</span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Attributes</div>
+              <span class="panel_resource_wrapper" title="2 base + 4 from Oliver">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/faith.png?v=4" alt="" />
+                <span class="panel_resource">6</span><span class="panel_resource--bonus">+4</span>
+              </span>
+              <span class="panel_resource_wrapper" title="1 base">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/strength.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper" title="1 base">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/influence.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Resources</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Provisions.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Silver.png" alt="" />
+                <span class="panel_resource">6</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Workers</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/white_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/green_worker.png?v=4" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/red_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span><br />
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/blue_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/black_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/purple_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Cards</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/suspicion.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/unpaid_debt.png" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/paid_debt.png" alt="" />
+                <span class="panel_resource">3</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel_mock_block">
+          <h3>Multi-stat paladin</h3>
+          <div class="panel_player">
+            <div class="player-name">Player Name</div>
+            <div class="panel_paladin">
+              <strong>Active: Gérier</strong>
+              <span>+3 Influence, +1 Faith (temporary)</span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Attributes</div>
+              <span class="panel_resource_wrapper" title="2 base + 1 from Gérier">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/faith.png?v=4" alt="" />
+                <span class="panel_resource">3</span><span class="panel_resource--bonus">+1</span>
+              </span>
+              <span class="panel_resource_wrapper" title="1 base">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/strength.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper" title="1 base + 3 from Gérier">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/influence.png?v=4" alt="" />
+                <span class="panel_resource">4</span><span class="panel_resource--bonus">+3</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Resources</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Provisions.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Silver.png" alt="" />
+                <span class="panel_resource">6</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>First player — parchment + side panel</h2>
+    <p class="source">
+      Marco Polo-style placement: parchment is a sibling of the resource panel,
+      anchored <code>right: 0; bottom: 0</code> inside <code>.panel_player_wrap</code>
+      (like <code>.panel_hourglass</code>).
+    </p>
+    <div class="bga_parchment_mocks">
+      <div class="panel_mock_block">
+        <h3>First player (parchment visible)</h3>
+        <div class="bga_side_panel_frame">
+          <div class="bga_player_board_header">
+            <span class="bga_player_color"></span>
+            <span>Player Name</span>
+            <span class="score">12 pts</span>
+          </div>
+          <div class="panel_player_wrap">
+          <div id="panel_123" class="panel_player panel_player--bga">
+
+            <div class="panel_paladin">
+              <strong>Active: Oliver</strong>
+              <span>+4 Faith (temporary)</span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Attributes</div>
+              <span class="panel_resource_wrapper" title="2 base + 4 from Oliver">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/faith.png?v=4" alt="" />
+                <span class="panel_resource">6</span><span class="panel_resource--bonus">+4</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/strength.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/influence.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Resources</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Provisions.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Silver.png" alt="" />
+                <span class="panel_resource">6</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Workers</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/white_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/green_worker.png?v=4" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/red_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span><br />
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/blue_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/black_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/purple_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Cards</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/suspicion.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/unpaid_debt.png" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/paid_debt.png" alt="" />
+                <span class="panel_resource">3</span>
+              </span>
+            </div>
+          </div>
+          <span class="panel_parchment is_visible" id="panel_parchment_123"></span>
+          </div>
+        </div>
+        <p class="bga_parchment_note">
+          Parchment sits bottom-right of the resource strip, like Marco Polo’s hourglass.
+        </p>
+      </div>
+
+      <div class="panel_mock_block">
+        <h3>Not first player</h3>
+        <div class="bga_side_panel_frame">
+          <div class="bga_player_board_header">
+            <span class="bga_player_color"></span>
+            <span>Other Player</span>
+            <span class="score">9 pts</span>
+          </div>
+          <div class="panel_player_wrap">
+          <div id="panel_456" class="panel_player panel_player--bga">
+
+            <div class="panel_paladin">
+              <strong>Active: Oliver</strong>
+              <span>+4 Faith (temporary)</span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Attributes</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/faith.png?v=4" alt="" />
+                <span class="panel_resource">6</span><span class="panel_resource--bonus">+4</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/strength.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--attr" src="../img/panel/influence.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Resources</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Provisions.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--resource" src="../img/Silver.png" alt="" />
+                <span class="panel_resource">6</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Workers</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/white_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/green_worker.png?v=4" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/red_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span><br />
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/blue_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/black_worker.png?v=4" alt="" />
+                <span class="panel_resource">0</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--worker" src="../img/panel/purple_worker.png?v=4" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+            </div>
+
+            <div class="panel_section">
+              <div class="panel_section_title">Cards</div>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/suspicion.png" alt="" />
+                <span class="panel_resource">2</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/unpaid_debt.png" alt="" />
+                <span class="panel_resource">1</span>
+              </span>
+              <span class="panel_resource_wrapper">
+                <img class="panel_icon panel_icon--card" src="../img/panel/paid_debt.png" alt="" />
+                <span class="panel_resource">3</span>
+              </span>
+            </div>
+          </div>
+          <span class="panel_parchment" id="panel_parchment_456"></span>
+          </div>
+        </div>
+        <p class="bga_parchment_note">
+          Parchment hidden (<code>display: none</code>) — same resource strip layout.
+        </p>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

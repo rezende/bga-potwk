@@ -388,8 +388,12 @@ define([
           if (player.parchment == "1") {
             this.updateParchment(player_id);
           }
+
+          if (gamedatas.player_panels && gamedatas.player_panels[player_id]) {
+            this.updatePlayerPanelResources(player_id, gamedatas.player_panels[player_id]);
+          }
           
-          // Update player resource table
+          // Update player resource table (legacy player-board table; kept for now)
           this.updatePlayerResourceTable(player_id, player);
         }
 
@@ -1250,17 +1254,22 @@ define([
     notif_playerResourcesUpdated: function (notif) {
       const player_id = notif.args.player_id;
       const player_data = notif.args.player_data;
-      
-      console.log(`Received playerResourcesUpdated notification for player ${player_id}:`, player_data);
-      
-      // Highlight the player's resource table briefly
-      this.highlightPlayerResourceTable(player_id);
-      
-      // Update the resource table for this player
-      this.updatePlayerResourceTable(player_id, player_data);
-      
-      // Log the update for debugging
-      console.log(`Resource table updated for player ${player_id}`);
+      const panel_data = notif.args.panel_data;
+
+      if (player_id && player_data) {
+        this.highlightPlayerResourceTable(player_id);
+        this.updatePlayerResourceTable(player_id, player_data);
+      }
+
+      if (player_id && panel_data) {
+        this.updatePlayerPanelResources(player_id, panel_data);
+        if (this.gamedatas.player_panels) {
+          this.gamedatas.player_panels[player_id] = panel_data;
+        }
+      } else if (notif.args.all_players) {
+        this.updateAllPlayerResourceTables();
+        this.updateAllPlayerPanels();
+      }
     },
 
     notif_townsfolkHired: function (notif) {
@@ -1362,18 +1371,6 @@ define([
           );
         }, 100);
       }, 1000); // Match the animation duration
-    },
-
-    notif_playerResourcesUpdated: function(notif) {
-      
-      
-      // Update the resource table for the specified player
-      if (notif.args.player_id && notif.args.player_data) {
-        this.updatePlayerResourceTable(notif.args.player_id, notif.args.player_data);
-      } else if (notif.args.all_players) {
-        // Update all player resource tables
-        this.updateAllPlayerResourceTables();
-      }
     },
 
     //////////////////////////////////////////////////////////////////////////////
@@ -2231,6 +2228,87 @@ define([
       });
 
       return availableWorkers;
+    },
+
+    updatePlayerPanelResources: function (player_id, panel_data) {
+      if (!panel_data) {
+        return;
+      }
+
+      const attributes = ["faith", "strength", "influence"];
+      attributes.forEach((attr) => {
+        const valueEl = document.getElementById(`panel_value_${attr}_${player_id}`);
+        const bonusEl = document.getElementById(`panel_bonus_${attr}_${player_id}`);
+        const total = panel_data[attr] || 0;
+        const bonus = panel_data[`${attr}_bonus`] || 0;
+
+        if (valueEl) {
+          valueEl.textContent = total;
+          if (bonus > 0) {
+            valueEl.title = `${total - bonus} base + ${bonus} from paladin`;
+          } else {
+            valueEl.removeAttribute("title");
+          }
+        }
+        if (bonusEl) {
+          bonusEl.textContent = bonus > 0 ? `+${bonus}` : "";
+        }
+      });
+
+      const resources = [
+        "provision",
+        "coin",
+        "white_worker",
+        "green_worker",
+        "red_worker",
+        "blue_worker",
+        "black_worker",
+        "purple_worker",
+        "suspicion",
+        "unpaid_debt",
+        "paid_debt",
+      ];
+      resources.forEach((resource) => {
+        const el = document.getElementById(`panel_value_${resource}_${player_id}`);
+        if (el) {
+          el.textContent = panel_data[resource] || 0;
+        }
+      });
+
+      const paladinEl = document.getElementById(`panel_paladin_${player_id}`);
+      if (paladinEl) {
+        if (panel_data.active_paladin_name) {
+          const bonusParts = [];
+          if (panel_data.faith_bonus > 0) {
+            bonusParts.push(`+${panel_data.faith_bonus} Faith`);
+          }
+          if (panel_data.strength_bonus > 0) {
+            bonusParts.push(`+${panel_data.strength_bonus} Strength`);
+          }
+          if (panel_data.influence_bonus > 0) {
+            bonusParts.push(`+${panel_data.influence_bonus} Influence`);
+          }
+          paladinEl.innerHTML =
+            `<strong>${panel_data.active_paladin_name}</strong>` +
+            `<span>${bonusParts.join(", ")}</span>`;
+          paladinEl.style.display = "block";
+        } else {
+          paladinEl.innerHTML = "";
+          paladinEl.style.display = "none";
+        }
+      }
+    },
+
+    updateAllPlayerPanels: function () {
+      if (!this.gamedatas || !this.gamedatas.player_panels) {
+        return;
+      }
+      for (const player_id in this.gamedatas.player_panels) {
+        this.updatePlayerPanelResources(
+          player_id,
+          this.gamedatas.player_panels[player_id],
+        );
+      }
     },
 
     updatePlayerResourceTable: function(player_id, player_data) {

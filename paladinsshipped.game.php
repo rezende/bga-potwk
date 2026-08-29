@@ -274,6 +274,11 @@ class PaladinsShipped extends Table
                 'total_strength' => $this->getTotalStrength($player_id)
             ];
         }
+
+        $result['player_panels'] = [];
+        foreach ($players as $player_id => $player) {
+            $result['player_panels'][$player_id] = $this->getPlayerPanelData($player_id);
+        }
         
         return $result;
     }
@@ -543,6 +548,8 @@ class PaladinsShipped extends Table
             $suspicion_info['tax_amount'] = $tax_amount;
             $suspicion_info['tax_supply'] = $tax_supply;
             $suspicion_info['tax_given'] = $tax_to_give ?? 0;
+
+            $this->notifyPlayerResourceUpdate($player_id);
             
             return $suspicion_info;
         }
@@ -836,6 +843,8 @@ class PaladinsShipped extends Table
         self::notifyPlayer($player_id, "keepPaladin", '', array(
             'card' => $chosen_card
         ));
+
+        $this->notifyPlayerResourceUpdate($player_id);
 
         // Mark this player as done
         $this->gamestate->setPlayerNonMultiactive($player_id, "done");
@@ -1601,10 +1610,87 @@ class PaladinsShipped extends Table
 
     // Helper to calculate total faith for a player (Faith stat + Paladin bonus)
     public function getTotalFaith($player_id) {
-        $faith_stat = $this->getResourceCount($player_id, ATTR_FAITH);
-        // TODO: Add Paladin bonus calculation
-        // For now, just return the faith stat
-        return $faith_stat;
+        $faith_stat = intval($this->getResourceCount($player_id, 'faith'));
+        $paladin_bonus = $this->getActivePaladinStatBonuses($player_id);
+        return $faith_stat + $paladin_bonus['faith'];
+    }
+
+    public function getTotalInfluence($player_id) {
+        $influence_stat = intval($this->getResourceCount($player_id, 'influence'));
+        $paladin_bonus = $this->getActivePaladinStatBonuses($player_id);
+        return $influence_stat + $paladin_bonus['influence'];
+    }
+
+    public function getActivePaladinStatBonuses($player_id) {
+        $bonuses = [
+            'faith' => 0,
+            'strength' => 0,
+            'influence' => 0,
+            'name' => null,
+        ];
+
+        $cards = $this->deck->getCardsInLocation('paladin_hand', $player_id);
+        // Active paladin is the single card kept in hand after pick; during setup there are 3
+        if (count($cards) !== 1) {
+            return $bonuses;
+        }
+
+        $card = reset($cards);
+        if (!$card || !isset($card['type_arg'])) {
+            return $bonuses;
+        }
+        $paladin_info = $this->paladins_cards_material[$card['type_arg']] ?? null;
+        if ($paladin_info === null) {
+            return $bonuses;
+        }
+
+        $bonuses['name'] = $paladin_info['name'] ?? null;
+
+        if (!isset($paladin_info['stats'])) {
+            return $bonuses;
+        }
+
+        foreach ($paladin_info['stats'] as $attr => $value) {
+            if ($attr === ATTR_FAITH) {
+                $bonuses['faith'] = intval($value);
+            } elseif ($attr === ATTR_STRENGTH) {
+                $bonuses['strength'] = intval($value);
+            } elseif ($attr === ATTR_INFLUENCE) {
+                $bonuses['influence'] = intval($value);
+            }
+        }
+
+        return $bonuses;
+    }
+
+    public function getPlayerPanelData($player_id) {
+        $paladin_bonus = $this->getActivePaladinStatBonuses($player_id);
+
+        $faith_base = intval($this->getResourceCount($player_id, 'faith'));
+        $strength_base = intval($this->getResourceCount($player_id, 'strength'));
+        $influence_base = intval($this->getResourceCount($player_id, 'influence'));
+
+        return [
+            'faith' => $faith_base + $paladin_bonus['faith'],
+            'faith_bonus' => $paladin_bonus['faith'],
+            'strength' => $strength_base + $paladin_bonus['strength'],
+            'strength_bonus' => $paladin_bonus['strength'],
+            'influence' => $influence_base + $paladin_bonus['influence'],
+            'influence_bonus' => $paladin_bonus['influence'],
+            'provision' => intval($this->getResourceCount($player_id, 'provision')),
+            'coin' => intval($this->getResourceCount($player_id, 'coin')),
+            'white_worker' => intval($this->getResourceCount($player_id, 'white_worker')),
+            'green_worker' => intval($this->getResourceCount($player_id, 'green_worker')),
+            'blue_worker' => intval($this->getResourceCount($player_id, 'blue_worker')),
+            'red_worker' => intval($this->getResourceCount($player_id, 'red_worker')),
+            'black_worker' => intval($this->getResourceCount($player_id, 'black_worker')),
+            'purple_worker' => intval($this->getResourceCount($player_id, 'purple_worker')),
+            'suspicion' => intval($this->deck->countCardInLocation("suspicion_deck_$player_id")),
+            'unpaid_debt' => intval($this->getResourceCount($player_id, 'unpaid_debt')),
+            'paid_debt' => intval($this->getResourceCount($player_id, 'paid_debt')),
+            'parchment' => intval($this->getResourceCount($player_id, 'parchment')),
+            'active_paladin_name' => $paladin_bonus['name'],
+        ];
     }
 
     // Helper to get available board positions based on player's faith
@@ -1875,10 +1961,9 @@ class PaladinsShipped extends Table
 
     // Helper to calculate total strength for a player (Strength stat + Paladin bonus)
     public function getTotalStrength($player_id) {
-        $strength_stat = $this->getResourceCount($player_id, ATTR_STRENGTH);
-        // TODO: Add Paladin bonus calculation
-        // For now, just return the strength stat
-        return $strength_stat;
+        $strength_stat = intval($this->getResourceCount($player_id, 'strength'));
+        $paladin_bonus = $this->getActivePaladinStatBonuses($player_id);
+        return $strength_stat + $paladin_bonus['strength'];
     }
 
     // Helper to get available board positions based on player's strength
@@ -2224,8 +2309,7 @@ class PaladinsShipped extends Table
         
         if (in_array($resource_type, $valid_resources)) {
             $sql = "SELECT $resource_type FROM player WHERE player_id = $player_id";
-            $result = $this->getCollectionFromDb($sql);
-            return count($result) > 0 ? $result[0][$resource_type] : 0;
+            return intval(self::getUniqueValueFromDb($sql));
         }
         
         return 0;
@@ -2386,7 +2470,8 @@ class PaladinsShipped extends Table
         // Send notification to all players to update the resource table
         self::notifyAllPlayers('playerResourcesUpdated', '', [
             'player_id' => $player_id,
-            'player_data' => $player_data
+            'player_data' => $player_data,
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
     }
 
