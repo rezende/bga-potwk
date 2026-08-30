@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paladins — Board slot editor</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #161616;
+      color: #eee;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+    aside {
+      background: #222;
+      border-right: 1px solid #333;
+      padding: 14px;
+      overflow-y: auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      background: #111;
+    }
+    #toolbar-top {
+      padding: 10px 14px;
+      border-bottom: 1px solid #333;
+      font-size: 0.82rem;
+      color: #aaa;
+      flex-shrink: 0;
+    }
+    #viewport {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 0;
+    }
+    #canvas-wrap {
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      line-height: 0;
+      flex-shrink: 0;
+      background-color: #2a2a2a;
+      background-image:
+        linear-gradient(45deg, #333 25%, transparent 25%),
+        linear-gradient(-45deg, #333 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #333 75%),
+        linear-gradient(-45deg, transparent 75%, #333 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    }
+    #boardCanvas {
+      display: block;
+      cursor: crosshair;
+    }
+    h1 { font-size: 1.05rem; margin: 0; }
+    .hint { font-size: 0.8rem; color: #aaa; line-height: 1.4; }
+    label { display: block; font-size: 0.76rem; color: #999; margin-bottom: 4px; }
+    select, input, button, textarea {
+      width: 100%;
+      font: inherit;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #2a2a2a;
+      color: #eee;
+      padding: 7px 9px;
+    }
+    button { cursor: pointer; background: #3a3a3a; }
+    button:hover { background: #4a4a4a; }
+    button.primary { background: #2d6a4f; border-color: #40916c; }
+    button.danger { background: #5c1a1a; border-color: #9b2226; }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    .slot-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+    .slot-item {
+      padding: 7px 8px;
+      border-radius: 8px;
+      background: #2a2a2a;
+      border: 1px solid #383838;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .slot-item.selected { outline: 2px solid #74c0fc; }
+    .coords { font-family: ui-monospace, monospace; color: #bbb; font-size: 0.72rem; }
+    textarea { min-height: 140px; font-family: ui-monospace, monospace; font-size: 0.7rem; resize: vertical; }
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 0.7rem; background: #333; color: #ccc; }
+    .warn { color: #ffa94d; font-size: 0.78rem; }
+    .ok { color: #69db7c; font-size: 0.78rem; }
+    #typeHint { font-size: 0.78rem; color: #ced4da; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <aside>
+    <div>
+      <h1>Board slot editor</h1>
+      <p class="hint">Coordinates are <strong>native board pixels</strong> from the top-left of the board image. King's cards go on <code>mainboard.png</code>; outsiders / invaders on the play board.</p>
+      <p id="loadStatus" class="warn">Loading…</p>
+    </div>
+
+    <div>
+      <label for="boardSelect">Board view</label>
+      <select id="boardSelect">
+        <option value="main_board" selected>Full board — main_board.png (1468×180)</option>
+        <option value="main_board_1">Left half — main_board_1.png (734×180)</option>
+        <option value="main_board_2">Right half — main_board_2.png (734×180)</option>
+        <option value="mainboard">Top strip only — mainboard.png (1631×200)</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="slotType">Slot type</label>
+      <select id="slotType">
+        <optgroup label="Card spaces (rectangle)">
+          <option value="kingsorder">King's Order — card space</option>
+          <option value="kingsfavour">King's Favour — card space</option>
+          <option value="townsfolk">Townsfolk — card space</option>
+          <option value="wall">Wall deck — card space</option>
+        </optgroup>
+        <optgroup label="Card edge lines">
+          <option value="outsider">Outsider — card bottom edge (card above board)</option>
+          <option value="invader">Invader — card top edge (card below board)</option>
+        </optgroup>
+        <option value="custom">Custom rectangle</option>
+      </select>
+      <p id="typeHint"></p>
+    </div>
+
+    <div>
+      <label>Zoom <span id="zoomLabel" class="badge">100%</span></label>
+      <input id="zoom" type="range" min="10" max="300" value="100" />
+      <button type="button" id="fitBtn">Fit to view</button>
+    </div>
+
+    <div class="row">
+      <button type="button" id="modeDraw" class="primary">Draw</button>
+      <button type="button" id="modeMove">Move / Resize</button>
+      <button type="button" id="deleteBtn" class="danger">Delete</button>
+    </div>
+
+    <div>
+      <label>Slots <span id="slotCount" class="badge">0</span></label>
+      <div id="slotList" class="slot-list"></div>
+    </div>
+
+    <div class="row">
+      <button type="button" id="saveBtn">Save</button>
+      <button type="button" id="loadBtn">Load</button>
+    </div>
+    <button type="button" id="exportCssBtn" class="primary">Copy CSS export</button>
+    <textarea id="exportBox" readonly></textarea>
+  </aside>
+
+  <main>
+    <div id="toolbar-top">
+      <span id="drawHint">Click-drag to draw · Arrow keys nudge · Delete removes selected</span> ·
+      Open via local server: <code>python3 -m http.server 8765</code> in <code>bga-potwk</code>, then
+      <code id="serveUrl">http://localhost:8765/misc/board-slot-editor.html</code>
+    </div>
+    <div id="viewport">
+      <div id="canvas-wrap">
+        <canvas id="boardCanvas"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const IMG_BASE = location.protocol === "file:" ? "../img" : "/img";
+    const PAD_TOP = 150;
+    const PAD_BOTTOM = 150;
+
+    const BOARDS = {
+      main_board: {
+        src: IMG_BASE + "/main_board.png",
+        cssScale: 1.511111111,
+        label: "Full board",
+      },
+      mainboard: {
+        src: IMG_BASE + "/mainboard.png",
+        cssScale: 1.36,
+        label: "Top strip (mainboard)",
+      },
+      main_board_1: {
+        src: IMG_BASE + "/main_board_1.png",
+        cssScale: 1.511111111,
+        label: "Left half",
+      },
+      main_board_2: {
+        src: IMG_BASE + "/main_board_2.png",
+        cssScale: 1.511111111,
+        label: "Right half",
+      },
+    };
+
+    const SLOT_TYPES = {
+      kingsorder: {
+        shape: "rect",
+        color: "#ff6b6b",
+        preferredBoard: "mainboard",
+        labelBase: "kingsorder_spot",
+        defaultW: 158,
+        defaultH: 126,
+        hint: "Drag a rectangle for each King's Order card space on the top strip.",
+      },
+      kingsfavour: {
+        shape: "rect",
+        color: "#51cf66",
+        preferredBoard: "mainboard",
+        labelBase: "kingsfavour_spot",
+        defaultW: 158,
+        defaultH: 126,
+        hint: "Drag a rectangle for each King's Favour card space on the top strip.",
+      },
+      townsfolk: {
+        shape: "rect",
+        color: "#74c0fc",
+        preferredBoard: "mainboard",
+        labelBase: "townsfolk_spot",
+        defaultW: 118,
+        defaultH: 62,
+        hint: "Drag a rectangle for each townsfolk card space.",
+      },
+      wall: {
+        shape: "rect",
+        color: "#ffd43b",
+        preferredBoard: "mainboard",
+        labelBase: "wall_deck",
+        defaultW: 80,
+        defaultH: 100,
+        hint: "Drag a rectangle for the wall deck.",
+      },
+      outsider: {
+        shape: "hline",
+        marker: "bottom",
+        color: "#da77f2",
+        preferredBoard: "main_board_1",
+        labelBase: "outsider_spot",
+        cardW: 75,
+        cardH: 116,
+        hint: "Drag a horizontal line where the bottom of each outsider card sits on the board. The card extends upward.",
+      },
+      invader: {
+        shape: "hline",
+        marker: "top",
+        color: "#ff922b",
+        preferredBoard: "main_board_1",
+        labelBase: "invader_spot",
+        cardW: 75,
+        cardH: 116,
+        hint: "Drag a horizontal line where the top of each invader card meets the board. The card extends downward.",
+      },
+      custom: {
+        shape: "rect",
+        color: "#adb5bd",
+        labelBase: "custom_spot",
+        hint: "Drag a custom rectangle.",
+      },
+    };
+
+    const STORAGE_KEY = "paladins-board-slots-v3";
+    const HANDLE_R = 8;
+    const MIN_SIZE = 4;
+    const canvas = document.getElementById("boardCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let boardKey = "main_board";
+    let boardImage = null;
+    let boardW = 1468;
+    let boardH = 180;
+    let zoom = 1;
+    let mode = "draw";
+    let slots = [];
+    let selectedId = null;
+    let draft = null;
+    let drag = null;
+
+    function uid() {
+      return "slot_" + Math.random().toString(36).slice(2, 9);
+    }
+
+    function currentSlotType() {
+      return document.getElementById("slotType").value;
+    }
+
+    function slotTypeConfig(type) {
+      return SLOT_TYPES[type] || SLOT_TYPES.custom;
+    }
+
+    function canvasH() {
+      return boardH + PAD_TOP + PAD_BOTTOM;
+    }
+
+    function boardToCanvasY(y) {
+      return y + PAD_TOP;
+    }
+
+    function canvasToBoardY(y) {
+      return y - PAD_TOP;
+    }
+
+    function setStatus(msg, ok) {
+      const el = document.getElementById("loadStatus");
+      el.textContent = msg;
+      el.className = ok ? "ok" : "warn";
+    }
+
+    function updateTypeHints() {
+      const type = currentSlotType();
+      const cfg = slotTypeConfig(type);
+      document.getElementById("typeHint").textContent = cfg.hint || "";
+      const drawHint = cfg.shape === "hline"
+        ? "Drag a horizontal line along the card edge"
+        : "Click-drag a rectangle for the card space";
+      document.getElementById("drawHint").textContent = drawHint + " · Move/Resize: drag body to move, handles to resize · Delete removes selected";
+      if (cfg.preferredBoard && boardKey !== cfg.preferredBoard) {
+        document.getElementById("typeHint").textContent += ` (best on: ${BOARDS[cfg.preferredBoard].label})`;
+      }
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Failed to load " + src));
+        img.src = src;
+      });
+    }
+
+    async function loadBoard(key) {
+      boardKey = key;
+      const board = BOARDS[key];
+      setStatus("Loading " + board.label + "…", false);
+      try {
+        boardImage = await loadImage(board.src);
+        boardW = boardImage.naturalWidth;
+        boardH = boardImage.naturalHeight;
+        setStatus("Loaded " + board.label + " — " + boardW + "×" + boardH + "px", true);
+        updateTypeHints();
+        fitToView();
+      } catch (err) {
+        console.error(err);
+        setStatus("Could not load images. Run: python3 -m http.server 8765 from bga-potwk, then open the URL above.", false);
+      }
+    }
+
+    function applyZoom() {
+      const cw = boardW;
+      const ch = canvasH();
+      canvas.width = cw;
+      canvas.height = ch;
+      canvas.style.width = Math.round(cw * zoom) + "px";
+      canvas.style.height = Math.round(ch * zoom) + "px";
+      document.getElementById("zoomLabel").textContent = Math.round(zoom * 100) + "%";
+      document.getElementById("zoom").value = String(Math.round(zoom * 100));
+      redraw();
+    }
+
+    function fitToView() {
+      const vp = document.getElementById("viewport");
+      const pad = 32;
+      const maxW = Math.max(100, vp.clientWidth - pad);
+      const maxH = Math.max(100, vp.clientHeight - pad);
+      zoom = Math.min(maxW / boardW, maxH / canvasH(), 3);
+      zoom = Math.max(0.05, zoom);
+      applyZoom();
+    }
+
+    function slotsForBoard() {
+      return slots.filter((s) => s.board === boardKey);
+    }
+
+    function drawBoardChrome() {
+      ctx.fillStyle = "#1f1f1f";
+      ctx.fillRect(0, 0, boardW, PAD_TOP);
+      ctx.fillRect(0, PAD_TOP + boardH, boardW, PAD_BOTTOM);
+      if (boardImage) {
+        ctx.drawImage(boardImage, 0, PAD_TOP, boardW, boardH);
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(0.5, PAD_TOP + 0.5, boardW - 1, boardH - 1);
+      ctx.setLineDash([]);
+    }
+
+    function drawCardGhost(x, y, w, h, marker, color, selected) {
+      const ghostY = marker === "bottom" ? y - h : y;
+      ctx.fillStyle = selected ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)";
+      ctx.fillRect(x, ghostY, w, h);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = selected ? 2 : 1;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(x + 0.5, ghostY + 0.5, w - 1, h - 1);
+      ctx.setLineDash([]);
+    }
+
+    function drawHandles(slot) {
+      const handles = getHandlePoints(slot);
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = 1;
+      Object.values(handles).forEach((pt) => {
+        const hx = pt.x;
+        const hy = boardToCanvasY(pt.y);
+        ctx.fillRect(hx - HANDLE_R / 2, hy - HANDLE_R / 2, HANDLE_R, HANDLE_R);
+        ctx.strokeRect(hx - HANDLE_R / 2 + 0.5, hy - HANDLE_R / 2 + 0.5, HANDLE_R - 1, HANDLE_R - 1);
+      });
+    }
+
+    function getHandlePoints(slot) {
+      if (slot.shape === "hline") {
+        return {
+          w: { x: slot.x, y: slot.y },
+          e: { x: slot.x + slot.w, y: slot.y },
+        };
+      }
+      const { x, y, w, h } = slot;
+      return {
+        nw: { x, y },
+        n: { x: x + w / 2, y },
+        ne: { x: x + w, y },
+        w: { x, y: y + h / 2 },
+        e: { x: x + w, y: y + h / 2 },
+        sw: { x, y: y + h },
+        s: { x: x + w / 2, y: y + h },
+        se: { x: x + w, y: y + h },
+      };
+    }
+
+    function hitTestHandle(slot, px, py) {
+      if (!slot || slot.id !== selectedId || mode !== "move") return null;
+      const handles = getHandlePoints(slot);
+      for (const [name, pt] of Object.entries(handles)) {
+        if (Math.abs(px - pt.x) <= HANDLE_R && Math.abs(py - pt.y) <= HANDLE_R) return name;
+      }
+      return null;
+    }
+
+    function clampRect(x, y, w, h) {
+      w = Math.max(MIN_SIZE, w);
+      h = Math.max(MIN_SIZE, h);
+      x = Math.max(0, Math.min(boardW - w, x));
+      y = Math.max(0, Math.min(boardH - h, y));
+      return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+    }
+
+    function applyResize(slot, handle, orig, dx, dy) {
+      if (slot.shape === "hline") {
+        let x = orig.x;
+        let w = orig.w;
+        if (handle === "w") {
+          x = orig.x + dx;
+          w = orig.w - dx;
+        } else if (handle === "e") {
+          w = orig.w + dx;
+        }
+        w = Math.max(MIN_SIZE, w);
+        if (handle === "w") x = orig.x + orig.w - w;
+        x = Math.max(0, Math.min(boardW - w, x));
+        slot.x = Math.round(x);
+        slot.w = Math.round(w);
+        slot.y = Math.round(orig.y);
+        return;
+      }
+
+      let { x, y, w, h } = orig;
+      if (handle.includes("e")) w = orig.w + dx;
+      if (handle.includes("w")) {
+        x = orig.x + dx;
+        w = orig.w - dx;
+      }
+      if (handle.includes("s")) h = orig.h + dy;
+      if (handle.includes("n")) {
+        y = orig.y + dy;
+        h = orig.h - dy;
+      }
+      const next = clampRect(x, y, w, h);
+      slot.x = next.x;
+      slot.y = next.y;
+      slot.w = next.w;
+      slot.h = next.h;
+    }
+
+    function handleCursor(handle) {
+      if (!handle) return mode === "draw" ? "crosshair" : "default";
+      const map = {
+        n: "ns-resize", s: "ns-resize",
+        e: "ew-resize", w: "ew-resize",
+        ne: "nesw-resize", sw: "nesw-resize",
+        nw: "nwse-resize", se: "nwse-resize",
+      };
+      return map[handle] || "default";
+    }
+
+    function drawRectSlot(slot, selected) {
+      const color = slotTypeConfig(slot.type).color;
+      const cy = boardToCanvasY(slot.y);
+      ctx.fillStyle = selected ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)";
+      ctx.fillRect(slot.x, cy, slot.w, slot.h);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = selected ? 3 : 2;
+      ctx.strokeRect(slot.x + 0.5, cy + 0.5, slot.w - 1, slot.h - 1);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText(slot.label, slot.x + 4, cy + 15);
+      if (selected) drawHandles(slot);
+    }
+
+    function drawHLineSlot(slot, selected) {
+      const cfg = slotTypeConfig(slot.type);
+      const color = cfg.color;
+      const cy = boardToCanvasY(slot.y);
+      const cardW = slot.cardW || cfg.cardW || slot.w;
+      const cardH = slot.cardH || cfg.cardH || 116;
+      const cardX = slot.x + (slot.w - cardW) / 2;
+
+      drawCardGhost(cardX, cy, cardW, cardH, cfg.marker, color, selected);
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = selected ? 4 : 3;
+      ctx.beginPath();
+      ctx.moveTo(slot.x, cy);
+      ctx.lineTo(slot.x + slot.w, cy);
+      ctx.stroke();
+
+      const tag = cfg.marker === "bottom" ? "bottom" : "top";
+      ctx.fillStyle = color;
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText(slot.label + " (" + tag + ")", slot.x + 4, cfg.marker === "bottom" ? cy - 6 : cy + 14);
+      if (selected) drawHandles(slot);
+    }
+
+    function redraw() {
+      if (!boardImage) return;
+      ctx.clearRect(0, 0, boardW, canvasH());
+      drawBoardChrome();
+
+      slotsForBoard().forEach((slot) => {
+        const selected = slot.id === selectedId;
+        if (slot.shape === "hline") {
+          drawHLineSlot(slot, selected);
+        } else {
+          drawRectSlot(slot, selected);
+        }
+      });
+
+      if (draft) {
+        const type = currentSlotType();
+        const cfg = slotTypeConfig(type);
+        if (draft.shape === "hline") {
+          const cy = boardToCanvasY(draft.y);
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(draft.x, cy);
+          ctx.lineTo(draft.x + draft.w, cy);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          const cy = boardToCanvasY(draft.y);
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.strokeRect(draft.x + 0.5, cy + 0.5, draft.w, draft.h);
+          ctx.setLineDash([]);
+        }
+      }
+
+      renderSlotList();
+      renderExport();
+    }
+
+    function canvasToNative(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: ((clientX - rect.left) / rect.width) * boardW,
+        y: canvasToBoardY(((clientY - rect.top) / rect.height) * canvasH()),
+      };
+    }
+
+    function hitTest(x, y) {
+      const items = slotsForBoard();
+      for (let i = items.length - 1; i >= 0; i--) {
+        const s = items[i];
+        if (s.shape === "hline") {
+          const cfg = slotTypeConfig(s.type);
+          const cardW = s.cardW || cfg.cardW || s.w;
+          const cardH = s.cardH || cfg.cardH || 116;
+          const cardX = s.x + (s.w - cardW) / 2;
+          const ghostY = cfg.marker === "bottom" ? s.y - cardH : s.y;
+          if (x >= cardX && x <= cardX + cardW && y >= ghostY && y <= ghostY + cardH) return s;
+          if (y >= s.y - 8 && y <= s.y + 8 && x >= s.x && x <= s.x + s.w) return s;
+        } else if (x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h) {
+          return s;
+        }
+      }
+      return null;
+    }
+
+    function defaultLabel(type) {
+      const cfg = slotTypeConfig(type);
+      const idx = slots.filter((s) => s.type === type).length;
+      if (type === "wall") return cfg.labelBase;
+      return `${cfg.labelBase}_${idx}`;
+    }
+
+    function normalizeSlot(raw, type) {
+      const cfg = slotTypeConfig(type);
+      const slot = {
+        id: uid(),
+        board: boardKey,
+        type,
+        shape: cfg.shape,
+        label: defaultLabel(type),
+        x: Math.round(raw.x),
+        y: Math.round(raw.y),
+        w: Math.max(4, Math.round(raw.w)),
+      };
+      if (cfg.shape === "rect") {
+        slot.h = Math.max(4, Math.round(raw.h));
+      } else {
+        slot.marker = cfg.marker;
+        slot.cardW = cfg.cardW;
+        slot.cardH = cfg.cardH;
+      }
+      return slot;
+    }
+
+    function addSlot(raw, type) {
+      const slot = normalizeSlot(raw, type);
+      slots.push(slot);
+      selectedId = slot.id;
+      saveToStorage();
+      redraw();
+    }
+
+    function formatSlotCoords(slot) {
+      if (slot.shape === "hline") {
+        return `x:${slot.x} y:${slot.y} w:${slot.w} (${slot.marker} edge)`;
+      }
+      return `x:${slot.x} y:${slot.y} w:${slot.w} h:${slot.h}`;
+    }
+
+    function renderSlotList() {
+      const list = document.getElementById("slotList");
+      list.innerHTML = "";
+      document.getElementById("slotCount").textContent = String(slotsForBoard().length);
+      slotsForBoard().forEach((slot) => {
+        const row = document.createElement("div");
+        row.className = "slot-item" + (slot.id === selectedId ? " selected" : "");
+        row.innerHTML = `<div>${slot.label}</div><div class="coords">${formatSlotCoords(slot)}</div>`;
+        row.onclick = () => { selectedId = slot.id; redraw(); };
+        list.appendChild(row);
+      });
+    }
+
+    function renderExport() {
+      const board = BOARDS[boardKey];
+      const items = slotsForBoard();
+      let css = `/* ${boardKey} — board ${boardW}×${boardH} native, cssScale ${board.cssScale} */\n`;
+      items.forEach((slot) => {
+        if (slot.shape === "hline") {
+          const cfg = slotTypeConfig(slot.type);
+          const edge = cfg.marker === "bottom" ? "bottom" : "top";
+          css += `\n/* ${slot.label}: card ${edge} edge on board */\n`;
+          css += `#${slot.label} {\n`;
+          css += `  position: absolute;\n`;
+          css += `  left: ${slot.x}px;\n`;
+          css += `  width: ${slot.w}px;\n`;
+          if (cfg.marker === "bottom") {
+            css += `  bottom: ${boardH - slot.y}px; /* card sits above board */\n`;
+          } else {
+            css += `  top: ${slot.y}px; /* card sits below board */\n`;
+          }
+          css += `}\n`;
+        } else {
+          css += `\n#${slot.label} {\n  position: absolute;\n  left: ${slot.x}px;\n  top: ${slot.y}px;\n  width: ${slot.w}px;\n  height: ${slot.h}px;\n}\n`;
+        }
+      });
+      document.getElementById("exportBox").value = css + "\n" + JSON.stringify({ board: boardKey, slots: items }, null, 2);
+    }
+
+    function saveToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ slots }));
+    }
+
+    function migrateSlot(slot) {
+      if (slot.board === "composite") slot.board = "main_board";
+      if (!slot.shape) {
+        const cfg = slotTypeConfig(slot.type);
+        slot.shape = cfg.shape || "rect";
+        if (slot.shape === "hline") {
+          slot.marker = cfg.marker;
+          slot.cardW = cfg.cardW;
+          slot.cardH = cfg.cardH;
+          delete slot.h;
+        }
+      }
+      return slot;
+    }
+
+    function loadFromStorage() {
+      try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem("paladins-board-slots-v2") || "{}");
+        slots = (data.slots || []).map(migrateSlot);
+      } catch (e) {
+        slots = [];
+      }
+    }
+
+    function startDraw(p) {
+      const type = currentSlotType();
+      const cfg = slotTypeConfig(type);
+      if (cfg.shape === "hline") {
+        draft = { shape: "hline", x: p.x, y: p.y, w: 0 };
+        drag = { kind: "draw-line", sx: p.x, sy: p.y };
+      } else {
+        draft = { shape: "rect", x: p.x, y: p.y, w: 0, h: 0 };
+        drag = { kind: "draw-rect", sx: p.x, sy: p.y };
+      }
+    }
+
+    function finishDraw() {
+      const type = currentSlotType();
+      const cfg = slotTypeConfig(type);
+      if (!draft) return;
+
+      if (draft.shape === "hline") {
+        if (draft.w < 4) {
+          const cardW = cfg.cardW || 75;
+          draft.w = cardW;
+          draft.x = drag.sx - cardW / 2;
+        }
+        draft.x = Math.max(0, Math.min(boardW - draft.w, draft.x));
+        draft.y = Math.max(0, Math.min(boardH, draft.y));
+        if (draft.w >= 4) addSlot(draft, type);
+      } else if (draft.w >= 4 && draft.h >= 4) {
+        addSlot(draft, type);
+      } else if (cfg.defaultW && cfg.defaultH) {
+        addSlot({
+          x: drag.sx - cfg.defaultW / 2,
+          y: drag.sy - cfg.defaultH / 2,
+          w: cfg.defaultW,
+          h: cfg.defaultH,
+        }, type);
+      }
+    }
+
+    canvas.addEventListener("mousedown", (e) => {
+      const p = canvasToNative(e.clientX, e.clientY);
+      if (mode === "draw") {
+        startDraw(p);
+        return;
+      }
+      const selected = slots.find((s) => s.id === selectedId);
+      const handle = selected ? hitTestHandle(selected, p.x, p.y) : null;
+      if (handle && selected) {
+        drag = {
+          kind: "resize",
+          id: selected.id,
+          handle,
+          sx: p.x,
+          sy: p.y,
+          orig: {
+            x: selected.x,
+            y: selected.y,
+            w: selected.w,
+            h: selected.h,
+          },
+        };
+        redraw();
+        return;
+      }
+      const hit = hitTest(p.x, p.y);
+      if (hit) {
+        selectedId = hit.id;
+        drag = { kind: "move", id: hit.id, ox: p.x - hit.x, oy: p.y - hit.y };
+        redraw();
+      } else {
+        selectedId = null;
+        redraw();
+      }
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (drag || mode !== "move") return;
+      const p = canvasToNative(e.clientX, e.clientY);
+      const selected = slots.find((s) => s.id === selectedId);
+      const handle = selected ? hitTestHandle(selected, p.x, p.y) : null;
+      canvas.style.cursor = handleCursor(handle);
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!drag) return;
+      const p = canvasToNative(e.clientX, e.clientY);
+      if (drag.kind === "draw-rect" && draft) {
+        draft.x = Math.min(drag.sx, p.x);
+        draft.y = Math.min(drag.sy, p.y);
+        draft.w = Math.abs(p.x - drag.sx);
+        draft.h = Math.abs(p.y - drag.sy);
+        redraw();
+      } else if (drag.kind === "draw-line" && draft) {
+        draft.x = Math.min(drag.sx, p.x);
+        draft.w = Math.abs(p.x - drag.sx);
+        draft.y = drag.sy;
+        redraw();
+      } else if (drag.kind === "resize") {
+        const slot = slots.find((s) => s.id === drag.id);
+        if (!slot) return;
+        applyResize(slot, drag.handle, drag.orig, p.x - drag.sx, p.y - drag.sy);
+        redraw();
+      } else if (drag.kind === "move") {
+        const slot = slots.find((s) => s.id === drag.id);
+        if (!slot) return;
+        slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, p.x - drag.ox)));
+        slot.y = Math.round(Math.max(0, Math.min(boardH - (slot.shape === "rect" ? slot.h : 0), p.y - drag.oy)));
+        redraw();
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (drag?.kind === "draw-rect" || drag?.kind === "draw-line") {
+        finishDraw();
+      } else if (drag?.kind === "move" || drag?.kind === "resize") {
+        saveToStorage();
+      }
+      draft = null;
+      drag = null;
+      redraw();
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (!selectedId) return;
+      const slot = slots.find((s) => s.id === selectedId);
+      if (!slot) return;
+      const step = e.shiftKey ? 10 : 1;
+      if (e.key === "ArrowLeft") slot.x -= step;
+      if (e.key === "ArrowRight") slot.x += step;
+      if (e.key === "ArrowUp") slot.y -= step;
+      if (e.key === "ArrowDown") slot.y += step;
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+        e.preventDefault();
+        saveToStorage();
+        redraw();
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        slots = slots.filter((s) => s.id !== selectedId);
+        selectedId = null;
+        saveToStorage();
+        redraw();
+      }
+    });
+
+    document.getElementById("boardSelect").onchange = (e) => loadBoard(e.target.value);
+    document.getElementById("slotType").onchange = updateTypeHints;
+    document.getElementById("zoom").oninput = (e) => { zoom = Number(e.target.value) / 100; applyZoom(); };
+    document.getElementById("fitBtn").onclick = fitToView;
+    document.getElementById("modeDraw").onclick = () => { mode = "draw"; canvas.style.cursor = "crosshair"; };
+    document.getElementById("modeMove").onclick = () => { mode = "move"; canvas.style.cursor = "default"; };
+    document.getElementById("deleteBtn").onclick = () => {
+      slots = slots.filter((s) => s.id !== selectedId);
+      selectedId = null;
+      saveToStorage();
+      redraw();
+    };
+    document.getElementById("saveBtn").onclick = saveToStorage;
+    document.getElementById("loadBtn").onclick = () => { loadFromStorage(); redraw(); };
+    document.getElementById("exportCssBtn").onclick = () => {
+      const box = document.getElementById("exportBox");
+      box.select();
+      document.execCommand("copy");
+    };
+    window.addEventListener("resize", fitToView);
+    document.getElementById("serveUrl").textContent = location.origin + location.pathname;
+
+    loadFromStorage();
+    loadBoard("main_board");
+    updateTypeHints();
+  </script>
+</body>
+</html>

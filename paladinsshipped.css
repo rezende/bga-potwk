@@ -99,7 +99,9 @@
   --board-left-native-width: 1631px;
   --board-left-native-height: 200px;
   --board-left-scale: 1.36;
-  --board-left-width: calc(var(--board-left-native-width) * var(--board-left-scale));
+  /* Left map native size (main_board_1.png) */
+  --board-left-map-native-width: 734px;
+  --board-left-map-native-height: 180px;
 }
 
 #board.map-only-view {
@@ -124,21 +126,122 @@
 }
 
 #board.map-only-view #boardLeftOverlay {
-  display: none !important;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--board-left-map-native-width);
+  height: var(--board-left-map-native-height);
+  transform: scale(var(--board-piece-scale));
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+#board.map-only-view #boardLeftOverlay > * {
+  pointer-events: auto;
 }
 
 #board.map-only-view #boardBottomRight {
   display: none;
 }
 
-/* Map-only: hide board overlays (kings cards hidden for now) */
+/* Map-only: hide townsfolk/wall for now; kings cards use editor coords on main_board_1 */
 #board.map-only-view #townsfolk_cards,
 #board.map-only-view #wall_deck,
-#board.map-only-view #kingsorder_cards,
-#board.map-only-view #kingsfavour_cards,
 #board.map-only-view #boardRight > *,
 #board.map-only-view #boardBottomRight > * {
   display: none !important;
+}
+
+#board.map-only-view #kingsorder_cards,
+#board.map-only-view #kingsfavour_cards {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+}
+
+#board.map-only-view #kingsorder_cards .kingsorder_card,
+#board.map-only-view #kingsfavour_cards .kingsfavour_card {
+  display: block;
+  width: 127px;
+  height: 198px;
+  transform: scale(0.58);
+  transform-origin: top left;
+  margin: 0;
+  position: relative;
+}
+
+#board.map-only-view [id^="kingsorder_spot_"],
+#board.map-only-view [id^="kingsfavour_spot_"] {
+  overflow: visible;
+}
+
+/* King's Order / Favour spots — native main_board_1 coords (from board slot editor) */
+#board.map-only-view #kingsorder_spot_0 {
+  position: absolute;
+  left: 12px;
+  top: 46px;
+  width: 74px;
+  height: 114px;
+}
+
+#board.map-only-view #kingsorder_spot_1 {
+  position: absolute;
+  left: 102px;
+  top: 46px;
+  width: 74px;
+  height: 113px;
+}
+
+#board.map-only-view #kingsorder_spot_2 {
+  position: absolute;
+  left: 192px;
+  top: 46px;
+  width: 74px;
+  height: 113px;
+}
+
+#board.map-only-view #kingsfavour_spot_0 {
+  position: absolute;
+  left: 282px;
+  top: 45px;
+  width: 74px;
+  height: 113px;
+}
+
+#board.map-only-view #kingsfavour_spot_1 {
+  position: absolute;
+  left: 379px;
+  top: 45px;
+  width: 73px;
+  height: 113px;
+}
+
+#board.map-only-view #kingsfavour_spot_2 {
+  position: absolute;
+  left: 470px;
+  top: 45px;
+  width: 73px;
+  height: 113px;
+}
+
+#board.map-only-view #kingsfavour_spot_3 {
+  position: absolute;
+  left: 560px;
+  top: 45px;
+  width: 73px;
+  height: 113px;
+}
+
+#board.map-only-view #kingsfavour_spot_4 {
+  position: absolute;
+  left: 647px;
+  top: 45px;
+  width: 73px;
+  height: 113px;
 }
 
 #paladin_selection_area,

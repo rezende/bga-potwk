@@ -335,6 +335,71 @@ define([
       return values;
     },
 
+    KINGS_ORDER_CARD_BACK: 6,
+    KINGS_FAVOUR_CARD_BACK: 10,
+
+    buildKingsDisplayItems: function (cards, slotCount, cardType, backTypeArg, idPrefix) {
+      const bySpot = {};
+      this.getValuesFromObject(cards).forEach((card) => {
+        if (card) {
+          bySpot[parseInt(card.location_arg, 10)] = card;
+        }
+      });
+      const items = [];
+      for (let i = 0; i < slotCount; i++) {
+        const real = bySpot[i];
+        items.push({
+          type: cardType,
+          type_arg: real ? parseInt(real.type_arg, 10) : backTypeArg,
+          location_arg: i,
+          id: real ? real.id : idPrefix + "_back_" + i,
+        });
+      }
+      return items;
+    },
+
+    updateKingsOrderDisplay: function (cards) {
+      this.kingsorder_display = cards;
+      const bySpot = {};
+      this.getValuesFromObject(cards).forEach((card) => {
+        if (card) {
+          bySpot[parseInt(card.location_arg, 10)] = card;
+        }
+      });
+      this.uiItems.getByUiType("kingsorder_card").forEach((item) => {
+        const spot = parseInt(item.data.location_arg, 10);
+        const real = bySpot[spot];
+        item.data.type_arg = real
+          ? parseInt(real.type_arg, 10)
+          : this.KINGS_ORDER_CARD_BACK;
+        if (real) {
+          item.data.id = real.id;
+        }
+        this.uiItems.setBackgroundUiItem(item);
+      });
+    },
+
+    updateKingsFavourDisplay: function (cards) {
+      this.kingsfavour_display = cards;
+      const bySpot = {};
+      this.getValuesFromObject(cards).forEach((card) => {
+        if (card) {
+          bySpot[parseInt(card.location_arg, 10)] = card;
+        }
+      });
+      this.uiItems.getByUiType("kingsfavour_card").forEach((item) => {
+        const spot = parseInt(item.data.location_arg, 10);
+        const real = bySpot[spot];
+        item.data.type_arg = real
+          ? parseInt(real.type_arg, 10)
+          : this.KINGS_FAVOUR_CARD_BACK;
+        if (real) {
+          item.data.id = real.id;
+        }
+        this.uiItems.setBackgroundUiItem(item);
+      });
+    },
+
     // page load
     setup: function (gamedatas) {
         // Store the complete gamedatas for access throughout the game
@@ -995,46 +1060,24 @@ define([
     },
 
     setupKingsOrderCards: function (cards) {
-      /*
-        There will always be 3 king's order cards.
-        If there are less than 3 cards, the missing cards are replaced by a background card.
-      */
-      const uiItems = Array(3).fill(null).map((_, i) => {
-        if (cards[i]) {
-          return cards[i];
-        } else {
-          // Create background card with location_arg
-          return { 
-            type: 6, 
-            type_arg: 6, 
-            location_arg: i,
-            id: `background_kingsorder_${i}`
-          };
-        }
-      });
-      
+      const uiItems = this.buildKingsDisplayItems(
+        cards,
+        3,
+        "kings_order",
+        this.KINGS_ORDER_CARD_BACK,
+        "kingsorder"
+      );
       this.uiItems.createItems("kingsorder_card", uiItems);
     },
 
     setupKingsFavourCards: function (cards) {
-      /*
-        There will always be 5 king's favour cards.
-        If there are less than 5 cards, the missing cards are replaced by a background card.
-      */
-      const uiItems = Array(5).fill(null).map((_, i) => {
-        if (cards[i]) {
-          return cards[i];
-        } else {
-          // Create background card with location_arg
-          return { 
-            type: 10, 
-            type_arg: 10, 
-            location_arg: i,
-            id: `background_kingsfavour_${i}`
-          };
-        }
-      });
-      
+      const uiItems = this.buildKingsDisplayItems(
+        cards,
+        5,
+        "kings_favour",
+        this.KINGS_FAVOUR_CARD_BACK,
+        "kingsfavour"
+      );
       this.uiItems.createItems("kingsfavour_card", uiItems);
     },
 
@@ -1210,7 +1253,14 @@ define([
           const spotElement = document.getElementById(parentContainer);
           if (spotElement) {
             dojo.place(uiItem.htmlNode, spotElement);
-          } 
+            if (
+              uiItem.uiType == "kingsorder_card" ||
+              uiItem.uiType == "kingsfavour_card"
+            ) {
+              dojo.setStyle(uiItem.htmlNode, "display", "block");
+              dojo.setStyle(uiItem.htmlNode, "position", "relative");
+            }
+          }
         } 
         else {
           dojo.place(uiItem.htmlNode, parentContainer);
@@ -1378,6 +1428,7 @@ define([
       
       // Townsfolk slide animation notification
       dojo.subscribe("slideCards", this, "notif_slideCards");
+      dojo.subscribe("kingsDisplayUpdated", this, "notif_kingsDisplayUpdated");
       dojo.subscribe("setupBoardPositions", this, "notif_setupBoardPositions");
       dojo.subscribe("commissionPositionSelected", this, "notif_commissionPositionSelected");
       dojo.subscribe("garrisonPositionSelected", this, "notif_garrisonPositionSelected");
@@ -2846,6 +2897,15 @@ define([
           this.outsider_display = notif.args.cards;
           this.updateOutsiderDisplay(notif.args.cards);
         }
+      }
+    },
+
+    notif_kingsDisplayUpdated: function (notif) {
+      if (notif.args.kingsorder_display) {
+        this.updateKingsOrderDisplay(notif.args.kingsorder_display);
+      }
+      if (notif.args.kingsfavour_display) {
+        this.updateKingsFavourDisplay(notif.args.kingsfavour_display);
       }
     },
 

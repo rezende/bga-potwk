@@ -849,6 +849,18 @@ class PaladinsShipped extends Table
         $card_display = $this->deck->getCardsInLocation("{$card_type}_display");
         self::notifyAllPlayers('slideCards', '', array('cards' => $card_display, 'trigger_by' => $trigger_by));
     }
+
+    public function normalizeCardDisplay($display_location)
+    {
+        $display = $this->deck->getCardsInLocation($display_location, null, 'card_location_arg');
+        $position = 0;
+        foreach ($display as $card) {
+            if ($card['location_arg'] != $position) {
+                $this->deck->moveCard($card['id'], $display_location, $position);
+            }
+            $position++;
+        }
+    }
     public function getBoardCardsByType($card_type)
     {
         $cards_revealed = $this->deck->getCardsInLocation('board');
@@ -859,7 +871,7 @@ class PaladinsShipped extends Table
 
     public function revealKingsOrder($round)
     {
-        $num_revealed = sizeof($this->getBoardCardsByType(CARD_TYPE_KINGS_ORDER));
+        $num_revealed = sizeof($this->deck->getCardsInLocation('kingsorder_display'));
         if ($round > 3) {
             //TODO: error
         }
@@ -867,11 +879,15 @@ class PaladinsShipped extends Table
             //TODO: error: should not happen
         }
         $this->deck->pickCardForLocation('kingsorder_deck', 'kingsorder_display');
+        $this->normalizeCardDisplay('kingsorder_display');
+        self::notifyAllPlayers('kingsDisplayUpdated', '', array(
+            'kingsorder_display' => $this->deck->getCardsInLocation('kingsorder_display'),
+        ));
     }
 
     public function revealKingsFavour($round)
     {
-        $num_revealed = sizeof($this->getBoardCardsByType(CARD_TYPE_KINGS_FAVOUR));
+        $num_revealed = sizeof($this->deck->getCardsInLocation('kingsfavour_display'));
         if ($round < 3) {
             //TODO: error
         }
@@ -879,6 +895,10 @@ class PaladinsShipped extends Table
             //TODO: error: should not happen
         }
         $this->deck->pickCardForLocation('kingsfavour_deck', 'kingsfavour_display');
+        $this->normalizeCardDisplay('kingsfavour_display');
+        self::notifyAllPlayers('kingsDisplayUpdated', '', array(
+            'kingsfavour_display' => $this->deck->getCardsInLocation('kingsfavour_display'),
+        ));
     }
 
     public function revealTaverns()
