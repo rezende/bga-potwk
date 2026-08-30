@@ -181,6 +181,10 @@
   color: #fff;
 }
 
+#board.board-view-left {
+  --board-piece-scale: 2;
+}
+
 #board.board-view-full.map-only-view,
 #board.board-view-left.map-only-view {
   padding-top: calc(36px + var(--display-card-height) * var(--board-piece-scale));
@@ -206,10 +210,6 @@
 #board.board-view-left #suspicion_deck,
 #board.board-view-left #suspicion_discard {
   display: none !important;
-}
-
-#board.map-only-view.board-view-full #main_board_regions {
-  display: flex !important;
 }
 
 #board.map-only-view #boardLeft,

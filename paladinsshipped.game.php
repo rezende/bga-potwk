@@ -610,6 +610,9 @@ class PaladinsShipped extends Table
 
     public function setupBoardPositions($player_count)
     {
+        // Commission/garrison spot layout will be added later; no pre-filled pieces.
+        return;
+
         // Initialize board positions for all players
         $players = self::loadPlayersBasicInfos();
         $initial_board_positions = [];

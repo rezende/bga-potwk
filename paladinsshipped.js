@@ -511,6 +511,10 @@ define([
       }
 
       if (this.zoomManager) {
+        if (this.zoomManager.settings.autoZoom) {
+          this.zoomManager.settings.autoZoom.expectedWidth =
+            view === "left" ? 1480 : 1552;
+        }
         this.zoomManager.zoomOrDimensionChanged();
         if (this.zoomManager.settings.autoZoom) {
           this.zoomManager.setAutoZoom();
@@ -1069,23 +1073,6 @@ define([
         return;
       }
       regionsContainer.innerHTML = "";
-
-      this.MAIN_BOARD_REGIONS.forEach((region) => {
-        const regionEl = dojo.create("div", {
-          class: "main_board_region",
-          id: "main_board_region_" + region.id,
-        });
-        region.spots.forEach((index) => {
-          const spotEl = dojo.create("div", {
-            class: "board_position_spot",
-            id: "board_position_spot_" + index,
-          });
-          spotEl.dataset.positionIndex = index;
-          dojo.connect(spotEl, "onclick", this, "onClickBoardPositionSpot");
-          dojo.place(spotEl, regionEl);
-        });
-        dojo.place(regionEl, regionsContainer);
-      });
 
       const outsiderContainer = document.getElementById("outsider_cards");
       if (outsiderContainer) {
