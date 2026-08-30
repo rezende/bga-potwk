@@ -37,9 +37,9 @@ define([
         localStorageZoomKey: "paladinsshipped-zoom",
         defaultZoom: 1,
 
-        zoomLevels: [0.75, 1, 1.25],
+        zoomLevels: [0.7, 0.85, 1, 1.15],
         autoZoom: {
-          expectedWidth: 1500,
+          expectedWidth: 1552,
         },
       });
     },
@@ -467,6 +467,57 @@ define([
       }, 2000);
     },
 
+    setupBoardViewControls: function () {
+      const board = document.getElementById("board");
+      const controls = document.getElementById("boardViewControls");
+      if (!board || !controls) {
+        return;
+      }
+
+      this.setBoardView("full");
+
+      controls.querySelectorAll("[data-board-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+          this.setBoardView(button.dataset.boardView);
+        });
+      });
+    },
+
+    setBoardView: function (view) {
+      const board = document.getElementById("board");
+      const controls = document.getElementById("boardViewControls");
+      if (!board) {
+        return;
+      }
+
+      const validViews = ["full", "left"];
+      if (!validViews.includes(view)) {
+        view = "full";
+      }
+
+      board.classList.remove(
+        "board-view-full",
+        "board-view-left",
+      );
+      board.classList.add("board-view-" + view);
+
+      if (controls) {
+        controls.querySelectorAll("[data-board-view]").forEach((button) => {
+          button.classList.toggle(
+            "active",
+            button.dataset.boardView === view,
+          );
+        });
+      }
+
+      if (this.zoomManager) {
+        this.zoomManager.zoomOrDimensionChanged();
+        if (this.zoomManager.settings.autoZoom) {
+          this.zoomManager.setAutoZoom();
+        }
+      }
+    },
+
     setupBoardSuspicionDebtAreas: function () {
       const debtPile = document.getElementById("debt_pile");
       if (debtPile) {
@@ -659,6 +710,7 @@ define([
         this.setupKingsOrderCards(kingsOrderCards);
         this.setupKingsFavourCards(kingsFavourCards);
         this.setupBoardSuspicionDebtAreas();
+        this.setupBoardViewControls();
         this.setupNotifications();
         this.setupActionButtons();
         this.updateActionButtons(); // Ensure action buttons are properly hidden/shown based on initial state

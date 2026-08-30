@@ -91,10 +91,10 @@
   flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: center;
-  /* Right board pieces: native 734x180, displayed at 1109x272 */
-  --board-piece-scale: 1.511111111;
-  --board-piece-width: 1109px;
-  --board-piece-height: 272px;
+  /* Native 734×180 map strips; scale fits BGA play area at 100% browser zoom */
+  --board-piece-scale: 1.058;
+  --board-piece-width: calc(734px * var(--board-piece-scale));
+  --board-piece-height: calc(180px * var(--board-piece-scale));
   /* Left board: native 1631x200, same display height as right pieces */
   --board-left-native-width: 1631px;
   --board-left-native-height: 200px;
@@ -135,6 +135,81 @@
   flex-wrap: nowrap;
   align-items: flex-start;
   overflow: visible;
+}
+
+#boardContainer {
+  position: relative;
+  padding-top: 30px;
+}
+
+.board-view-controls {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  z-index: 25;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+}
+
+.board-view-btn {
+  padding: 2px 7px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.board-view-btn:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.board-view-btn.active {
+  background: #4a6741;
+  border-color: #3a5234;
+  color: #fff;
+}
+
+#board.board-view-full.map-only-view,
+#board.board-view-left.map-only-view {
+  padding-top: calc(36px + var(--display-card-height) * var(--board-piece-scale));
+}
+
+#board.board-view-left.map-only-view {
+  padding-bottom: 20px;
+}
+
+#board.board-view-left #boardMapsRow {
+  width: var(--board-piece-width);
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+#board.board-view-left #boardRightColumn {
+  display: none;
+}
+
+#board.board-view-left #outsider_cards,
+#board.board-view-left #tax_supply,
+#board.board-view-left #debt_pile,
+#board.board-view-left #suspicion_deck,
+#board.board-view-left #suspicion_discard {
+  display: none !important;
+}
+
+#board.map-only-view.board-view-full #main_board_regions {
+  display: flex !important;
 }
 
 #board.map-only-view #boardLeft,
