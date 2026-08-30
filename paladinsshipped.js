@@ -63,6 +63,7 @@ define([
         development_house_uiitem: { cssClass: "development_house" },
         fort_piece_uiitem: { cssClass: "fort_piece" },
         fort_mock_piece_uiitem: { cssClass: "fort_mock_piece" },
+        garrison_piece_uiitem: { cssClass: "garrison_piece" },
         monk_piece_uiitem: { cssClass: "monk_piece" },
         main_board_piece_uiitem: { cssClass: "main_board_piece" },
       };
@@ -181,6 +182,9 @@ define([
           return { x: -792, y: 430 };
         }
         if (uiItem.uiType == "fort_piece_uiitem") {
+          return { x: -975, y: 430 };
+        }
+        if (uiItem.uiType == "garrison_piece_uiitem") {
           return { x: -975, y: 430 };
         }
         if (uiItem.uiType == "fort_mock_piece_uiitem") {
@@ -659,6 +663,106 @@ define([
         }
         this.uiItems.setBackgroundUiItem(item);
       });
+      this.updateKingsFavourUsedDisplay();
+    },
+
+    getKingsFavourUsedCardIds: function() {
+      const used = (this.gamedatas && this.gamedatas.kings_favour_used) || [];
+      return used.map((id) => parseInt(id, 10));
+    },
+
+    syncKingsFavourUsed: function(usedCardIds) {
+      if (!this.gamedatas) {
+        return;
+      }
+
+      this.gamedatas.kings_favour_used = (usedCardIds || []).map((id) => parseInt(id, 10));
+      this.updateKingsFavourUsedDisplay();
+    },
+
+    getKingsFavourNewlyRevealedId: function() {
+      return parseInt(this.gamedatas && this.gamedatas.kings_favour_newly_revealed, 10) || 0;
+    },
+
+    syncKingsFavourNewlyRevealed: function(newlyRevealedId) {
+      if (!this.gamedatas) {
+        return;
+      }
+
+      this.gamedatas.kings_favour_newly_revealed = parseInt(newlyRevealedId, 10) || 0;
+      this.updateKingsFavourUsedDisplay();
+    },
+
+    getUsableKingsFavourCards: function() {
+      const usedIds = this.getKingsFavourUsedCardIds();
+      const newlyRevealedId = this.getKingsFavourNewlyRevealedId();
+
+      return this.getRevealedKingsFavourCards().filter((card) => {
+        const cardId = parseInt(card.id, 10);
+        return cardId > 0
+          && usedIds.indexOf(cardId) === -1
+          && cardId !== newlyRevealedId;
+      });
+    },
+
+    getRevealedKingsFavourCards: function() {
+      const cards = this.kingsfavour_display || (this.gamedatas && this.gamedatas.kingsfavour_display);
+      if (!cards) {
+        return [];
+      }
+
+      return this.getValuesFromObject(cards).filter((card) => card && card.type === 'kings_favour');
+    },
+
+    hasRevealedKingsFavourCards: function() {
+      return this.getRevealedKingsFavourCards().length > 0;
+    },
+
+    hasUnusedKingsFavourCard: function() {
+      return this.getUsableKingsFavourCards().length > 0;
+    },
+
+    isKingsFavourAvailable: function() {
+      return this.getUsableKingsFavourCards().length > 0;
+    },
+
+    syncKingsFavourState: function(state) {
+      if (!state) {
+        return;
+      }
+
+      if (state.kings_favour_used !== undefined) {
+        this.syncKingsFavourUsed(state.kings_favour_used);
+      }
+
+      if (state.kings_favour_newly_revealed !== undefined) {
+        this.syncKingsFavourNewlyRevealed(state.kings_favour_newly_revealed);
+      }
+    },
+
+    updateKingsFavourUsedDisplay: function() {
+      const usedIds = this.getKingsFavourUsedCardIds();
+      const newlyRevealedId = this.getKingsFavourNewlyRevealedId();
+
+      this.uiItems.getByUiType('kingsfavour_card').forEach((item) => {
+        const spotEl = document.getElementById(`kingsfavour_spot_${item.data.location_arg}`);
+        const cardId = parseInt(item.data.id, 10);
+        const isUsed = !!cardId && usedIds.indexOf(cardId) !== -1;
+        const isNewlyRevealed = !!cardId && cardId === newlyRevealedId;
+
+        if (spotEl) {
+          spotEl.classList.toggle('kingsfavour_used', isUsed);
+          spotEl.classList.toggle('kingsfavour_new', isNewlyRevealed);
+        }
+      });
+    },
+
+    refreshKingsFavourActionButtons: function() {
+      const currentState = this.currentMove || this.gamedatas.gamestate.name;
+      if (currentState === 'playerAction') {
+        this.setupActionButtons('playerAction');
+        this.updateActionButtons('playerAction');
+      }
     },
 
     // page load
@@ -682,6 +786,8 @@ define([
         this.tavern_display = gamedatas.tavern_display;
         this.tavern_cards_material = gamedatas.tavern_cards_material;
         this.wall_cards = gamedatas.wall_cards;
+        this.all_players_wall_cards = gamedatas.all_players_wall_cards || {};
+        this.wall_cards_material = gamedatas.wall_cards_material || {};
         this.kingsorder_display = gamedatas.kingsorder_display;
         this.kingsfavour_display = gamedatas.kingsfavour_display;
         this.attachFunctionsToUiItems();
@@ -698,22 +804,29 @@ define([
           this.getValuesFromObject(this.townsfolk_display),
         );
         if (this.paladin_hand) {
-          this.createPaladinUiItems(this.paladin_hand);
+          const paladinCards = Array.isArray(this.paladin_hand)
+            ? this.paladin_hand
+            : Object.values(this.paladin_hand);
+          if (paladinCards.length > 1) {
+            this.createPaladinUiItems(this.paladin_hand);
+          }
         }
+        this.setupPlayerBoardPaladins();
         if (this.tavern_display) {
           this.createTavernUiItems(this.tavern_display);
         }
         if (this.all_players_townsfolk_hands) {
           this.createAllPlayersTownsfolkUiItems(this.all_players_townsfolk_hands);
         }
-        // TODO: so far, it only creates the deck background, not the cards
-        this.setupWallCards(this.getValuesFromObject(this.wall_cards));
+        this.setupWallCards();
         
         const kingsOrderCards = this.getValuesFromObject(this.kingsorder_display);
         const kingsFavourCards = this.getValuesFromObject(this.kingsfavour_display);
         
         this.setupKingsOrderCards(kingsOrderCards);
         this.setupKingsFavourCards(kingsFavourCards);
+        this.syncKingsFavourUsed(gamedatas.kings_favour_used || []);
+        this.syncKingsFavourNewlyRevealed(gamedatas.kings_favour_newly_revealed || 0);
         this.setupBoardSuspicionDebtAreas();
         this.setupBoardViewControls();
         this.setupNotifications();
@@ -776,6 +889,48 @@ define([
       var viewport = document.querySelector('meta[name="viewport"]');
       if (viewport) {
         viewport.content = this.default_viewport;
+      }
+    },
+
+    showPaladinSelectionArea: function () {
+      const paladinSelectionArea = document.getElementById("paladin_selection_area");
+      if (paladinSelectionArea) {
+        paladinSelectionArea.style.setProperty("display", "block", "important");
+      }
+    },
+
+    hidePaladinSelectionArea: function () {
+      const paladinSelectionArea = document.getElementById("paladin_selection_area");
+      if (paladinSelectionArea) {
+        paladinSelectionArea.style.setProperty("display", "none", "important");
+      }
+    },
+
+    showTavernSelectionArea: function () {
+      const tavernSelectionArea = document.getElementById("tavern_selection_area");
+      if (tavernSelectionArea) {
+        tavernSelectionArea.style.setProperty("display", "block", "important");
+      }
+    },
+
+    hideTavernSelectionArea: function () {
+      const tavernSelectionArea = document.getElementById("tavern_selection_area");
+      if (tavernSelectionArea) {
+        tavernSelectionArea.style.setProperty("display", "none", "important");
+      }
+    },
+
+    showActionButtonsArea: function () {
+      const actionContainer = document.getElementById("action_buttons");
+      if (actionContainer) {
+        actionContainer.style.setProperty("display", "block", "important");
+      }
+    },
+
+    hideActionButtonsArea: function () {
+      const actionContainer = document.getElementById("action_buttons");
+      if (actionContainer) {
+        actionContainer.style.setProperty("display", "none", "important");
       }
     },
 
@@ -1020,14 +1175,6 @@ define([
             };
             this.uiItems.createAndAddItem("absolve_jar_uiitem", params);
             params = {
-              id: `fort_piece_${i}_${playerId}`,
-              type: "fort_piece",
-              location: "playerboard",
-              order_index: i,
-              player_id: playerId
-            };
-            this.uiItems.createAndAddItem("fort_piece_uiitem", params);
-            params = {
               id: `monk_piece_${i}_${playerId}`,
               type: "monk_piece",
               location: "playerboard",
@@ -1035,6 +1182,14 @@ define([
               player_id: playerId
             };
             this.uiItems.createAndAddItem("monk_piece_uiitem", params);
+            params = {
+              id: `garrison_piece_${i}_${playerId}`,
+              type: "garrison_piece",
+              location: "playerboard",
+              order_index: i,
+              player_id: playerId
+            };
+            this.uiItems.createAndAddItem("garrison_piece_uiitem", params);
         }
         // develop spaces
         params = {
@@ -1283,6 +1438,209 @@ define([
       })));
     },
 
+    setupPlayerBoardPaladins: function () {
+      const activePaladins = this.gamedatas.player_active_paladins || {};
+      Object.keys(activePaladins).forEach((playerId) => {
+        this.showPaladinOnPlayerBoard(playerId, activePaladins[playerId]);
+      });
+    },
+
+    findPaladinUiItemByCardId: function (cardId) {
+      return this.uiItems.find(
+        (item) =>
+          item.uiType === "paladin_card" &&
+          String(item.data.id) === String(cardId),
+      );
+    },
+
+    showPaladinOnPlayerBoard: function (playerId, card) {
+      if (!card) {
+        return;
+      }
+
+      playerId = String(playerId);
+      let uiItem = this.findPaladinUiItemByCardId(card.id);
+
+      if (!uiItem) {
+        uiItem = this.uiItems.createAndAddItem("paladin_card", {
+          ...card,
+          location: "playerboard_paladin",
+          location_arg: playerId,
+          isSelectable: false,
+        });
+      } else {
+        uiItem.data.location = "playerboard_paladin";
+        uiItem.data.location_arg = playerId;
+        uiItem.isSelectable = false;
+        uiItem.isSelected = false;
+        dojo.removeClass(uiItem.htmlNode, "selectable");
+        dojo.removeClass(uiItem.htmlNode, "selected");
+      }
+
+      if (!this.gamedatas.player_active_paladins) {
+        this.gamedatas.player_active_paladins = {};
+      }
+      this.gamedatas.player_active_paladins[playerId] = card;
+
+      this.drawUiItem(uiItem);
+      this.updatePaladinCardOverlay(playerId, card.type_arg);
+    },
+
+    getPaladinMaterialInfo: function (typeArg) {
+      const material = this.paladin_material && this.paladin_material[typeArg];
+      if (!material) {
+        return null;
+      }
+
+      return {
+        name: material.name || "",
+        power: material.power || "",
+      };
+    },
+
+    getActivePaladinAction: function (playerId) {
+      playerId = playerId !== undefined ? String(playerId) : String(this.player_id);
+      let typeArg = this.gamedatas.player_active_paladins?.[playerId]?.type_arg;
+
+      if (typeArg === undefined && playerId === String(this.player_id) && this.paladin_hand) {
+        const cards = Array.isArray(this.paladin_hand)
+          ? this.paladin_hand
+          : Object.values(this.paladin_hand);
+        if (cards.length === 1) {
+          typeArg = cards[0].type_arg;
+        }
+      }
+
+      if (typeArg === undefined) {
+        return null;
+      }
+
+      const material = this.paladin_material?.[typeArg];
+      return material?.action || null;
+    },
+
+    playerHasActiveGirardPaladin: function (playerId) {
+      playerId = playerId !== undefined ? String(playerId) : String(this.player_id);
+      return this.getHuntPaladinProvisionBonus(playerId) > 0;
+    },
+
+    getHuntPaladinProvisionBonus: function (playerId) {
+      // Girard only — checks this player's chosen paladin for the round, not anyone else's.
+      if (this.getActivePaladinAction(playerId) !== "ACTION_HUNT") {
+        return 0;
+      }
+
+      return 2;
+    },
+
+    applyPaladinWorkerSelectionHints: function (actionType, requirements) {
+      if (actionType === "hunt") {
+        const bonus = this.getHuntPaladinProvisionBonus(this.player_id);
+        if (bonus <= 0) {
+          return requirements;
+        }
+
+        const paladinCard = this.gamedatas.player_active_paladins?.[this.player_id];
+        let typeArg = paladinCard?.type_arg;
+        if (typeArg === undefined && this.paladin_hand) {
+          const cards = Array.isArray(this.paladin_hand)
+            ? this.paladin_hand
+            : Object.values(this.paladin_hand);
+          if (cards.length === 1) {
+            typeArg = cards[0].type_arg;
+          }
+        }
+        const paladinInfo = typeArg !== undefined ? this.getPaladinMaterialInfo(typeArg) : null;
+        const paladinName = paladinInfo?.name || _("Your Paladin");
+
+        requirements.paladinBonusNote = dojo.string.substitute(
+          _("${paladin_name}: +${bonus} bonus Provisions when Hunting this Round."),
+          { paladin_name: paladinName, bonus: bonus },
+        );
+        requirements.rewardNote = dojo.string.substitute(
+          _("1 worker = 1 Provision, 2 workers = 3 Provisions (+${bonus} Paladin bonus = 3 or 5 total)"),
+          { bonus: bonus },
+        );
+      }
+
+      if (actionType === "fortify") {
+        requirements.wildNote = _('Criminals are wild');
+        const provisionCost = this.getFortifyProvisionCost(this.player_id);
+        const influenceRequired = this.getFortifyInfluenceRequirement(this.player_id);
+
+        if (this.playerHasFortifyPaladinFreeProvision(this.player_id)) {
+          const paladinCard = this.gamedatas.player_active_paladins?.[this.player_id];
+          const paladinInfo = paladinCard?.type_arg !== undefined
+            ? this.getPaladinMaterialInfo(paladinCard.type_arg)
+            : null;
+          const paladinName = paladinInfo?.name || _("Your Paladin");
+          requirements.paladinBonusNote = dojo.string.substitute(
+            _('${paladin_name}: Fortify costs no Provisions this Round.'),
+            { paladin_name: paladinName },
+          );
+        } else {
+          requirements.provisionNote = dojo.string.substitute(
+            _('Costs ${cost} Provision(s)'),
+            { cost: provisionCost },
+          );
+        }
+
+        requirements.influenceNote = dojo.string.substitute(
+          _('Requires ${influence} Influence'),
+          { influence: influenceRequired },
+        );
+      }
+
+      return requirements;
+    },
+
+    updatePaladinCardOverlay: function (playerId, typeArg) {
+      const spot = document.getElementById("paladin_card_spot_" + playerId);
+      if (!spot) {
+        return;
+      }
+
+      const info = this.getPaladinMaterialInfo(typeArg);
+      let overlay = spot.querySelector(".paladin_card_overlay");
+
+      if (!info || (!info.name && !info.power)) {
+        if (overlay) {
+          overlay.remove();
+        }
+        return;
+      }
+
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.className = "paladin_card_overlay";
+        spot.appendChild(overlay);
+      }
+
+      overlay.innerHTML =
+        `<div class="paladin_card_overlay_name">${info.name}</div>` +
+        `<div class="paladin_card_overlay_power">${info.power}</div>`;
+    },
+
+    removeDiscardedPaladinCards: function (playerId, keptCardId) {
+      const discardedItems = this.uiItems.filter(
+        (item) =>
+          item.uiType === "paladin_card" &&
+          String(item.data.id) !== String(keptCardId) &&
+          (item.data.location === "paladinsSelection" ||
+            item.data.location === "paladin_hand"),
+      );
+
+      discardedItems.forEach((item) => {
+        if (item.htmlNode && item.htmlNode.parentNode) {
+          item.htmlNode.parentNode.removeChild(item.htmlNode);
+        }
+        const index = this.uiItems.indexOf(item);
+        if (index >= 0) {
+          this.uiItems.splice(index, 1);
+        }
+      });
+    },
+
     createAllPlayersTownsfolkUiItems: function (allPlayersCards) {
       for (var playerId in allPlayersCards) {
         const playerCards = allPlayersCards[playerId];
@@ -1300,9 +1658,291 @@ define([
       }
     },
 
-    setupWallCards: function (cards) {
-      const deckBackground = { type: 24, type_arg: 24 };
+    setupWallCards: function () {
+      const deckBackground = { type: 'wall', type_arg: 24, location: 'wall_deck' };
       this.uiItems.createAndAddItem("wall_card", deckBackground);
+
+      if (this.all_players_wall_cards) {
+        Object.keys(this.all_players_wall_cards).forEach((playerId) => {
+          const cards = this.getValuesFromObject(this.all_players_wall_cards[playerId]);
+          cards.forEach((card) => {
+            this.addWallCardToPlayerBoard(String(playerId), card, null, false);
+          });
+        });
+      }
+    },
+
+    resolveWallCardSlot: function (wallCard, playerId, explicitSlot) {
+      if (explicitSlot !== undefined && explicitSlot !== null) {
+        const slot = parseInt(explicitSlot, 10);
+        if (!Number.isNaN(slot)) {
+          return slot;
+        }
+      }
+
+      if (wallCard.location_position !== undefined && wallCard.location_position !== null) {
+        const slot = parseInt(wallCard.location_position, 10);
+        if (!Number.isNaN(slot)) {
+          return slot;
+        }
+      }
+
+      const existing = this.uiItems.getByUiType("wall_card").filter(
+        (item) => item.data.location === "wall_hand"
+          && String(item.data.location_arg) === String(playerId),
+      );
+      return existing.length;
+    },
+
+    addWallCardToPlayerBoard: function (playerId, wallCard, explicitSlot, animate) {
+      if (!wallCard) {
+        return;
+      }
+
+      playerId = String(playerId);
+      const slot = this.resolveWallCardSlot(wallCard, playerId, explicitSlot);
+      if (Number.isNaN(slot)) {
+        return;
+      }
+
+      this.hideFortPiecePlaceholder(playerId, slot);
+
+      const existing = this.uiItems.getByUiType("wall_card").find(
+        (item) => item.data.id === wallCard.id,
+      );
+      if (existing) {
+        return;
+      }
+
+      const cardData = {
+        ...wallCard,
+        location: 'wall_hand',
+        location_arg: playerId,
+        location_position: slot,
+      };
+      const created = this.uiItems.createAndAddItem("wall_card", cardData);
+      if (!created) {
+        return;
+      }
+
+      if (animate !== false) {
+        this.animateWallCardToFortSpot(created, playerId, slot);
+      } else {
+        this.drawUiItem(created);
+      }
+    },
+
+    animateWallCardToFortSpot: function (card, playerId, slot) {
+      const deckEl = document.getElementById('wall_deck');
+      const targetEl = document.getElementById('fort_piece_' + slot + '_' + playerId);
+      if (!deckEl || !targetEl) {
+        this.drawUiItem(card);
+        return;
+      }
+
+      dojo.place(card.htmlNode, deckEl);
+      dojo.setStyle(card.htmlNode, 'display', 'block');
+      dojo.setStyle(card.htmlNode, 'position', 'absolute');
+      dojo.setStyle(card.htmlNode, 'top', '0');
+      dojo.setStyle(card.htmlNode, 'left', '0');
+      dojo.setStyle(card.htmlNode, 'transform', 'scale(0.992)');
+      dojo.setStyle(card.htmlNode, 'transform-origin', '0 0');
+      dojo.setStyle(card.htmlNode, 'z-index', '1000');
+
+      requestAnimationFrame(() => {
+        const currentPos = dojo.position(card.htmlNode);
+        const targetPos = dojo.position(targetEl);
+        const deltaX = targetPos.x - currentPos.x;
+        const deltaY = targetPos.y - currentPos.y;
+
+        dojo.setStyle(card.htmlNode, 'transition', 'transform 0.8s ease-out');
+        dojo.setStyle(
+          card.htmlNode,
+          'transform',
+          'translate(' + deltaX + 'px, ' + deltaY + 'px) scale(0.992)',
+        );
+
+        setTimeout(() => {
+          dojo.setStyle(card.htmlNode, 'transition', 'none');
+          dojo.setStyle(card.htmlNode, 'z-index', 'auto');
+          this.drawUiItem(card);
+        }, 800);
+      });
+    },
+
+    hideFortPiecePlaceholder: function (playerId, slot) {
+      const spot = document.getElementById('fort_piece_' + slot + '_' + playerId);
+      if (spot) {
+        dojo.addClass(spot, 'filled');
+      }
+    },
+
+    FORTIFY_INFLUENCE_REQUIREMENTS: [0, 1, 3, 5, 7, 9, 11],
+
+    // Major actions: 3 workers = color A + any + color B (purple wild for A or B).
+    MAJOR_ACTION_TYPES: ['commission', 'fortify', 'garrison', 'absolve', 'attack', 'convert'],
+
+    isMajorAction: function (actionType) {
+      return this.MAJOR_ACTION_TYPES.indexOf(actionType) !== -1;
+    },
+
+    // Major action confirm check: each mandatory color present, purple wild (1 purple covers 1 color).
+    getMajorActionMissingMandatoryColors: function (actionType, selectedWorkerCounts) {
+      const cost = this.getActionWorkerCost(actionType, 3);
+      const requiredColors = cost.filter((requirement) => requirement !== 'COST_ANY_WORKER');
+      let purpleAvailable = parseInt(selectedWorkerCounts.purple_worker, 10) || 0;
+      const missing = [];
+
+      for (let i = 0; i < requiredColors.length; i++) {
+        const color = requiredColors[i];
+        const count = parseInt(selectedWorkerCounts[color], 10) || 0;
+        if (count > 0) {
+          continue;
+        }
+        if (purpleAvailable > 0) {
+          purpleAvailable--;
+          continue;
+        }
+        missing.push(color);
+      }
+
+      return missing;
+    },
+
+    selectionSatisfiesMajorActionMandatoryColors: function (actionType, selectedWorkerCounts) {
+      return this.getMajorActionMissingMandatoryColors(actionType, selectedWorkerCounts).length === 0;
+    },
+
+    getMajorActionValidationMessage: function (actionType, selectedWorkerCounts, limits) {
+      const missing = this.getMajorActionMissingMandatoryColors(actionType, selectedWorkerCounts);
+      if (missing.length > 0) {
+        const missingNames = missing.map((workerType) => this.getWorkerTypeName(workerType));
+        return dojo.string.substitute(
+          _('Missing: ${worker_names}'),
+          { worker_names: missingNames.join(', ') },
+        );
+      }
+
+      const totalSelected = Object.values(selectedWorkerCounts).reduce(
+        (sum, count) => sum + (parseInt(count, 10) || 0),
+        0,
+      );
+
+      if (totalSelected !== limits.max) {
+        return dojo.string.substitute(
+          _('This action costs ${workers} workers.'),
+          { workers: limits.max },
+        );
+      }
+
+      return '';
+    },
+
+    getMajorActionConfirmHint: function (actionType, selectedWorkerCounts, limits) {
+      return this.getMajorActionValidationMessage(actionType, selectedWorkerCounts, limits);
+    },
+
+    canAffordMajorActionWorkers: function (actionType, playerId) {
+      if (!this.isMajorAction(actionType)) {
+        return false;
+      }
+
+      playerId = playerId !== undefined ? String(playerId) : String(this.player_id);
+      const player = this.gamedatas.players?.[playerId];
+      if (!player) {
+        return false;
+      }
+
+      const pool = {};
+      [
+        'white_worker', 'green_worker', 'blue_worker',
+        'red_worker', 'black_worker', 'purple_worker',
+      ].forEach((workerType) => {
+        const count = parseInt(player[workerType], 10) || 0;
+        if (count > 0) {
+          pool[workerType] = count;
+        }
+      });
+
+      const cost = this.getActionWorkerCost(actionType, 3);
+      return this.canSatisfyWorkerCostFromPool(this.cloneWorkerPool(pool), cost);
+    },
+
+    getFortifyCount: function (playerId) {
+      playerId = playerId !== undefined ? String(playerId) : String(this.player_id);
+      const player = this.gamedatas.players?.[playerId];
+      return player ? parseInt(player.fortify_qty, 10) || 0 : 0;
+    },
+
+    getFortifyProvisionCost: function (playerId) {
+      const fortifyCount = this.getFortifyCount(playerId);
+      if (fortifyCount < 3) {
+        return 1;
+      }
+      if (fortifyCount < 5) {
+        return 2;
+      }
+      return 3;
+    },
+
+    getFortifyInfluenceRequirement: function (playerId) {
+      const fortifyCount = this.getFortifyCount(playerId);
+      return this.FORTIFY_INFLUENCE_REQUIREMENTS[fortifyCount] ?? Number.MAX_SAFE_INTEGER;
+    },
+
+    playerHasFortifyPaladinFreeProvision: function (playerId) {
+      return this.getActivePaladinAction(playerId) === 'ACTION_FORTIFY';
+    },
+
+    getPlayerTotalInfluence: function (playerId) {
+      playerId = playerId !== undefined ? String(playerId) : String(this.player_id);
+      const panel = this.gamedatas.player_panels?.[playerId];
+      if (panel && panel.influence !== undefined) {
+        return parseInt(panel.influence, 10) || 0;
+      }
+      const player = this.gamedatas.players?.[playerId];
+      return player ? parseInt(player.influence, 10) || 0 : 0;
+    },
+
+    canAffordFortifyWorkers: function (playerId) {
+      return this.canAffordMajorActionWorkers('fortify', playerId);
+    },
+
+    getFortifyBlockedReason: function (playerId) {
+      playerId = playerId !== undefined ? String(playerId) : String(this.player_id);
+
+      if (this.getFortifyCount(playerId) >= 7) {
+        return _('You have already built all 7 walls.');
+      }
+
+      const requiredInfluence = this.getFortifyInfluenceRequirement(playerId);
+      if (this.getPlayerTotalInfluence(playerId) < requiredInfluence) {
+        return dojo.string.substitute(
+          _('You need at least ${influence} Influence to fortify your next wall.'),
+          { influence: requiredInfluence },
+        );
+      }
+
+      if (!this.playerHasFortifyPaladinFreeProvision(playerId)) {
+        const provisionCost = this.getFortifyProvisionCost(playerId);
+        const provisions = parseInt(this.gamedatas.players?.[playerId]?.provision, 10) || 0;
+        if (provisions < provisionCost) {
+          return dojo.string.substitute(
+            _('You need ${cost} Provision(s) to fortify.'),
+            { cost: provisionCost },
+          );
+        }
+      }
+
+      if (!this.canAffordFortifyWorkers(playerId)) {
+        return _('You need 3 workers including at least 1 Merchant (blue) and 1 Scout (green). Criminals are wild.');
+      }
+
+      return null;
+    },
+
+    canFortify: function (playerId) {
+      return this.getFortifyBlockedReason(playerId) === null;
     },
 
     setupKingsOrderCards: function (cards) {
@@ -1387,10 +2027,11 @@ define([
       }, 100);
       
       // Setup action buttons for actual game actions
-      this.setupActionButtons();
+      this.setupActionButtons(stateName);
+      this.updateActionButtons(stateName);
       
       // Setup paladin selection area separately
-      this.setupPaladinSelectionArea();
+      this.setupPaladinSelectionArea(stateName);
       
       // Setup townsfolk selection for hireInitialTownsfolk state
       if (stateName === 'hireInitialTownsfolk') {
@@ -1401,13 +2042,7 @@ define([
       
       // Handle paladin selection state
       if (stateName === 'pickPaladins') {
-        // Show the paladin selection area immediately
-        const paladinSelectionArea = document.getElementById('paladin_selection_area');
-        if (paladinSelectionArea) {
-          paladinSelectionArea.style.display = 'block';
-        }
-        
-        // Setup the paladin selection
+        this.showPaladinSelectionArea();
         this.setupPaladinSelection();
       }
       
@@ -1430,11 +2065,7 @@ define([
        
         switch (stateName) {
             case 'pickPaladins':
-                // Hide paladin selection area when leaving this state
-                const paladinSelectionArea = document.getElementById('paladin_selection_area');
-                if (paladinSelectionArea) {
-                    paladinSelectionArea.style.display = 'none';
-                }
+                this.hidePaladinSelectionArea();
                 break;
             case 'pickTavern':
                 // Hide tavern selection area when leaving this state
@@ -1451,7 +2082,7 @@ define([
     //                        action status bar (ie: the HTML links in the status bar).
     //
     onUpdateActionButtons: function (stateName, args) {
-      this.updateActionButtons();
+      this.updateActionButtons(stateName);
 
       if (stateName === 'pickTavern') {
         this.refreshTavernSelectionInteractability();
@@ -1485,6 +2116,18 @@ define([
             dojo.setStyle(uiItem.htmlNode, 'position', 'relative');
           } 
         } else if (
+          uiItem.uiType == "paladin_card" && uiItem.data.location == "playerboard_paladin"
+        ) {
+          const spotElement = document.getElementById(parentContainer);
+          if (spotElement) {
+            dojo.place(uiItem.htmlNode, spotElement);
+            dojo.setStyle(uiItem.htmlNode, "display", "block");
+            dojo.setStyle(uiItem.htmlNode, "position", "absolute");
+            dojo.setStyle(uiItem.htmlNode, "top", "0");
+            dojo.setStyle(uiItem.htmlNode, "left", "0");
+            dojo.setStyle(uiItem.htmlNode, "margin", "0");
+          }
+        } else if (
           uiItem.uiType == "townsfolk_uiitem" && parentContainer.startsWith("townsfolk_spot_") ||
           uiItem.uiType == "outsider" && parentContainer.startsWith("outsider_spot_") ||
           uiItem.uiType == "main_board_piece_uiitem" && parentContainer.startsWith("board_position_spot_") ||
@@ -1493,7 +2136,9 @@ define([
           uiItem.uiType == "absolve_jar_uiitem" && parentContainer.startsWith("absolve_jar_") ||
           uiItem.uiType == "development_house_uiitem" && parentContainer.startsWith("development_house_") ||
           uiItem.uiType == "fort_piece_uiitem" && parentContainer.startsWith("fort_piece_") ||
+          uiItem.uiType == "wall_card" && parentContainer.startsWith("fort_piece_") ||
           uiItem.uiType == "monk_piece_uiitem" && parentContainer.startsWith("monk_piece_") ||
+          uiItem.uiType == "garrison_piece_uiitem" && parentContainer.startsWith("garrison_piece_") ||
           uiItem.uiType == "fort_mock_piece_uiitem"
         ) {
           const spotElement = document.getElementById(parentContainer);
@@ -1505,6 +2150,12 @@ define([
             ) {
               dojo.setStyle(uiItem.htmlNode, "display", "block");
               dojo.setStyle(uiItem.htmlNode, "position", "relative");
+            }
+            if (uiItem.uiType == "wall_card") {
+              dojo.setStyle(uiItem.htmlNode, "display", "block");
+              dojo.setStyle(uiItem.htmlNode, "position", "absolute");
+              dojo.setStyle(uiItem.htmlNode, "top", "0");
+              dojo.setStyle(uiItem.htmlNode, "left", "0");
             }
           }
         } 
@@ -1528,13 +2179,23 @@ define([
         }
       }
       if (uiItem.uiType == "paladin_card") {
-        containerName = "paladin_cards";
+        if (uiItem.data.location == "playerboard_paladin") {
+          containerName = "paladin_card_spot_" + uiItem.data.location_arg;
+        } else {
+          containerName = "paladin_cards";
+        }
       }
       if (uiItem.uiType == "tavern_card") {
         containerName = "tavern_cards";
       }
       if (uiItem.uiType == "wall_card" && uiItem.data.type_arg == 24) {
         containerName = "wall_deck";
+      }
+      if (uiItem.uiType == "wall_card" && uiItem.data.location === "wall_hand") {
+        const slot = uiItem.data.location_position !== undefined && uiItem.data.location_position !== null
+          ? uiItem.data.location_position
+          : uiItem.data.location_arg;
+        containerName = "fort_piece_" + slot + "_" + uiItem.data.location_arg;
       }
       if (uiItem.uiType == "kingsorder_card") {
         containerName = "kingsorder_spot_" + uiItem.data.location_arg;
@@ -1556,6 +2217,9 @@ define([
       }
       if (uiItem.uiType == "monk_piece_uiitem") {
         containerName = "monk_piece_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
+      }
+      if (uiItem.uiType == "garrison_piece_uiitem") {
+        containerName = "garrison_piece_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
       }
       if (uiItem.uiType == "main_board_piece_uiitem") {
         containerName = "board_position_spot_" + uiItem.data.position_index;
@@ -1684,6 +2348,8 @@ define([
       
       // Paladin cards updates
       dojo.subscribe("paladinCards", this, "notif_paladinCards");
+      dojo.subscribe("pickedPaladins", this, "notif_pickedPaladins");
+      dojo.subscribe("keepPaladin", this, "notif_keepPaladin");
       
       // Player resources update notification
       dojo.subscribe("playerResourcesUpdated", this, "notif_playerResourcesUpdated");
@@ -1721,7 +2387,7 @@ define([
       console.log("Notification received:", notif);
       console.log("Cards data:", notif.args.cards);
       console.log("Current player_id:", this.player_id);
-      console.log("Current game state:", this.gamedatas.gamestate.name);
+      console.log("Current game state:", this.currentMove);
       
       // Update the client-side paladin hand data
       this.paladin_hand = notif.args.cards;
@@ -1729,12 +2395,33 @@ define([
       // Create the UI items
       this.createPaladinUiItems(notif.args.cards);
       
-      // Check if we're in the pickPaladins state and need to show the selection
-      const currentState = this.gamedatas.gamestate.name;
-      if (currentState === 'pickPaladins') {
-        console.log("Currently in pickPaladins state, calling setupPaladinSelection");
-        this.setupPaladinSelection();
+      // Cards are dealt right before pickPaladins; show selection once they arrive
+      this.showPaladinSelectionArea();
+      this.setupPaladinSelection();
+    },
+
+    notif_pickedPaladins: function (notif) {
+      const playerId = String(notif.args.player_id);
+      const chosenCard = notif.args.chosen_card;
+
+      if (chosenCard) {
+        this.showPaladinOnPlayerBoard(playerId, chosenCard);
+        this.removeDiscardedPaladinCards(playerId, chosenCard.id);
       }
+
+      if (playerId === String(this.player_id)) {
+        this.hidePaladinSelectionArea();
+      }
+    },
+
+    notif_keepPaladin: function (notif) {
+      if (!notif.args.card) {
+        return;
+      }
+
+      this.showPaladinOnPlayerBoard(this.player_id, notif.args.card);
+      this.removeDiscardedPaladinCards(this.player_id, notif.args.card.id);
+      this.hidePaladinSelectionArea();
     },
 
     notif_revealTaverns: function (notif) {
@@ -1932,11 +2619,11 @@ define([
     ////////////
 
     onPass: function() {
-      this.ajaxcall('/paladinsshipped/paladinsshipped/pass.html', {}, this, function(result) {}, function(is_error) {});
+      this.showWorkerSelectionMenu('pass', {});
     },
 
     onPray: function() {
-      this.showWorkerSelectionMenu('pray', { action_space: 'pray' });
+      this.showWorkerSelectionMenu('pray', {});
     },
 
     onRecruitDiscard: function() {
@@ -1968,6 +2655,11 @@ define([
     },
 
     onFortify: function() {
+      const blockedReason = this.getFortifyBlockedReason(this.player_id);
+      if (blockedReason) {
+        this.showMessage(blockedReason, 'error');
+        return;
+      }
       this.showWorkerSelectionMenu('fortify', {});
     },
 
@@ -2173,17 +2865,125 @@ define([
     //////////// UI HELPER METHODS
     ////////////
 
-    setupActionButtons: function() {
+    getActionButtonDefinitions: function() {
+      const enabledActionIds = ['hunt', 'pray', 'fortify', 'pass'];
+
+      const buttons = [
+        { id: 'pass', text: 'Pass', action: 'onPass' },
+        { id: 'pray', text: 'Pray', action: 'onPray', actionSpace: 'pray' },
+        { id: 'recruitDiscard', text: 'Recruit (Discard)', action: 'onRecruitDiscard', actionSpace: 'recruit' },
+        { id: 'recruitHire', text: 'Recruit (Hire)', action: 'onRecruitHire', actionSpace: 'recruit' },
+        { id: 'develop', text: 'Develop', action: 'onDevelop', actionSpace: 'develop' },
+        { id: 'hunt', text: 'Hunt', action: 'onHunt', actionSpace: 'hunt' },
+        { id: 'trade', text: 'Trade', action: 'onTrade', actionSpace: 'trade' },
+        { id: 'conspire', text: 'Conspire', action: 'onConspire', actionSpace: 'conspire' },
+        { id: 'commission', text: 'Commission', action: 'onCommission', actionSpace: 'commission' },
+        { id: 'fortify', text: 'Fortify', action: 'onFortify', actionSpace: 'fortify' },
+        { id: 'garrison', text: 'Garrison', action: 'onGarrison', actionSpace: 'garrison' },
+        { id: 'absolve', text: 'Absolve', action: 'onAbsolve', actionSpace: 'absolve' },
+        { id: 'attack', text: 'Attack', action: 'onAttack', actionSpace: 'attack' },
+        { id: 'convert', text: 'Convert', action: 'onConvert', actionSpace: 'convert' },
+        { id: 'kingsFavour', text: "King's Favour", action: 'onKingsFavour' },
+      ];
+
+      let visibleButtons = buttons.filter((button) => enabledActionIds.includes(button.id));
+
+      if (!this.isKingsFavourAvailable()) {
+        visibleButtons = visibleButtons.filter((button) => button.id !== 'kingsFavour');
+      }
+
+      visibleButtons.sort(
+        (a, b) => enabledActionIds.indexOf(a.id) - enabledActionIds.indexOf(b.id),
+      );
+
+      return visibleButtons;
+    },
+
+    setActionButtonUsedState: function(btn, isUsed, baseLabel) {
+      if (!btn) {
+        return;
+      }
+
+      if (!btn.dataset.baseLabel) {
+        btn.dataset.baseLabel = baseLabel || btn.textContent.replace(' (used)', '');
+      }
+
+      if (isUsed) {
+        btn.disabled = true;
+        btn.classList.add('unavailable');
+        btn.textContent = `${btn.dataset.baseLabel} (used)`;
+      } else {
+        btn.classList.remove('unavailable');
+        btn.textContent = btn.dataset.baseLabel;
+      }
+    },
+
+    applyActionSpaceInfoFromNotif: function(notif) {
+      const playerId = notif.args && notif.args.player_id !== undefined
+        ? String(notif.args.player_id)
+        : null;
+
+      if (!playerId || !notif.args.action_space_info) {
+        return;
+      }
+
+      if (!this.gamedatas.action_spaces) {
+        this.gamedatas.action_spaces = {};
+      }
+
+      this.gamedatas.action_spaces[playerId] = notif.args.action_space_info;
+    },
+
+    handleActionNotif: function(notif) {
+      this.applyActionSpaceInfoFromNotif(notif);
+
+      if (notif.args && notif.args.action_space_info && notif.args.player_id !== undefined) {
+        const playerId = String(notif.args.player_id);
+        Object.keys(notif.args.action_space_info).forEach((actionName) => {
+          this.updateActionSpaceDisplay(playerId, actionName, notif.args.action_space_info[actionName]);
+        });
+      }
+
+      if (notif.args && notif.args.panel_data && notif.args.player_id !== undefined) {
+        this.syncPlayerResourceDataFromPanel(String(notif.args.player_id), notif.args.panel_data);
+        this.updatePlayerPanelResources(String(notif.args.player_id), notif.args.panel_data);
+      }
+
+      this.updateActionButtons();
+    },
+
+    syncPlayerResourceDataFromPanel: function(playerId, panelData) {
+      if (!panelData || !this.gamedatas.players || !this.gamedatas.players[playerId]) {
+        return;
+      }
+
+      [
+        'coin',
+        'provision',
+        'white_worker',
+        'green_worker',
+        'blue_worker',
+        'red_worker',
+        'black_worker',
+        'purple_worker',
+      ].forEach((field) => {
+        if (panelData[field] !== undefined) {
+          this.gamedatas.players[playerId][field] = panelData[field];
+        }
+      });
+    },
+
+    setupActionButtons: function(stateName) {
       const actionContainer = document.getElementById('action_buttons');
       if (!actionContainer) return;
 
-      const currentState = this.gamedatas.gamestate.name;
+      const currentState = stateName || this.currentMove || this.gamedatas.gamestate.name;
       const isMyTurn = this.isCurrentPlayerActive();
 
       // Clear existing content
       actionContainer.innerHTML = '';
 
-      // Only show action buttons during actual game action states (not paladin selection)
+      // Only show action buttons during actual game action states
       if (currentState === 'playerAction' && isMyTurn) {
         // Create header
         const header = document.createElement('div');
@@ -2196,63 +2996,52 @@ define([
         buttonsContainer.className = 'action_buttons_container';
         actionContainer.appendChild(buttonsContainer);
 
-        // Define action buttons for actual game actions
-        const actionButtons = [
-          { id: 'conspire', text: 'Conspire', action: 'onConspire' },
-          { id: 'garrison', text: 'Garrison', action: 'onGarrison' },
-          { id: 'commission', text: 'Commission', action: 'onCommission' }
-        ];
+        const actionButtons = this.getActionButtonDefinitions();
 
-        // Show all action buttons
         actionButtons.forEach(button => {
           const btn = document.createElement('button');
           btn.id = button.id + '_btn';
           btn.className = 'action_button';
+          btn.dataset.baseLabel = button.text;
           btn.innerHTML = button.text;
           btn.onclick = () => this[button.action]();
           buttonsContainer.appendChild(btn);
         });
 
-        // Show action buttons area
-        dojo.setStyle(actionContainer, 'display', 'block');
+        this.showActionButtonsArea();
+        this.updateIndividualActionButtons();
       } else {
-        // Hide action buttons area during non-action states
-        dojo.setStyle(actionContainer, 'display', 'none');
+        this.hideActionButtonsArea();
       }
     },
 
-    setupPaladinSelectionArea: function() {
+    setupPaladinSelectionArea: function(stateName) {
       const paladinSelectionArea = document.getElementById('paladin_selection_area');
       if (!paladinSelectionArea) return;
 
-      const currentState = this.gamedatas.gamestate.name;
+      const currentState = stateName || this.currentMove || this.gamedatas.gamestate.name;
 
       if (currentState === 'pickPaladins') {
-        dojo.setStyle(paladinSelectionArea, 'display', 'block');
-        // Add a small delay to ensure DOM is ready and cards are created
+        this.showPaladinSelectionArea();
         setTimeout(() => {
           this.setupPaladinSelection();
-        }, 500);
+        }, 100);
       } else {
-        dojo.setStyle(paladinSelectionArea, 'display', 'none');
+        this.hidePaladinSelectionArea();
       }
     },
 
-    updateActionButtons: function() {
-      // Enable/disable action buttons based on current game state and player resources
-      // This will be called when the game state changes
+    updateActionButtons: function(stateName) {
       const isMyTurn = this.isCurrentPlayerActive();
+      const currentState = stateName || this.currentMove || this.gamedatas.gamestate.name;
       
       // Get all action buttons
       const actionButtons = document.querySelectorAll('.action_button');
       actionButtons.forEach(btn => {
-        const currentState = this.gamedatas.gamestate.name;
-        
         // Special handling for paladin selection button
         if (btn.id === 'paladinSelection_btn') {
-          // During pickPaladins state, the button should always be enabled for the current player
           btn.disabled = !isMyTurn || currentState !== 'pickPaladins';
-        } else {
+        } else if (!btn.classList.contains('unavailable')) {
           btn.disabled = !isMyTurn;
         }
         
@@ -2264,125 +3053,57 @@ define([
         }
       });
       
-      // Show/hide the entire action buttons area based on game state AND current player
       const actionContainer = document.getElementById('action_buttons');
       if (actionContainer) {
-        const currentState = this.gamedatas.gamestate.name;
-        // Show action buttons if we're in playerAction state AND it's the current player's turn
-        // OR if we're in pickPaladins state AND it's the current player's turn
-        const shouldShow = (currentState === 'playerAction' || currentState === 'pickPaladins') && isMyTurn;
-        dojo.setStyle(actionContainer, 'display', shouldShow ? 'flex' : 'none');
+        const shouldShow = currentState === 'playerAction' && isMyTurn;
+        if (shouldShow) {
+          this.showActionButtonsArea();
+        } else {
+          this.hideActionButtonsArea();
+        }
       }
       
       // Update individual button states based on action availability
-      if (isMyTurn) {
+      if (isMyTurn && currentState === 'playerAction') {
         this.updateIndividualActionButtons();
       }
     },
 
     updateIndividualActionButtons: function() {
       const currentPlayerId = this.player_id;
-      const actionSpaces = this.gamedatas.action_spaces[currentPlayerId];
-      
-      if (!actionSpaces) return;
-      
-      // Check conspire action availability
-      const conspireBtn = document.getElementById('conspire_btn');
-      if (conspireBtn) {
-        if (actionSpaces.conspire && actionSpaces.conspire.used) {
-          conspireBtn.disabled = true;
-          conspireBtn.classList.add('unavailable');
-          conspireBtn.title = 'Conspire action already used this round';
-        } else {
-          conspireBtn.disabled = false;
-          conspireBtn.classList.remove('unavailable');
-          conspireBtn.title = 'Conspire - Gain 1 Criminal and 1 Suspicion';
-        }
+      const actionSpaces = this.gamedatas.action_spaces && this.gamedatas.action_spaces[currentPlayerId];
+
+      if (!actionSpaces) {
+        return;
       }
-      
-      // Check commission action availability
-      const commissionBtn = document.getElementById('commission_btn');
-      if (commissionBtn) {
-        if (actionSpaces.commission && actionSpaces.commission.used) {
-          commissionBtn.disabled = true;
-          commissionBtn.classList.add('unavailable');
-          commissionBtn.title = 'Commission action already used this round';
-        } else {
-          commissionBtn.disabled = false;
-          commissionBtn.classList.remove('unavailable');
-          commissionBtn.title = 'Commission - Place a monk (requires 0 Faith, 1-3 Provisions based on count)';
+
+      this.getActionButtonDefinitions().forEach((buttonDef) => {
+        if (buttonDef.id === 'kingsFavour') {
+          const btn = document.getElementById(`${buttonDef.id}_btn`);
+          if (btn) {
+            this.setActionButtonUsedState(btn, !this.isKingsFavourAvailable(), buttonDef.text);
+            if (this.isKingsFavourAvailable()) {
+              btn.disabled = false;
+            }
+          }
+          return;
         }
-      }
-      
-      // Check fortify action availability
-      const fortifyBtn = document.getElementById('fortify_btn');
-      if (fortifyBtn) {
-        if (actionSpaces.fortify && actionSpaces.fortify.used) {
-          fortifyBtn.disabled = true;
-          fortifyBtn.classList.add('unavailable');
-          fortifyBtn.title = 'Fortify action already used this round';
-        } else {
-          fortifyBtn.disabled = false;
-          fortifyBtn.classList.remove('unavailable');
-          fortifyBtn.title = 'Fortify - Build a wall (requires 2 Influence, 1 Provision)';
+
+        if (!buttonDef.actionSpace) {
+          return;
         }
-      }
-      
-      // Check garrison action availability
-      const garrisonBtn = document.getElementById('garrison_btn');
-      if (garrisonBtn) {
-        if (actionSpaces.garrison && actionSpaces.garrison.used) {
-          garrisonBtn.disabled = true;
-          garrisonBtn.classList.add('unavailable');
-          garrisonBtn.title = 'Garrison action already used this round';
-        } else {
-          garrisonBtn.disabled = false;
-          garrisonBtn.classList.remove('unavailable');
-          garrisonBtn.title = 'Garrison - Place an outpost (requires 2 Strength, 1 Provision)';
+
+        const btn = document.getElementById(`${buttonDef.id}_btn`);
+        const isUsed = !!(actionSpaces[buttonDef.actionSpace] && actionSpaces[buttonDef.actionSpace].used);
+        this.setActionButtonUsedState(btn, isUsed, buttonDef.text);
+
+        if (btn && !isUsed) {
+          btn.disabled = false;
+          if (buttonDef.id === 'fortify' && !this.canFortify()) {
+            btn.disabled = true;
+          }
         }
-      }
-      
-      // Check absolve action availability
-      const absolveBtn = document.getElementById('absolve_btn');
-      if (absolveBtn) {
-        if (actionSpaces.absolve && actionSpaces.absolve.used) {
-          absolveBtn.disabled = true;
-          absolveBtn.classList.add('unavailable');
-          absolveBtn.title = 'Absolve action already used this round';
-        } else {
-          absolveBtn.disabled = false;
-          absolveBtn.classList.remove('unavailable');
-          absolveBtn.title = 'Absolve - Absolve sins (requires 2 Influence, 2 Silver)';
-        }
-      }
-      
-      // Check attack action availability
-      const attackBtn = document.getElementById('attack_btn');
-      if (attackBtn) {
-        if (actionSpaces.attack && actionSpaces.attack.used) {
-          attackBtn.disabled = true;
-          attackBtn.classList.add('unavailable');
-          attackBtn.title = 'Attack action already used this round';
-        } else {
-          attackBtn.disabled = false;
-          attackBtn.classList.remove('unavailable');
-          attackBtn.title = 'Attack - Attack an outsider (requires 2 Strength)';
-        }
-      }
-      
-      // Check convert action availability
-      const convertBtn = document.getElementById('convert_btn');
-      if (convertBtn) {
-        if (actionSpaces.convert && actionSpaces.convert.used) {
-          convertBtn.disabled = true;
-          convertBtn.classList.add('unavailable');
-          convertBtn.title = 'Convert action already used this round';
-        } else {
-          convertBtn.disabled = false;
-          convertBtn.classList.remove('unavailable');
-          convertBtn.title = 'Convert - Convert an outsider (requires 2 Faith, 2 Silver)';
-        }
-      }
+      });
     },
 
     //////////////////////////////////////////////////////////////////////////////
@@ -2390,38 +3111,31 @@ define([
     ////////////
 
     notif_pass: function(notif) {
-      
-      // Update UI to show player passed
+      this.handleActionNotif(notif);
     },
 
     notif_pray: function(notif) {
-      
-      // Update UI to show prayer action
+      this.handleActionNotif(notif);
     },
 
     notif_recruitDiscard: function(notif) {
-      
-      // Update UI to show townsfolk discard
+      this.handleActionNotif(notif);
     },
 
     notif_recruitHire: function(notif) {
-      
-      // Update UI to show townsfolk hire
+      this.handleActionNotif(notif);
     },
 
     notif_develop: function(notif) {
-      
-      // Update UI to show development
+      this.handleActionNotif(notif);
     },
 
     notif_hunt: function(notif) {
-      
-      // Update UI to show hunt results
+      this.handleActionNotif(notif);
     },
 
     notif_trade: function(notif) {
-      
-      // Update UI to show trade results
+      this.handleActionNotif(notif);
     },
 
     notif_conspire: function(notif) {
@@ -2433,13 +3147,29 @@ define([
         this.updateTaxSupplyDisplay(notif.args.tax_supply);
       }
 
-      this.updateActionButtons();
+      this.handleActionNotif(notif);
     },
 
     notif_clearActionSpaces: function(notif) {
-      
-      // Refresh action buttons to update availability
+      if (this.gamedatas.action_spaces) {
+        Object.keys(this.gamedatas.action_spaces).forEach((playerId) => {
+          const actionNames = Object.keys(this.gamedatas.action_spaces[playerId]);
+          actionNames.forEach((actionName) => {
+            this.gamedatas.action_spaces[playerId][actionName] = {
+              used: false,
+              workers: [],
+              developments: this.gamedatas.action_spaces[playerId][actionName].developments || 0,
+            };
+          });
+        });
+      }
+
       this.updateActionButtons();
+    },
+
+    notif_kingsFavourCleared: function(notif) {
+      this.syncKingsFavourState(notif.args);
+      this.refreshKingsFavourActionButtons();
     },
 
     notif_initializeTaxSupply: function(notif) {
@@ -2465,60 +3195,358 @@ define([
 
     notif_commission: function(notif) {
       this.pendingBoardAction = 'commission';
-      this.updateActionButtons();
+      this.handleActionNotif(notif);
     },
 
     notif_fortify: function(notif) {
-      
-      // Update UI to show wall building
-      // Refresh action buttons to update availability
-      this.updateActionButtons();
+      if (notif.args.wall_card && notif.args.player_id !== undefined) {
+        const playerId = String(notif.args.player_id);
+        if (this.gamedatas.players?.[playerId]) {
+          this.gamedatas.players[playerId].fortify_qty =
+            (parseInt(this.gamedatas.players[playerId].fortify_qty, 10) || 0) + 1;
+        }
+        if (!this.all_players_wall_cards) {
+          this.all_players_wall_cards = {};
+        }
+        if (!this.all_players_wall_cards[playerId]) {
+          this.all_players_wall_cards[playerId] = {};
+        }
+        this.all_players_wall_cards[playerId][notif.args.wall_card.id] = notif.args.wall_card;
+        this.addWallCardToPlayerBoard(
+          playerId,
+          notif.args.wall_card,
+          notif.args.wall_slot,
+          true,
+        );
+      }
+      this.handleActionNotif(notif);
     },
 
     notif_garrison: function(notif) {
       this.pendingBoardAction = 'garrison';
-      this.updateActionButtons();
+      this.handleActionNotif(notif);
     },
 
     notif_absolve: function(notif) {
-      
-      // Update UI to show absolution
-      // Refresh action buttons to update availability
-      this.updateActionButtons();
+      this.handleActionNotif(notif);
     },
 
     notif_attack: function(notif) {
-      
-      // Update UI to show attack
-      // Refresh action buttons to update availability
-      this.updateActionButtons();
+      this.handleActionNotif(notif);
     },
 
     notif_convert: function(notif) {
-      
-      // Update UI to show conversion
-      // Refresh action buttons to update availability
-      this.updateActionButtons();
+      this.handleActionNotif(notif);
     },
 
     notif_kingsFavour: function(notif) {
-      // Update UI to show King's Favour use
+      this.syncKingsFavourState(notif.args);
+
+      if (notif.args.panel_data && notif.args.player_id !== undefined) {
+        this.syncPlayerResourceDataFromPanel(String(notif.args.player_id), notif.args.panel_data);
+        this.updatePlayerPanelResources(String(notif.args.player_id), notif.args.panel_data);
+      }
+
+      this.refreshKingsFavourActionButtons();
     },
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// WORKER SELECTION MENU
     ////////////
 
+    getWorkerTypeDefinitions: function() {
+      return [
+        { type: 'white_worker', name: 'Labourer', iconClass: 'panel_icon_white_worker' },
+        { type: 'green_worker', name: 'Scout', iconClass: 'panel_icon_green_worker' },
+        { type: 'red_worker', name: 'Fighter', iconClass: 'panel_icon_red_worker' },
+        { type: 'blue_worker', name: 'Merchant', iconClass: 'panel_icon_blue_worker' },
+        { type: 'black_worker', name: 'Cleric', iconClass: 'panel_icon_black_worker' },
+        { type: 'purple_worker', name: 'Criminal', iconClass: 'panel_icon_purple_worker' },
+      ];
+    },
+
+    getWorkerTypeName: function(workerType) {
+      const definition = this.getWorkerTypeDefinitions().find((worker) => worker.type === workerType);
+      return definition ? definition.name : workerType;
+    },
+
+    formatWorkerRequirements: function(requirements) {
+      if (!requirements.specific.length) {
+        return '';
+      }
+
+      const names = requirements.specific.map((workerType) => this.getWorkerTypeName(workerType));
+      if (requirements.wildNote) {
+        return `${names.join(', ')} (${requirements.wildNote})`;
+      }
+
+      return names.join(', ');
+    },
+
+    getActionWorkerCost: function(actionType, workerCount) {
+      const count = workerCount !== undefined ? workerCount : null;
+
+      if (actionType === 'hunt') {
+        if (count === 1) {
+          return ['COST_ANY_WORKER'];
+        }
+        if (count === 2) {
+          return ['COST_ANY_WORKER', 'green_worker'];
+        }
+        return ['COST_ANY_WORKER', 'green_worker'];
+      }
+
+      const costs = {
+        pass: [],
+        pray: ['black_worker'],
+        recruitDiscard: ['COST_ANY_WORKER'],
+        recruitHire: ['COST_ANY_WORKER', 'red_worker'],
+        develop: ['COST_ANY_WORKER', 'COST_ANY_WORKER'],
+        trade: ['COST_ANY_WORKER', 'blue_worker'],
+        conspire: ['COST_ANY_WORKER'],
+        commission: ['green_worker', 'COST_ANY_WORKER', 'black_worker'],
+        fortify: ['blue_worker', 'COST_ANY_WORKER', 'green_worker'],
+        garrison: ['blue_worker', 'COST_ANY_WORKER', 'red_worker'],
+        absolve: ['black_worker', 'COST_ANY_WORKER', 'blue_worker'],
+        attack: ['green_worker', 'COST_ANY_WORKER', 'red_worker'],
+        convert: ['red_worker', 'COST_ANY_WORKER', 'black_worker'],
+        kingsFavour: ['COST_ANY_WORKER'],
+      };
+
+      return costs[actionType] || [];
+    },
+
+    cloneWorkerPool: function(selectedWorkerCounts) {
+      const pool = {};
+      Object.keys(selectedWorkerCounts).forEach((workerType) => {
+        const count = parseInt(selectedWorkerCounts[workerType], 10) || 0;
+        if (count > 0) {
+          pool[workerType] = count;
+        }
+      });
+      return pool;
+    },
+
+    takeWorkerFromPool: function(pool, workerType) {
+      if (!pool[workerType] || pool[workerType] <= 0) {
+        return false;
+      }
+
+      pool[workerType]--;
+      if (pool[workerType] <= 0) {
+        delete pool[workerType];
+      }
+      return true;
+    },
+
+    getWorkerTypesForCostSlot: function(pool, cost, costIndex, requiredType) {
+      if (requiredType === 'COST_ANY_WORKER') {
+        const remainingSpecific = {};
+        for (let i = costIndex + 1; i < cost.length; i++) {
+          if (cost[i] !== 'COST_ANY_WORKER') {
+            remainingSpecific[cost[i]] = true;
+          }
+        }
+
+        const preferred = [];
+        const reserved = [];
+        Object.keys(pool).forEach((type) => {
+          if (pool[type] <= 0) {
+            return;
+          }
+          if (remainingSpecific[type]) {
+            reserved.push(type);
+          } else {
+            preferred.push(type);
+          }
+        });
+
+        return preferred.concat(reserved);
+      }
+
+      const candidates = [];
+      if (pool[requiredType] > 0) {
+        candidates.push(requiredType);
+      }
+      if (requiredType !== 'purple_worker' && pool.purple_worker > 0) {
+        candidates.push('purple_worker');
+      }
+      return candidates;
+    },
+
+    canSatisfyWorkerCostFromPool: function(pool, cost, costIndex) {
+      const index = costIndex || 0;
+      if (index >= cost.length) {
+        return true;
+      }
+
+      const candidateTypes = this.getWorkerTypesForCostSlot(pool, cost, index, cost[index]);
+      for (let i = 0; i < candidateTypes.length; i++) {
+        const workerType = candidateTypes[i];
+        const nextPool = this.cloneWorkerPool(pool);
+        if (!this.takeWorkerFromPool(nextPool, workerType)) {
+          continue;
+        }
+        if (this.canSatisfyWorkerCostFromPool(nextPool, cost, index + 1)) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+
+    consumeWorkerFromPool: function(pool, requiredType) {
+      if (requiredType === 'COST_ANY_WORKER') {
+        const types = Object.keys(pool);
+        for (let i = 0; i < types.length; i++) {
+          const workerType = types[i];
+          if (pool[workerType] > 0) {
+            pool[workerType]--;
+            if (pool[workerType] <= 0) {
+              delete pool[workerType];
+            }
+            return true;
+          }
+        }
+        return false;
+      }
+
+      if (pool[requiredType] > 0) {
+        pool[requiredType]--;
+        if (pool[requiredType] <= 0) {
+          delete pool[requiredType];
+        }
+        return true;
+      }
+
+      if (requiredType !== 'purple_worker' && pool.purple_worker > 0) {
+        pool.purple_worker--;
+        if (pool.purple_worker <= 0) {
+          delete pool.purple_worker;
+        }
+        return true;
+      }
+
+      return false;
+    },
+
+    validateSelectedWorkersForAction: function(actionType, selectedWorkerCounts) {
+      const limits = this.getWorkerRequirementLimits(actionType);
+      const totalSelected = Object.values(selectedWorkerCounts).reduce(
+        (sum, count) => sum + (parseInt(count, 10) || 0),
+        0,
+      );
+
+      if (this.isMajorAction(actionType)) {
+        const message = this.getMajorActionValidationMessage(actionType, selectedWorkerCounts, limits);
+        if (message) {
+          return { valid: false, message: message };
+        }
+        return { valid: true, message: '' };
+      }
+
+      if (totalSelected < limits.min || totalSelected > limits.max) {
+        return {
+          valid: false,
+          message: dojo.string.substitute(
+            _('Please select between ${min_workers} and ${max_workers} workers for this action.'),
+            { min_workers: limits.min, max_workers: limits.max },
+          ),
+        };
+      }
+
+      const cost = this.getActionWorkerCost(actionType, totalSelected);
+      const pool = this.cloneWorkerPool(selectedWorkerCounts);
+      if (!this.canSatisfyWorkerCostFromPool(pool, cost)) {
+        return {
+          valid: false,
+          message: this.getWorkerValidationErrorMessage(actionType, cost),
+        };
+      }
+
+      return { valid: true, message: '' };
+    },
+
+    getWorkerValidationErrorMessage: function(actionType, cost) {
+      if (actionType === 'hunt') {
+        if (cost.length === 1) {
+          return _('Invalid worker selection for Hunt.');
+        }
+        return _('When hunting with 2 workers, one must be a Scout (green) or Criminal (purple, wild).');
+      }
+
+      const specificRequirements = cost.filter((requirement) => requirement !== 'COST_ANY_WORKER');
+      if (specificRequirements.length === 1) {
+        const workerName = this.getWorkerTypeName(specificRequirements[0]);
+        return dojo.string.substitute(
+          _('This action requires a ${worker_name}. Criminals (purple workers) can be used as a wild card.'),
+          { worker_name: workerName },
+        );
+      }
+
+      if (specificRequirements.length > 1) {
+        const workerNames = specificRequirements.map((workerType) => this.getWorkerTypeName(workerType)).join(', ');
+        return dojo.string.substitute(
+          _('This action requires specific workers: ${worker_names}. Criminals (purple workers) can be used as a wild card.'),
+          { worker_names: workerNames },
+        );
+      }
+
+      return _('Invalid worker selection for this action.');
+    },
+
+    showWorkerValidationError: function(message) {
+      const errorEl = document.getElementById('worker_validation_error');
+      if (!errorEl) {
+        this.showMessage(message, 'error');
+        return;
+      }
+
+      errorEl.textContent = message;
+      errorEl.classList.remove('worker_confirm_hint');
+      errorEl.style.display = 'block';
+    },
+
+    showWorkerConfirmHint: function(message) {
+      const errorEl = document.getElementById('worker_validation_error');
+      if (!errorEl || !message) {
+        return;
+      }
+
+      errorEl.textContent = message;
+      errorEl.classList.add('worker_confirm_hint');
+      errorEl.style.display = 'block';
+    },
+
+    clearWorkerValidationError: function() {
+      const errorEl = document.getElementById('worker_validation_error');
+      if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.classList.remove('worker_confirm_hint');
+        errorEl.style.display = 'none';
+      }
+    },
+
     showWorkerSelectionMenu: function(actionType, actionParams) {
       // Store the current action being performed
       this.currentAction = {
         type: actionType,
         params: actionParams,
-        selectedWorkers: []
+        selectedWorkerCounts: {
+          white_worker: 0,
+          green_worker: 0,
+          blue_worker: 0,
+          red_worker: 0,
+          black_worker: 0,
+          purple_worker: 0,
+        },
       };
 
       // Get worker requirements for this action
-      const requirements = this.getWorkerRequirements(actionType);
+      const requirements = this.applyPaladinWorkerSelectionHints(
+        actionType,
+        this.getWorkerRequirements(actionType),
+      );
       
       // Create and show the worker selection modal
       this.createWorkerSelectionModal(actionType, requirements);
@@ -2527,24 +3555,81 @@ define([
     getWorkerRequirements: function(actionType) {
       // Define worker requirements for each action type
       const requirements = {
-        'pass': { workers: 0, specific: [] },
-        'pray': { workers: 1, specific: ['black_worker'] },
-        'recruitDiscard': { workers: 1, specific: [] },
-        'recruitHire': { workers: 2, specific: ['red_worker'] },
-        'develop': { workers: 2, specific: [] },
-        'hunt': { workers: 2, specific: ['green_worker'] },
-        'trade': { workers: 2, specific: ['blue_worker'] },
-        'conspire': { workers: 1, specific: [] },
-        'commission': { workers: 3, specific: ['green_worker', 'black_worker'] },
-        'fortify': { workers: 3, specific: ['blue_worker', 'green_worker'] },
-        'garrison': { workers: 3, specific: ['blue_worker', 'red_worker'] },
-        'absolve': { workers: 3, specific: ['black_worker', 'blue_worker'] },
-        'attack': { workers: 3, specific: ['green_worker', 'red_worker'] },
-        'convert': { workers: 3, specific: ['red_worker', 'black_worker'] },
-        'kingsFavour': { workers: 1, specific: [] }
+        'pass': {
+          workers: 3,
+          minWorkers: 0,
+          maxWorkers: 3,
+          specific: [],
+          keepNote: _('Choose up to 3 workers to keep for next round'),
+        },
+        'pray': {
+          workers: 1,
+          minWorkers: 1,
+          maxWorkers: 1,
+          specific: ['black_worker'],
+          allowedWorkerTypes: ['black_worker', 'purple_worker'],
+          wildNote: _('Criminals are wild for Cleric'),
+          silverNote: _('Also costs 2 Silver'),
+        },
+        'recruitDiscard': { workers: 1, minWorkers: 1, maxWorkers: 1, specific: [] },
+        'recruitHire': { workers: 2, minWorkers: 2, maxWorkers: 2, specific: ['red_worker'] },
+        'develop': { workers: 2, minWorkers: 2, maxWorkers: 2, specific: [] },
+        'hunt': {
+          workers: 2,
+          minWorkers: 1,
+          maxWorkers: 2,
+          specific: ['green_worker'],
+          wildNote: _('Criminals are wild'),
+          rewardNote: _('1 worker = 1 Provision, 2 workers = 3 Provisions'),
+        },
+        'trade': { workers: 2, minWorkers: 1, maxWorkers: 2, specific: ['blue_worker'] },
+        'conspire': { workers: 1, minWorkers: 1, maxWorkers: 1, specific: [] },
+        'commission': { workers: 3, minWorkers: 3, maxWorkers: 3, specific: ['green_worker', 'black_worker'], wildNote: _('Criminals are wild') },
+        'fortify': {
+          workers: 3,
+          minWorkers: 3,
+          maxWorkers: 3,
+          specific: ['blue_worker', 'green_worker'],
+          wildNote: _('Criminals are wild'),
+        },
+        // Major actions: two specific colors + any third (see getActionWorkerCost / player_spaces_material).
+        'garrison': { workers: 3, minWorkers: 3, maxWorkers: 3, specific: ['blue_worker', 'red_worker'], wildNote: _('Criminals are wild') },
+        'absolve': { workers: 3, minWorkers: 3, maxWorkers: 3, specific: ['black_worker', 'blue_worker'], wildNote: _('Criminals are wild') },
+        'attack': { workers: 3, minWorkers: 3, maxWorkers: 3, specific: ['green_worker', 'red_worker'], wildNote: _('Criminals are wild') },
+        'convert': { workers: 3, minWorkers: 3, maxWorkers: 3, specific: ['red_worker', 'black_worker'], wildNote: _('Criminals are wild') },
+        'kingsFavour': { workers: 1, minWorkers: 1, maxWorkers: 1, specific: [] }
       };
 
-      return requirements[actionType] || { workers: 0, specific: [] };
+      return requirements[actionType] || { workers: 0, minWorkers: 0, maxWorkers: 0, specific: [] };
+    },
+
+    getWorkerRequirementLimits: function(actionType) {
+      if (actionType === 'pass') {
+        const totalAvailable = this.getTotalPassAvailableWorkers();
+        return {
+          min: 0,
+          max: Math.min(3, totalAvailable),
+        };
+      }
+
+      const requirements = this.getWorkerRequirements(actionType);
+      return {
+        min: requirements.minWorkers !== undefined ? requirements.minWorkers : requirements.workers,
+        max: requirements.maxWorkers !== undefined ? requirements.maxWorkers : requirements.workers,
+      };
+    },
+
+    formatWorkerRequirementSummary: function(requirements) {
+      const limits = {
+        min: requirements.minWorkers !== undefined ? requirements.minWorkers : requirements.workers,
+        max: requirements.maxWorkers !== undefined ? requirements.maxWorkers : requirements.workers,
+      };
+
+      if (limits.min === limits.max) {
+        return `${limits.min}`;
+      }
+
+      return `${limits.min}-${limits.max}`;
     },
 
     createWorkerSelectionModal: function(actionType, requirements) {
@@ -2566,17 +3651,51 @@ define([
       // Add header
       const header = document.createElement('div');
       header.className = 'worker_selection_header';
-      header.innerHTML = `<h3>Select Workers for ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}</h3>`;
+      if (actionType === 'pass') {
+        header.innerHTML = `<h3>${_('Choose Workers to Keep')}</h3>`;
+      } else {
+        header.innerHTML = `<h3>Select Workers for ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}</h3>`;
+      }
       modalContent.appendChild(header);
       
       // Add requirements info
       const requirementsInfo = document.createElement('div');
       requirementsInfo.className = 'worker_requirements_info';
-      requirementsInfo.innerHTML = `
-        <p><strong>Required:</strong> ${requirements.workers} worker(s)</p>
-        ${requirements.specific.length > 0 ? `<p><strong>Specific:</strong> ${requirements.specific.join(', ')}</p>` : ''}
-      `;
+      if (actionType === 'pass') {
+        requirementsInfo.innerHTML = `
+          <p><strong>${_('Choose up to 3 workers to keep for next round')}</strong></p>
+        `;
+      } else {
+        const limits = this.getWorkerRequirementLimits(actionType);
+        const workerRequirementLine = actionType === 'pray'
+          ? `<p><strong>${_('Worker:')}</strong> ${this.formatWorkerRequirements(requirements)}</p>`
+          : (requirements.specific.length > 0
+            ? `<p><strong>${limits.min === 3 && limits.max === 3 ? _('Workers:') : _('With 2 workers:')}</strong> ${this.formatWorkerRequirements(requirements)}</p>`
+            : '');
+        requirementsInfo.innerHTML = `
+          <p><strong>Required:</strong> ${this.formatWorkerRequirementSummary(requirements)} worker(s)</p>
+          ${workerRequirementLine}
+          ${requirements.influenceNote ? `<p><strong>${_('Influence:')}</strong> ${requirements.influenceNote}</p>` : ''}
+          ${requirements.provisionNote ? `<p><strong>${_('Cost:')}</strong> ${requirements.provisionNote}</p>` : ''}
+          ${requirements.silverNote ? `<p><strong>Cost:</strong> ${requirements.silverNote}</p>` : ''}
+          ${requirements.rewardNote ? `<p><strong>Reward:</strong> ${requirements.rewardNote}</p>` : ''}
+          ${requirements.paladinBonusNote ? `<p class="paladin_bonus_note">${requirements.paladinBonusNote}</p>` : ''}
+        `;
+      }
       modalContent.appendChild(requirementsInfo);
+
+      if (actionType === 'pray') {
+        const prayActionSelection = document.createElement('div');
+        prayActionSelection.id = 'pray_action_selection_area';
+        prayActionSelection.className = 'pray_action_selection_area';
+        modalContent.appendChild(prayActionSelection);
+      }
+
+      const validationError = document.createElement('div');
+      validationError.id = 'worker_validation_error';
+      validationError.className = 'worker_validation_error';
+      validationError.style.display = 'none';
+      modalContent.appendChild(validationError);
       
       // Add worker selection area
       const workerSelection = document.createElement('div');
@@ -2590,13 +3709,13 @@ define([
       
       const confirmBtn = document.createElement('button');
       confirmBtn.className = 'action_button primary';
-      confirmBtn.innerHTML = 'Confirm Action';
+      confirmBtn.innerHTML = actionType === 'pass' ? _('Confirm Pass') : _('Confirm Action');
       confirmBtn.onclick = () => this.confirmWorkerSelection();
       actionButtons.appendChild(confirmBtn);
       
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'action_button secondary';
-      cancelBtn.innerHTML = 'Cancel';
+      cancelBtn.innerHTML = _('Cancel');
       cancelBtn.onclick = () => this.hideWorkerSelectionModal();
       actionButtons.appendChild(cancelBtn);
       
@@ -2617,94 +3736,326 @@ define([
       workerSelectionArea.innerHTML = '';
 
       // Get current player's workers from game data
-      const availableWorkers = this.getCurrentPlayerWorkers();
+      const actionType = this.currentAction ? this.currentAction.type : null;
+      const availableWorkers = actionType === 'pass'
+        ? this.getPassAvailableWorkers()
+        : this.getCurrentPlayerWorkers();
       
       if (availableWorkers.length === 0) {
-        workerSelectionArea.innerHTML = '<p style="text-align: center; color: #6c757d; font-style: italic;">No workers available</p>';
+        workerSelectionArea.innerHTML = `<p style="text-align: center; color: #6c757d; font-style: italic;">${_('No workers available')}</p>`;
+        this.updateConfirmButtonState();
         return;
       }
 
-      // Create worker selection cards
+      // Create one selectable card per worker color the player has
       availableWorkers.forEach(worker => {
         const workerCard = document.createElement('div');
         workerCard.className = 'worker_selection_card';
-        workerCard.dataset.workerId = worker.id;
         workerCard.dataset.workerType = worker.type;
+        workerCard.dataset.workerAvailable = String(worker.available);
         
         workerCard.innerHTML = `
-          <div class="worker_card_content" style="background-color: ${worker.color}">
+          <div class="worker_card_content">
+            <span class="panel_icon panel_icon_worker ${worker.iconClass}" aria-hidden="true"></span>
             <div class="worker_name">${worker.name}</div>
-            <div class="worker_type">${worker.type}</div>
+            <div class="worker_available">Available: ${worker.available}</div>
+            <div class="worker_count_controls">
+              <button type="button" class="worker_count_btn worker_count_minus" aria-label="Remove ${worker.name}">−</button>
+              <span class="worker_selected_count">0</span>
+              <button type="button" class="worker_count_btn worker_count_plus" aria-label="Add ${worker.name}">+</button>
+            </div>
           </div>
         `;
-        
-        workerCard.onclick = () => this.toggleWorkerSelection(workerCard, worker);
+
+        const minusBtn = workerCard.querySelector('.worker_count_minus');
+        const plusBtn = workerCard.querySelector('.worker_count_plus');
+
+        minusBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          this.adjustWorkerSelection(worker, -1);
+        });
+
+        plusBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          this.adjustWorkerSelection(worker, 1);
+        });
+
         workerSelectionArea.appendChild(workerCard);
       });
-    },
 
-    toggleWorkerSelection: function(workerCard, worker) {
-      const isSelected = workerCard.classList.contains('selected');
-      
-      if (isSelected) {
-        // Deselect worker
-        workerCard.classList.remove('selected');
-        this.currentAction.selectedWorkers = this.currentAction.selectedWorkers.filter(w => w.id !== worker.id);
-      } else {
-        // Check if we can select more workers
-        const requirements = this.getWorkerRequirements(this.currentAction.type);
-        if (this.currentAction.selectedWorkers.length < requirements.workers) {
-          // Select worker
-          workerCard.classList.add('selected');
-          this.currentAction.selectedWorkers.push(worker);
+      if (this.currentAction && this.currentAction.type === 'pass') {
+        const totalAvailable = this.getTotalPassAvailableWorkers();
+        if (totalAvailable <= 3) {
+          availableWorkers.forEach((worker) => {
+            this.currentAction.selectedWorkerCounts[worker.type] = worker.available;
+          });
+        } else {
+          const purpleWorker = availableWorkers.find((worker) => worker.type === 'purple_worker');
+          if (purpleWorker) {
+            this.currentAction.selectedWorkerCounts.purple_worker = Math.min(3, purpleWorker.available);
+          }
         }
       }
-      
-      // Update confirm button state
+
+      if (this.currentAction && this.currentAction.type === 'pray') {
+        const purpleWorker = availableWorkers.find((worker) => worker.type === 'purple_worker');
+        const blackWorker = availableWorkers.find((worker) => worker.type === 'black_worker');
+        const purpleCount = purpleWorker ? purpleWorker.available : 0;
+
+        if (purpleCount === 0 && blackWorker && blackWorker.available > 0) {
+          this.currentAction.selectedWorkerCounts.black_worker = 1;
+        }
+
+        this.populatePrayActionSelection();
+      }
+
+      this.updateWorkerSelectionDisplay();
       this.updateConfirmButtonState();
+    },
+
+    getTotalSelectedWorkerCount: function() {
+      if (!this.currentAction || !this.currentAction.selectedWorkerCounts) {
+        return 0;
+      }
+
+      return Object.values(this.currentAction.selectedWorkerCounts).reduce(
+        (total, count) => total + (parseInt(count, 10) || 0),
+        0,
+      );
+    },
+
+    getSelectedWorkerCountForType: function(workerType) {
+      if (!this.currentAction || !this.currentAction.selectedWorkerCounts) {
+        return 0;
+      }
+
+      return parseInt(this.currentAction.selectedWorkerCounts[workerType], 10) || 0;
+    },
+
+    canIncreaseWorkerSelection: function(worker) {
+      if (!this.currentAction) {
+        return false;
+      }
+
+      const limits = this.getWorkerRequirementLimits(this.currentAction.type);
+      const selectedOfType = this.getSelectedWorkerCountForType(worker.type);
+      const totalSelected = this.getTotalSelectedWorkerCount();
+
+      if (selectedOfType >= worker.available || totalSelected >= limits.max) {
+        return false;
+      }
+
+      // Major actions: free selection up to max; Confirm checks mandatory colors.
+      if (this.isMajorAction(this.currentAction.type)) {
+        return true;
+      }
+
+      const hypotheticalCounts = { ...this.currentAction.selectedWorkerCounts };
+      hypotheticalCounts[worker.type] = selectedOfType + 1;
+      const newTotal = totalSelected + 1;
+      if (newTotal === limits.max) {
+        return this.validateSelectedWorkersForAction(
+          this.currentAction.type,
+          hypotheticalCounts,
+        ).valid;
+      }
+
+      return true;
+    },
+
+    canDecreaseWorkerSelection: function(workerType) {
+      return this.getSelectedWorkerCountForType(workerType) > 0;
+    },
+
+    adjustWorkerSelection: function(worker, delta) {
+      if (!this.currentAction) {
+        return;
+      }
+
+      const currentCount = this.getSelectedWorkerCountForType(worker.type);
+
+      if (delta > 0) {
+        if (!this.canIncreaseWorkerSelection(worker)) {
+          return;
+        }
+        this.currentAction.selectedWorkerCounts[worker.type] = currentCount + 1;
+      } else if (delta < 0 && currentCount > 0) {
+        this.currentAction.selectedWorkerCounts[worker.type] = currentCount - 1;
+      }
+
+      this.updateWorkerSelectionDisplay();
+      this.clearWorkerValidationError();
+      this.updateConfirmButtonState();
+    },
+
+    updateWorkerSelectionDisplay: function() {
+      const workerSelectionArea = document.getElementById('worker_selection_area');
+      if (!workerSelectionArea || !this.currentAction) {
+        return;
+      }
+
+      workerSelectionArea.querySelectorAll('.worker_selection_card').forEach((workerCard) => {
+        const workerType = workerCard.dataset.workerType;
+        const selectedCount = this.getSelectedWorkerCountForType(workerType);
+        const selectedCountEl = workerCard.querySelector('.worker_selected_count');
+        const minusBtn = workerCard.querySelector('.worker_count_minus');
+        const plusBtn = workerCard.querySelector('.worker_count_plus');
+        const available = parseInt(workerCard.dataset.workerAvailable, 10) || 0;
+
+        if (selectedCountEl) {
+          selectedCountEl.textContent = String(selectedCount);
+        }
+
+        if (selectedCount > 0) {
+          workerCard.classList.add('selected');
+        } else {
+          workerCard.classList.remove('selected');
+        }
+
+        if (minusBtn) {
+          minusBtn.disabled = !this.canDecreaseWorkerSelection(workerType);
+        }
+
+        if (plusBtn) {
+          plusBtn.disabled = !this.canIncreaseWorkerSelection({
+            type: workerType,
+            available: available,
+          });
+        }
+      });
     },
 
     updateConfirmButtonState: function() {
       const confirmBtn = document.querySelector('#worker_selection_modal .action_button.primary');
-      if (!confirmBtn) return;
+      if (!confirmBtn || !this.currentAction) return;
 
-      const requirements = this.getWorkerRequirements(this.currentAction.type);
-      const canConfirm = this.currentAction.selectedWorkers.length === requirements.workers;
+      const limits = this.getWorkerRequirementLimits(this.currentAction.type);
+      const totalSelected = this.getTotalSelectedWorkerCount();
+      let canConfirm = false;
+
+      if (totalSelected >= limits.min && totalSelected <= limits.max) {
+        canConfirm = this.validateSelectedWorkersForAction(
+          this.currentAction.type,
+          this.currentAction.selectedWorkerCounts,
+        ).valid;
+      }
+
+      if (this.currentAction.type === 'pray') {
+        const clearableActions = this.getClearableUsedActions();
+        canConfirm = canConfirm
+          && clearableActions.length > 0
+          && !!this.currentAction.params.action_space;
+      }
       
       confirmBtn.disabled = !canConfirm;
       if (canConfirm) {
         confirmBtn.classList.add('available');
+        this.clearWorkerValidationError();
       } else {
         confirmBtn.classList.remove('available');
+        if (this.isMajorAction(this.currentAction.type)) {
+          this.showWorkerConfirmHint(this.getMajorActionConfirmHint(
+            this.currentAction.type,
+            this.currentAction.selectedWorkerCounts,
+            limits,
+          ));
+        } else {
+          this.clearWorkerValidationError();
+        }
       }
     },
 
-    buildWorkerCountParams: function(selectedWorkers) {
-      const counts = {
-        white_workers: 0,
-        green_workers: 0,
-        blue_workers: 0,
-        red_workers: 0,
-        black_workers: 0,
-        purple_workers: 0,
+    buildWorkerCountParams: function(selectedWorkerCounts) {
+      return {
+        white_workers: selectedWorkerCounts.white_worker || 0,
+        green_workers: selectedWorkerCounts.green_worker || 0,
+        blue_workers: selectedWorkerCounts.blue_worker || 0,
+        red_workers: selectedWorkerCounts.red_worker || 0,
+        black_workers: selectedWorkerCounts.black_worker || 0,
+        purple_workers: selectedWorkerCounts.purple_worker || 0,
       };
+    },
 
-      selectedWorkers.forEach((worker) => {
-        const key = worker.type.replace("_worker", "_workers");
-        if (counts[key] !== undefined) {
-          counts[key]++;
+    validatePassWorkerKeep: function() {
+      const totalAvailable = this.getTotalPassAvailableWorkers();
+      const totalSelected = this.getTotalSelectedWorkerCount();
+      const limits = this.getWorkerRequirementLimits('pass');
+
+      if (totalSelected < limits.min || totalSelected > limits.max) {
+        return {
+          valid: false,
+          message: dojo.string.substitute(
+            _('Choose up to ${max_workers} workers to keep.'),
+            { max_workers: limits.max },
+          ),
+        };
+      }
+
+      const availableWorkers = this.getPassAvailableWorkers();
+      for (let i = 0; i < availableWorkers.length; i++) {
+        const worker = availableWorkers[i];
+        const selectedCount = this.getSelectedWorkerCountForType(worker.type);
+        if (selectedCount > worker.available) {
+          return {
+            valid: false,
+            message: _('Invalid worker selection for pass.'),
+          };
         }
-      });
+      }
 
-      return counts;
+      return { valid: true, message: '' };
     },
 
     confirmWorkerSelection: function() {
-      if (!this.currentAction || this.currentAction.selectedWorkers.length === 0) {
+      if (!this.currentAction) {
         return;
       }
 
-      const workerCounts = this.buildWorkerCountParams(this.currentAction.selectedWorkers);
+      if (this.currentAction.type === 'pass') {
+        const validation = this.validatePassWorkerKeep();
+        if (!validation.valid) {
+          this.showWorkerValidationError(validation.message);
+          return;
+        }
+
+        this.clearWorkerValidationError();
+        const workerCounts = this.buildWorkerCountParams(this.currentAction.selectedWorkerCounts);
+        this.submitAction('pass', workerCounts);
+        this.hideWorkerSelectionModal();
+        return;
+      }
+
+      const limits = this.getWorkerRequirementLimits(this.currentAction.type);
+      const totalSelected = this.getTotalSelectedWorkerCount();
+      if (totalSelected < limits.min || totalSelected > limits.max) {
+        return;
+      }
+
+      const validation = this.validateSelectedWorkersForAction(
+        this.currentAction.type,
+        this.currentAction.selectedWorkerCounts,
+      );
+      if (!validation.valid) {
+        this.showWorkerValidationError(validation.message);
+        return;
+      }
+
+      if (this.currentAction.type === 'pray') {
+        if (!this.currentAction.params.action_space) {
+          this.showWorkerValidationError(_('Select an action to clear.'));
+          return;
+        }
+
+        const clearableActions = this.getClearableUsedActions();
+        if (clearableActions.indexOf(this.currentAction.params.action_space) === -1) {
+          this.showWorkerValidationError(_('The selected action cannot be cleared.'));
+          return;
+        }
+      }
+
+      this.clearWorkerValidationError();
+
+      const workerCounts = this.buildWorkerCountParams(this.currentAction.selectedWorkerCounts);
       const actionParams = { ...this.currentAction.params, ...workerCounts };
 
       this.submitAction(this.currentAction.type, actionParams);
@@ -2722,7 +4073,7 @@ define([
       };
 
       const actionMap = {
-        'pass': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pass.html', {}, this, function(result) {}, function(is_error) {}),
+        'pass': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pass.html', workerParams, this, function(result) {}, function(is_error) {}),
         'pray': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pray.html', { ...workerParams, action_space: params.action_space }, this, function(result) {}, function(is_error) {}),
         'recruitDiscard': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitDiscard.html', { ...workerParams, townsfolk_card_id: params.townsfolk_card_id }, this, function(result) {}, function(is_error) {}),
         'recruitHire': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitHire.html', { ...workerParams, townsfolk_card_id: params.townsfolk_card_id, use_debt: params.use_debt }, this, function(result) {}, function(is_error) {}),
@@ -2736,7 +4087,7 @@ define([
         'absolve': () => this.ajaxcall('/paladinsshipped/paladinsshipped/absolve.html', { ...workerParams, jar_position: params.jar_position }, this, function(result) {}, function(is_error) {}),
         'attack': () => this.ajaxcall('/paladinsshipped/paladinsshipped/attack.html', { ...workerParams, outsider_card_id: params.outsider_card_id, silver_cost: params.silver_cost }, this, function(result) {}, function(is_error) {}),
         'convert': () => this.ajaxcall('/paladinsshipped/paladinsshipped/convert.html', { ...workerParams, outsider_card_id: params.outsider_card_id }, this, function(result) {}, function(is_error) {}),
-        'kingsFavour': () => this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavour.html', { worker_id: params.worker1_id, kings_favour_id: params.kings_favour_id }, this, function(result) {}, function(is_error) {})
+        'kingsFavour': () => this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavour.html', { ...workerParams, kings_favour_id: params.kings_favour_id }, this, function(result) {}, function(is_error) {})
       };
 
       // Execute the action
@@ -2753,9 +4104,138 @@ define([
       this.currentAction = null;
     },
 
+    getActionSpaceSlotCount: function(actionName) {
+      const slotCounts = {
+        develop: 2,
+        hunt: 2,
+        trade: 2,
+        recruit: 2,
+        pray: 1,
+        conspire: 1,
+        commission: 3,
+        fortify: 3,
+        garrison: 3,
+        absolve: 3,
+        attack: 3,
+        convert: 3,
+      };
+
+      return slotCounts[actionName] || 0;
+    },
+
+    workersToOrderedList: function(workers) {
+      if (Array.isArray(workers)) {
+        return workers;
+      }
+
+      const list = [];
+      Object.keys(workers || {}).forEach((workerType) => {
+        const count = parseInt(workers[workerType], 10) || 0;
+        for (let i = 0; i < count; i++) {
+          list.push(workerType);
+        }
+      });
+      return list;
+    },
+
+    clearActionSpaceWorkers: function(playerId, actionName, slotCount) {
+      for (let i = 0; i < slotCount; i++) {
+        const spot = document.getElementById(`${actionName}_space_${i}_${playerId}`);
+        if (spot) {
+          spot.innerHTML = '';
+        }
+      }
+    },
+
+    renderActionSpaceWorkers: function(playerId, actionName, workers) {
+      const orderedWorkers = this.workersToOrderedList(workers);
+      orderedWorkers.forEach((workerType, index) => {
+        const spot = document.getElementById(`${actionName}_space_${index}_${playerId}`);
+        if (!spot) {
+          return;
+        }
+
+        spot.innerHTML = '';
+        const icon = document.createElement('span');
+        icon.className = `panel_icon panel_icon_worker panel_icon_${workerType}`;
+        icon.setAttribute('aria-hidden', 'true');
+        spot.appendChild(icon);
+      });
+    },
+
+    updateActionSpaceDisplay: function(playerId, actionName, actionInfo) {
+      const slotCount = this.getActionSpaceSlotCount(actionName);
+      if (!slotCount) {
+        return;
+      }
+
+      this.clearActionSpaceWorkers(playerId, actionName, slotCount);
+
+      if (actionInfo && actionInfo.used && actionInfo.workers) {
+        this.renderActionSpaceWorkers(playerId, actionName, actionInfo.workers);
+      }
+    },
+
+    renderAllActionSpaces: function() {
+      if (!this.gamedatas.action_spaces) {
+        return;
+      }
+
+      Object.keys(this.gamedatas.action_spaces).forEach((playerId) => {
+        const playerActionSpaces = this.gamedatas.action_spaces[playerId];
+        Object.keys(playerActionSpaces).forEach((actionName) => {
+          this.updateActionSpaceDisplay(playerId, actionName, playerActionSpaces[actionName]);
+        });
+      });
+    },
+
+    getPassAvailableWorkers: function() {
+      const currentPlayerId = String(this.player_id);
+      const workerTotals = {};
+
+      this.getWorkerTypeDefinitions().forEach((workerType) => {
+        workerTotals[workerType.type] = 0;
+      });
+
+      const playerData = this.gamedatas && this.gamedatas.players
+        ? this.gamedatas.players[currentPlayerId]
+        : null;
+
+      if (playerData) {
+        this.getWorkerTypeDefinitions().forEach((workerType) => {
+          workerTotals[workerType.type] += parseInt(playerData[workerType.type], 10) || 0;
+        });
+      }
+
+      const actionSpaces = this.gamedatas.action_spaces && this.gamedatas.action_spaces[currentPlayerId];
+      if (actionSpaces) {
+        Object.keys(actionSpaces).forEach((actionName) => {
+          const workers = actionSpaces[actionName].workers || [];
+          this.workersToOrderedList(workers).forEach((workerType) => {
+            workerTotals[workerType] = (workerTotals[workerType] || 0) + 1;
+          });
+        });
+      }
+
+      return this.getWorkerTypeDefinitions()
+        .filter((workerType) => workerTotals[workerType.type] > 0)
+        .map((workerType) => ({
+          type: workerType.type,
+          name: workerType.name,
+          iconClass: workerType.iconClass,
+          available: workerTotals[workerType.type],
+        }));
+    },
+
+    getTotalPassAvailableWorkers: function() {
+      return this.getPassAvailableWorkers().reduce(
+        (total, worker) => total + worker.available,
+        0,
+      );
+    },
+
     getCurrentPlayerWorkers: function() {
-      // Get the current player's workers from the game data
-      const currentPlayerId = this.player_id;
+      const currentPlayerId = String(this.player_id);
       
       if (!this.gamedatas || !this.gamedatas.players) {
         return [];
@@ -2767,31 +4247,125 @@ define([
         return [];
       }
 
-      const workerTypes = [
-        { type: 'white_worker', name: 'Labourer', color: '#ffffff' },
-        { type: 'green_worker', name: 'Scout', color: '#28a745' },
-        { type: 'red_worker', name: 'Fighter', color: '#dc3545' },
-        { type: 'blue_worker', name: 'Merchant', color: '#007bff' },
-        { type: 'black_worker', name: 'Cleric', color: '#343a40' },
-        { type: 'purple_worker', name: 'Criminal', color: '#6f42c1' }
-      ];
+      let allowedWorkerTypes = null;
+      if (this.currentAction) {
+        const requirements = this.getWorkerRequirements(this.currentAction.type);
+        allowedWorkerTypes = requirements.allowedWorkerTypes || null;
+      }
 
       const availableWorkers = [];
-      let workerId = 1;
       
-      workerTypes.forEach(workerType => {
-        const count = parseInt(playerData[workerType.type]) || 0;
-        for (let i = 0; i < count; i++) {
+      this.getWorkerTypeDefinitions().forEach((workerType) => {
+        if (allowedWorkerTypes && allowedWorkerTypes.indexOf(workerType.type) === -1) {
+          return;
+        }
+
+        const count = parseInt(playerData[workerType.type], 10) || 0;
+        if (count > 0) {
           availableWorkers.push({
-            id: workerId++,
             type: workerType.type,
             name: workerType.name,
-            color: workerType.color
+            iconClass: workerType.iconClass,
+            available: count,
           });
         }
       });
 
       return availableWorkers;
+    },
+
+    getClearableUsedActions: function() {
+      const currentPlayerId = String(this.player_id);
+      const actionSpaces = this.gamedatas.action_spaces && this.gamedatas.action_spaces[currentPlayerId];
+
+      if (!actionSpaces) {
+        return [];
+      }
+
+      const clearableActions = [
+        'develop', 'hunt', 'trade', 'recruit', 'conspire',
+        'commission', 'fortify', 'garrison', 'absolve', 'attack', 'convert',
+      ];
+
+      return clearableActions.filter((actionName) => actionSpaces[actionName] && actionSpaces[actionName].used);
+    },
+
+    getActionDisplayName: function(actionName) {
+      const names = {
+        develop: _('Develop'),
+        hunt: _('Hunt'),
+        trade: _('Trade'),
+        recruit: _('Recruit'),
+        conspire: _('Conspire'),
+        commission: _('Commission'),
+        fortify: _('Fortify'),
+        garrison: _('Garrison'),
+        absolve: _('Absolve'),
+        attack: _('Attack'),
+        convert: _('Convert'),
+      };
+
+      return names[actionName] || actionName;
+    },
+
+    populatePrayActionSelection: function() {
+      const area = document.getElementById('pray_action_selection_area');
+      if (!area) {
+        return;
+      }
+
+      area.innerHTML = '';
+
+      const clearableActions = this.getClearableUsedActions();
+      const title = document.createElement('p');
+      title.className = 'pray_action_selection_title';
+      title.innerHTML = '<strong>Select action to clear:</strong>';
+      area.appendChild(title);
+
+      if (clearableActions.length === 0) {
+        const emptyMessage = document.createElement('p');
+        emptyMessage.className = 'pray_no_actions';
+        emptyMessage.textContent = _('No used actions available to clear.');
+        area.appendChild(emptyMessage);
+        return;
+      }
+
+      const list = document.createElement('div');
+      list.className = 'pray_action_list';
+
+      clearableActions.forEach((actionName) => {
+        const optionBtn = document.createElement('button');
+        optionBtn.type = 'button';
+        optionBtn.className = 'pray_action_option';
+        optionBtn.textContent = this.getActionDisplayName(actionName);
+        optionBtn.dataset.actionName = actionName;
+        optionBtn.onclick = () => this.selectPrayClearAction(actionName);
+        list.appendChild(optionBtn);
+      });
+
+      area.appendChild(list);
+
+      if (clearableActions.length === 1) {
+        this.selectPrayClearAction(clearableActions[0]);
+      }
+    },
+
+    selectPrayClearAction: function(actionName) {
+      if (!this.currentAction) {
+        return;
+      }
+
+      this.currentAction.params.action_space = actionName;
+
+      document.querySelectorAll('.pray_action_option').forEach((optionBtn) => {
+        if (optionBtn.dataset.actionName === actionName) {
+          optionBtn.classList.add('selected');
+        } else {
+          optionBtn.classList.remove('selected');
+        }
+      });
+
+      this.updateConfirmButtonState();
     },
 
     updatePlayerPanelResources: function (player_id, panel_data) {
@@ -3177,6 +4751,11 @@ define([
       }
       if (notif.args.kingsfavour_display) {
         this.updateKingsFavourDisplay(notif.args.kingsfavour_display);
+        if (this.gamedatas) {
+          this.gamedatas.kingsfavour_display = notif.args.kingsfavour_display;
+        }
+        this.syncKingsFavourState(notif.args);
+        this.refreshKingsFavourActionButtons();
       }
     },
 
@@ -3571,17 +5150,14 @@ define([
       });
 
       if (tavernSelectionArea) {
-        tavernSelectionArea.style.display = 'block';
+        this.showTavernSelectionArea();
       }
 
       this.resetTavernConfirmButton();
     },
 
     hideTavernSelectionModal: function() {
-      const tavernSelectionArea = document.getElementById('tavern_selection_area');
-      if (tavernSelectionArea) {
-        tavernSelectionArea.style.display = 'none';
-      }
+      this.hideTavernSelectionArea();
 
       this.pendingTavernCardId = null;
       this.resetTavernConfirmButton();

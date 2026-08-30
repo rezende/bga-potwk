@@ -1303,3 +1303,26 @@ $this->paladins_cards_material = [
         "set" => "fountain",
     ],
 ];
+
+$this->paladin_action_powers = [
+    ACTION_COMMISSION => clienttranslate('Commission costs no Provisions this Round.'),
+    ACTION_FORTIFY => clienttranslate('Fortify costs no Provisions this Round.'),
+    ACTION_GARRISON => clienttranslate('Garrison costs no Provisions this Round.'),
+    ACTION_ABSOLVE => clienttranslate('Absolve costs no Silver this Round.'),
+    ACTION_ATTACK => clienttranslate('Earn 2 Silver each time you Attack an Outsider this Round.'),
+    ACTION_CONVERT => clienttranslate('Convert costs no Silver this Round.'),
+    ACTION_DEVELOP => clienttranslate('Develop costs 2 Silver this Round.'),
+    ACTION_HUNT => clienttranslate('Hunt earns 2 Provisions this Round.'),
+    ACTION_TRADE => clienttranslate('Trade earns 2 Silver this Round.'),
+    ACTION_RECRUIT => clienttranslate('Recruit earns 2 Silver this Round.'),
+    ACTION_PRAY => clienttranslate('Pray costs no Silver this Round.'),
+    ACTION_CONSPIRE => clienttranslate('Conspire earns 2 Silver this Round.'),
+];
+
+foreach ($this->paladins_cards_material as $paladin_index => $paladin_card) {
+    $action = $paladin_card['action'] ?? null;
+    if ($action !== null && isset($this->paladin_action_powers[$action])) {
+        $this->paladins_cards_material[$paladin_index]['power'] =
+            $this->paladin_action_powers[$action];
+    }
+}

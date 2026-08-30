@@ -567,12 +567,9 @@
   background-repeat: no-repeat;
 }
 
-#paladin_selection_area,
-#action_buttons,
 #townsfolkSelection,
 #paladinsSelection,
-#tavernsSelection,
-#tavern_selection_area {
+#tavernsSelection {
   display: none !important;
 }
 
@@ -707,12 +704,23 @@
   margin-top: 15px;
   margin-left: 10px;
   width: 100%;
+  overflow: visible;
+  padding-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .playerboard_box_middle {
+  --playerboard-art-height: 638px;
+  --playerboard-top-extension: 210px;
+  --playerboard-bottom-extension: 272px;
+
   display: flex;
   width: 1589px; /* Fixed width: 1275px (playerboard_box) + 314px (playerboard_cards) */
-  height: 638px; /* Match playerboard_box height */
+  height: calc(
+    var(--playerboard-art-height)
+    + var(--playerboard-top-extension)
+    + var(--playerboard-bottom-extension)
+  );
 }
 
 .playerboard_cards {
@@ -729,10 +737,51 @@
 .playerboard_box {
   position: relative;
   width: 1275px; /* Original image width */
-  height: 638px; /* Original image height */
+  height: calc(
+    var(--playerboard-art-height)
+    + var(--playerboard-top-extension)
+    + var(--playerboard-bottom-extension)
+  );
   background-image: url("img/Playerboard.png");
   background-repeat: no-repeat;
-  background-size: 1275px 638px; /* Original image size */
+  background-position: 0 var(--playerboard-top-extension);
+  background-size: 1275px var(--playerboard-art-height);
+}
+
+/* Layer spot containers over the board — avoid vertical document-flow stacking */
+.playerboard_box > .absolve_jars,
+.playerboard_box > .development_houses,
+.playerboard_box > .monk_pieces,
+.playerboard_box > .garrison_pieces,
+.playerboard_box > .recruit_spaces,
+.playerboard_box > .playerboard_action_labels,
+.playerboard_box > .commission_spaces,
+.playerboard_box > .garrison_spaces,
+.playerboard_box > .fortify_spaces,
+.playerboard_box > .absolve_spaces,
+.playerboard_box > .attack_spaces,
+.playerboard_box > .convert_spaces,
+.playerboard_box > [id$="_spaces"] {
+  position: absolute;
+  top: var(--playerboard-top-extension);
+  left: 0;
+  width: 100%;
+  height: var(--playerboard-art-height);
+  pointer-events: none;
+}
+
+.playerboard_box > .fort_pieces,
+.playerboard_box > .converted_outsider_pieces {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.playerboard_box [class*="_spot"] {
+  pointer-events: auto;
 }
 
 .panel_player_wrap {
@@ -1156,6 +1205,15 @@
   height: 126px;
   left: 817px;
   top: 0px;
+}
+
+.kingsfavour_used {
+  opacity: 0.55;
+  filter: grayscale(0.75);
+}
+
+.kingsfavour_new {
+  outline: 2px dashed rgba(255, 255, 255, 0.45);
 }
 
 
@@ -1611,6 +1669,82 @@
   font-weight: 500;
 }
 
+.worker_requirements_info .paladin_bonus_note {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(105, 219, 124, 0.22);
+  border: 1px solid #69db7c;
+  color: #2b8a3e;
+  font-weight: 700;
+}
+
+.worker_validation_error {
+  display: none;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #f5c2c7;
+  background: #f8d7da;
+  color: #842029;
+  font-weight: 600;
+  text-align: center;
+}
+
+.worker_validation_error.worker_confirm_hint {
+  border-color: #ffecb5;
+  background: #fff3cd;
+  color: #664d03;
+}
+
+.pray_action_selection_area {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  border: 2px dashed #dee2e6;
+}
+
+.pray_action_selection_title {
+  margin: 0 0 12px;
+  text-align: center;
+  color: #2c3e50;
+}
+
+.pray_no_actions {
+  margin: 0;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.pray_action_list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.pray_action_option {
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+  color: #2c3e50;
+  font-weight: bold;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pray_action_option:hover {
+  border-color: #4a90e2;
+}
+
+.pray_action_option.selected {
+  border-color: #28a745;
+  background-color: rgba(40, 167, 69, 0.12);
+}
+
 .worker_selection_area {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -1627,7 +1761,6 @@
   border: 2px solid #dee2e6;
   border-radius: 10px;
   padding: 10px;
-  cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
   min-height: 100px;
@@ -1638,7 +1771,6 @@
 
 .worker_selection_card:hover {
   border-color: #4a90e2;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
 }
 
@@ -1650,23 +1782,84 @@
 }
 
 .worker_card_content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border-radius: 8px;
-  padding: 15px;
-  color: white;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  padding: 12px 10px;
+  color: #2c3e50;
   font-weight: bold;
 }
 
+.worker_selection_card .panel_icon_worker {
+  width: 42px;
+  height: 72px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
 .worker_name {
-  font-size: 16px;
-  margin-bottom: 5px;
+  font-size: 14px;
+  margin: 0;
+}
+
+.worker_available {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.worker_selected_count {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+  min-width: 24px;
+  text-align: center;
+}
+
+.worker_count_controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.worker_count_btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #4a90e2;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #4a90e2;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.worker_count_btn:hover:not(:disabled) {
+  background: #4a90e2;
+  color: #ffffff;
+}
+
+.worker_count_btn:disabled {
+  border-color: #ced4da;
+  color: #adb5bd;
+  cursor: not-allowed;
+  background: #f8f9fa;
 }
 
 .worker_type {
-  font-size: 12px;
-  opacity: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  display: none;
 }
 
 .worker_selection_actions {
@@ -1681,6 +1874,34 @@
   min-width: 120px;
   padding: 12px 20px;
   font-size: 16px;
+}
+
+.worker_selection_actions .action_button.primary:not(:disabled) {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #ffffff;
+  border: 2px solid #28a745;
+}
+
+.worker_selection_actions .action_button.primary:not(:disabled):hover {
+  background: linear-gradient(135deg, #218838, #1aa179);
+  color: #ffffff;
+}
+
+.worker_selection_actions .action_button.primary:disabled {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #ced4da;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.worker_selection_actions .action_button.primary:disabled:hover {
+  background: #ffffff;
+  color: #000000;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Responsive design for worker selection modal */
@@ -2255,18 +2476,21 @@
 
 /* Absolve Jars Styling */
 .absolve_jars {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  /* positioned via .playerboard_box > .absolve_jars overlay rule */
 }
 
 .absolve_jar {
+  position: absolute;
+  /* Sprite cell padding (start_x 41px × scale 0.27) — align visible jar with spot anchor */
+  top: -9px;
+  left: -11px;
   width: 189px;
   height: 189px;
   border-radius: 50%;
   transition: all 0.2s ease;
   background-image: url("img/sprite_wooden_components.png");
   transform: scale(0.27);
+  transform-origin: 0 0;
 }
 
 .absolve_jar.used {
@@ -2275,50 +2499,55 @@
 
 .absolve_jar_spot {
   position: absolute;
-  top: 434px;
+  top: 510px;
+  width: 36px;
+  height: 36px;
 }
 
 .absolve_jar_0 {
-  left: 590px;
+  left: 666px;
 }
 
 .absolve_jar_1 {
-  left: 631px;
+  left: 707px;
 }
 
 .absolve_jar_2 {
-  left: 672px;
+  left: 748px;
 }
 
 .absolve_jar_3 {
-  left: 713px;
+  left: 789px;
 }
 
 .absolve_jar_4 {
-  left: 754px;
+  left: 829px;
 }
 
 .absolve_jar_5 {
-  left: 795px;
+  left: 870px;
 }
 
 .absolve_jar_6 {
-  left: 836px;
+  left: 912px;
 }
 
 
 /* Development Houses Styling */
 .development_houses {
-  position: relative;
+  /* positioned via .playerboard_box > .development_houses overlay rule */
 }
 
 .development_house {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 169px;
   height: 166px;
   transition: all 0.2s ease;
   background-image: url("img/sprite_wooden_components.png");
   transform: scale(0.25);
-  transform-origin: 0px 0px;
+  transform-origin: 0 0;
   background-color: lightgoldenrodyellow;
 }
 
@@ -2328,7 +2557,7 @@
 
 .development_house_spot {
   position: absolute;
-  top: -560px;
+  top: 78px;
   width: 42px;
   height: 41px;
 }
@@ -2368,12 +2597,15 @@
 
 /* Monk pieces styling */
 .monk_piece {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 158px;
   height: 155px;
   transition: all 0.2s ease;
   background-image: url("img/sprite_wooden_components.png");
   transform: scale(0.229);
-  transform-origin: 0px 0px;
+  transform-origin: 0 0;
   background-color: lightgoldenrodyellow;
 }
 
@@ -2420,24 +2652,83 @@
   left: 892px;
 }
 
-/* Fort pieces styling */
-.fort_piece {
+/* Garrison outpost pieces (player board bonus track) */
+.garrison_piece {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 158px;
   height: 155px;
   transition: all 0.2s ease;
   background-image: url("img/sprite_wooden_components.png");
   transform: scale(0.229);
-  transform-origin: 0px 0px;
+  transform-origin: 0 0;
+  background-color: lightgoldenrodyellow;
+}
+
+.garrison_piece.used {
+  display: none;
+}
+
+.garrison_piece_spot {
+  position: absolute;
+  top: 94px;
+  width: 37px;
+  height: 35px;
+}
+
+.garrison_piece_spot_0 {
+  left: 989px;
+}
+
+.garrison_piece_spot_1 {
+  left: 1028px;
+}
+
+.garrison_piece_spot_2 {
+  left: 1068px;
+}
+
+.garrison_piece_spot_3 {
+  left: 1107px;
+}
+
+.garrison_piece_spot_4 {
+  left: 1147px;
+}
+
+.garrison_piece_spot_5 {
+  left: 1187px;
+}
+
+.garrison_piece_spot_6 {
+  left: 1226px;
+}
+
+/* Fort pieces styling */
+.fort_piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 158px;
+  height: 155px;
+  transition: all 0.2s ease;
+  background-image: url("img/sprite_wooden_components.png");
+  transform: scale(0.229);
+  transform-origin: 0 0;
   background-color: lightgoldenrodyellow;
 }
 
 .fort_mock_piece {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 158px;
   height: 155px;
   transition: all 0.2s ease;
   background-image: url("img/sprite_wooden_components.png");
   transform: scale(0.229);
-  transform-origin: 0px 0px;
+  transform-origin: 0 0;
   background-color: lightgoldenrodyellow;
 }
 
@@ -2452,37 +2743,56 @@
 
 .fort_piece_spot {
   position: absolute;
-  top: 94px;
-  width: 37px;
-  height: 35px;
+  top: 12px;
+  width: 126px;
+  height: 197px;
+  box-sizing: border-box;
+  background-color: rgba(173, 216, 230, 0.45);
+  border: 1px dashed rgba(100, 149, 237, 0.55);
+  border-radius: 6px;
+}
+
+.fort_piece_spot.filled {
+  background-color: rgba(173, 216, 230, 0.15);
+  border-color: rgba(100, 149, 237, 0.25);
 }
 
 .fort_piece_spot_0 {
-  left: 989px;
+  left: 99px;
 }
 
 .fort_piece_spot_1 {
-  left: 1028px;
+  left: 235px;
 }
 
 .fort_piece_spot_2 {
-  left: 1068px;
+  left: 371px;
 }
 
 .fort_piece_spot_3 {
-  left: 1107px;
+  left: 507px;
 }
 
 .fort_piece_spot_4 {
-  left: 1147px;
+  left: 643px;
 }
 
 .fort_piece_spot_5 {
-  left: 1187px;
+  left: 779px;
 }
 
 .fort_piece_spot_6 {
-  left: 1226px;
+  left: 915px;
+}
+
+.fort_piece_spot .wall_card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 127px;
+  height: 198px;
+  transform: scale(0.992);
+  transform-origin: 0 0;
 }
 
 /* Responsive design for worker spots */
@@ -2534,4 +2844,312 @@
 
 .develop_space_spot_1 {
   left: 199px;
+}
+
+/* Player board slot map — misc/player-board-slot-editor.html */
+
+.paladin_card_spot {
+  position: absolute;
+  left: 98px;
+  top: calc(326px + var(--playerboard-top-extension));
+  width: 162px;
+  height: 253px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.paladin_card_spot .paladin_card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  min-width: 160px;
+  min-height: 250px;
+  transform: scale(1.0125);
+  transform-origin: top left;
+}
+
+.paladin_card_spot .paladin_card.selectable,
+.paladin_card_spot .paladin_card.selected {
+  border: none;
+  box-shadow: none;
+}
+
+.paladin_card_overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 28px 5px 5px;
+  background: linear-gradient(transparent, rgba(20, 15, 10, 0.94) 35%);
+  color: #f5f0e6;
+  pointer-events: none;
+  line-height: 1.15;
+}
+
+.paladin_card_overlay_name {
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.paladin_card_overlay_power {
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 400;
+  text-align: center;
+  margin-top: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.suspicion_card_spot {
+  position: absolute;
+  left: 1105px;
+  top: calc(0px - 196px);
+  width: 126px;
+  height: 196px;
+}
+
+.fortification_spot_0 {
+  position: absolute;
+  left: 99px;
+  top: calc(0px - 197px);
+  width: 126px;
+  height: 197px;
+}
+
+.fortification_spot_1 {
+  position: absolute;
+  left: 235px;
+  top: calc(0px - 197px);
+  width: 126px;
+  height: 197px;
+}
+
+.fortification_spot_2 {
+  position: absolute;
+  left: 371px;
+  top: calc(0px - 197px);
+  width: 126px;
+  height: 197px;
+}
+
+.fortification_spot_3 {
+  position: absolute;
+  left: 507px;
+  top: calc(0px - 197px);
+  width: 126px;
+  height: 197px;
+}
+
+.fortification_spot_4 {
+  position: absolute;
+  left: 643px;
+  top: calc(0px - 197px);
+  width: 126px;
+  height: 197px;
+}
+
+.fortification_spot_5 {
+  position: absolute;
+  left: 779px;
+  top: calc(0px - 197px);
+  width: 126px;
+  height: 197px;
+}
+
+.fortification_spot_6 {
+  position: absolute;
+  left: 915px;
+  top: calc(0px - 197px);
+  width: 126px;
+  height: 197px;
+}
+
+.converted_outsider_spot {
+  box-sizing: border-box;
+  background-color: rgba(0, 0, 0, 0.16);
+  border: 1px dashed rgba(0, 0, 0, 0.28);
+  border-radius: 6px;
+}
+
+.converted_outsider_spot.filled {
+  background-color: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+.converted_outsider_spot_0 {
+  position: absolute;
+  left: 77px;
+  top: calc(var(--playerboard-top-extension) + var(--playerboard-art-height));
+  width: 159px;
+  height: 248px;
+}
+
+.converted_outsider_spot_1 {
+  position: absolute;
+  left: 246px;
+  top: calc(var(--playerboard-top-extension) + var(--playerboard-art-height));
+  width: 159px;
+  height: 248px;
+}
+
+.converted_outsider_spot_2 {
+  position: absolute;
+  left: 414px;
+  top: calc(var(--playerboard-top-extension) + var(--playerboard-art-height));
+  width: 159px;
+  height: 248px;
+}
+
+.converted_outsider_spot_3 {
+  position: absolute;
+  left: 583px;
+  top: calc(var(--playerboard-top-extension) + var(--playerboard-art-height));
+  width: 159px;
+  height: 248px;
+}
+
+.converted_outsider_spot_4 {
+  position: absolute;
+  left: 752px;
+  top: calc(var(--playerboard-top-extension) + var(--playerboard-art-height));
+  width: 159px;
+  height: 248px;
+}
+
+.converted_outsider_spot_5 {
+  position: absolute;
+  left: 920px;
+  top: calc(var(--playerboard-top-extension) + var(--playerboard-art-height));
+  width: 159px;
+  height: 248px;
+}
+
+.converted_outsider_spot_6 {
+  position: absolute;
+  left: 1089px;
+  top: calc(var(--playerboard-top-extension) + var(--playerboard-art-height));
+  width: 159px;
+  height: 248px;
+}
+
+/* Main-six worker spots: 3 columns (+51 / +96 from spot 0), 2 rows (254 / 415) */
+
+.commission_space_spot,
+.fortify_space_spot,
+.garrison_space_spot,
+.absolve_space_spot,
+.attack_space_spot,
+.convert_space_spot {
+  position: absolute;
+  width: 41px;
+  height: 41px;
+}
+
+.commission_space_spot,
+.fortify_space_spot,
+.garrison_space_spot {
+  top: 254px;
+}
+
+.absolve_space_spot,
+.attack_space_spot,
+.convert_space_spot {
+  top: 415px;
+}
+
+.commission_space_spot_0 { left: 685px; }
+.commission_space_spot_1 { left: 736px; }
+.commission_space_spot_2 { left: 781px; }
+
+.fortify_space_spot_0 { left: 894px; }
+.fortify_space_spot_1 { left: 945px; }
+.fortify_space_spot_2 { left: 990px; }
+
+.garrison_space_spot_0 { left: 1112px; }
+.garrison_space_spot_1 { left: 1163px; }
+.garrison_space_spot_2 { left: 1208px; }
+
+.absolve_space_spot_0 { left: 685px; }
+.absolve_space_spot_1 { left: 736px; }
+.absolve_space_spot_2 { left: 781px; }
+
+.attack_space_spot_0 { left: 894px; }
+.attack_space_spot_1 { left: 945px; }
+.attack_space_spot_2 { left: 990px; }
+
+.convert_space_spot_0 { left: 1112px; }
+.convert_space_spot_1 { left: 1163px; }
+.convert_space_spot_2 { left: 1208px; }
+
+.playerboard_action_label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 2px;
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  pointer-events: none;
+}
+
+.commission_action_label {
+  position: absolute;
+  left: 712px;
+  top: 173px;
+  width: 80px;
+  height: 21px;
+}
+
+.fortify_action_label {
+  position: absolute;
+  left: 922px;
+  top: 173px;
+  width: 80px;
+  height: 21px;
+}
+
+.garrison_action_label {
+  position: absolute;
+  left: 1136px;
+  top: 173px;
+  width: 80px;
+  height: 21px;
+}
+
+.absolve_action_label {
+  position: absolute;
+  left: 712px;
+  top: 335px;
+  width: 80px;
+  height: 21px;
+}
+
+.attack_action_label {
+  position: absolute;
+  left: 922px;
+  top: 335px;
+  width: 80px;
+  height: 21px;
+}
+
+.convert_action_label {
+  position: absolute;
+  left: 1136px;
+  top: 335px;
+  width: 81px;
+  height: 21px;
 }

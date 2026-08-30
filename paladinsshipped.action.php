@@ -81,7 +81,7 @@ class action_paladinsshipped extends APP_GameAction
     public function pass()
     {
         self::setAjaxMode();
-        $this->game->pass();
+        $this->callWithWorkerCounts('pass');
         self::ajaxResponse();
     }
 
@@ -205,9 +205,8 @@ class action_paladinsshipped extends APP_GameAction
     public function kingsFavour()
     {
         self::setAjaxMode();
-        $worker_id = self::getArg("worker_id", AT_int, true);
         $kings_favour_id = self::getArg("kings_favour_id", AT_int, true);
-        $this->game->kingsFavour($worker_id, $kings_favour_id);
+        $this->callWithWorkerCounts('kingsFavour', $kings_favour_id);
         self::ajaxResponse();
     }
 

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `card` (
   `card_type_arg` int(11) NOT NULL,
   `card_location` varchar(32) NOT NULL,
   `card_location_arg` int(11) NOT NULL,
+  `card_location_position` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`card_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
@@ -69,6 +70,7 @@ ALTER TABLE `player` ADD `parchment` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' C
 ALTER TABLE `player` ADD `develop_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of developments done. Max 8';
 ALTER TABLE `player` ADD `commission_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of commissions done. Max 7.';
 ALTER TABLE `player` ADD `garrison_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of garrisons done. Max 7.';
+ALTER TABLE `player` ADD `fortify_qty` tinyint(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Amount of walls built. Max 7.';
 
 -- Note: Tax supply is stored as a game state value, not in the database
 
@@ -95,6 +97,7 @@ ALTER TABLE `player` ADD `action_garrison_used` tinyint(1) UNSIGNED NOT NULL DEF
 ALTER TABLE `player` ADD `action_absolve_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used absolve action this round';
 ALTER TABLE `player` ADD `action_attack_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used attack action this round';
 ALTER TABLE `player` ADD `action_convert_used` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player used convert action this round';
+ALTER TABLE `player` ADD `has_passed` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Has player passed this round';
 
 -- Visual representation: JSON strings storing worker placement and development info
 ALTER TABLE `player` ADD `action_develop_workers` text COMMENT 'JSON array of worker types placed on develop action';

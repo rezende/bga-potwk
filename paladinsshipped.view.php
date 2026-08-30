@@ -46,8 +46,20 @@ class view_paladinsshipped_paladinsshipped extends game_view
 
         $this->page->begin_block("paladinsshipped_paladinsshipped", "playerboard");
 
+        $playerboard_block_args = array(
+            'COMMISSION_ACTION_LABEL' => self::_('Commission'),
+            'FORTIFY_ACTION_LABEL' => self::_('Fortify'),
+            'GARRISON_ACTION_LABEL' => self::_('Garrison'),
+            'ABSOLVE_ACTION_LABEL' => self::_('Absolve'),
+            'ATTACK_ACTION_LABEL' => self::_('Attack'),
+            'CONVERT_ACTION_LABEL' => self::_('Convert'),
+        );
+
         foreach ($players as $player_id => $player) {
-            $this->page->insert_block('playerboard', array( 'PLAYER_ID' => $player_id ));
+            $this->page->insert_block('playerboard', array_merge(
+                array('PLAYER_ID' => $player_id),
+                $playerboard_block_args
+            ));
         }
 
         /*

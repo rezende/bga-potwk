@@ -158,6 +158,7 @@
         
         <div class="playerboard_box_middle">
           <div class="playerboard_box">
+            <div id="paladin_card_spot_{PLAYER_ID}" class="paladin_card_spot"></div>
             <div class="absolve_jars">
               <div id="absolve_jar_0_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_0"></div>
               <div id="absolve_jar_1_{PLAYER_ID}" class="absolve_jar_spot absolve_jar_1"></div>
@@ -185,6 +186,24 @@
               <div id="fort_piece_4_{PLAYER_ID}" class="fort_piece_spot fort_piece_spot_4"></div>
               <div id="fort_piece_5_{PLAYER_ID}" class="fort_piece_spot fort_piece_spot_5"></div>
               <div id="fort_piece_6_{PLAYER_ID}" class="fort_piece_spot fort_piece_spot_6"></div>
+            </div>
+            <div class="converted_outsider_pieces">
+              <div id="converted_outsider_0_{PLAYER_ID}" class="converted_outsider_spot converted_outsider_spot_0"></div>
+              <div id="converted_outsider_1_{PLAYER_ID}" class="converted_outsider_spot converted_outsider_spot_1"></div>
+              <div id="converted_outsider_2_{PLAYER_ID}" class="converted_outsider_spot converted_outsider_spot_2"></div>
+              <div id="converted_outsider_3_{PLAYER_ID}" class="converted_outsider_spot converted_outsider_spot_3"></div>
+              <div id="converted_outsider_4_{PLAYER_ID}" class="converted_outsider_spot converted_outsider_spot_4"></div>
+              <div id="converted_outsider_5_{PLAYER_ID}" class="converted_outsider_spot converted_outsider_spot_5"></div>
+              <div id="converted_outsider_6_{PLAYER_ID}" class="converted_outsider_spot converted_outsider_spot_6"></div>
+            </div>
+            <div class="garrison_pieces">
+              <div id="garrison_piece_0_{PLAYER_ID}" class="garrison_piece_spot garrison_piece_spot_0"></div>
+              <div id="garrison_piece_1_{PLAYER_ID}" class="garrison_piece_spot garrison_piece_spot_1"></div>
+              <div id="garrison_piece_2_{PLAYER_ID}" class="garrison_piece_spot garrison_piece_spot_2"></div>
+              <div id="garrison_piece_3_{PLAYER_ID}" class="garrison_piece_spot garrison_piece_spot_3"></div>
+              <div id="garrison_piece_4_{PLAYER_ID}" class="garrison_piece_spot garrison_piece_spot_4"></div>
+              <div id="garrison_piece_5_{PLAYER_ID}" class="garrison_piece_spot garrison_piece_spot_5"></div>
+              <div id="garrison_piece_6_{PLAYER_ID}" class="garrison_piece_spot garrison_piece_spot_6"></div>
             </div>
             <div class="monk_pieces">
               <div id="monk_piece_0_{PLAYER_ID}" class="monk_piece_spot monk_piece_spot_0"></div>
@@ -217,45 +236,43 @@
             <div id="conspire_spaces">
               <div id="conspire_space_0_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_0"></div>
             </div>
+            <div class="fortify_spaces">
+              <div id="fortify_space_0_{PLAYER_ID}" class="fortify_space_spot fortify_space_spot_0 developable"></div>
+              <div id="fortify_space_1_{PLAYER_ID}" class="fortify_space_spot fortify_space_spot_1 developable"></div>
+              <div id="fortify_space_2_{PLAYER_ID}" class="fortify_space_spot fortify_space_spot_2"></div>
+            </div>
             <div class="commission_spaces">
-              <div id="commission_space_0_{PLAYER_ID}" class="commission_space_spot commission_space_spot_0"></div>
-              <div id="commission_space_1_{PLAYER_ID}" class="commission_space_spot commission_space_spot_1"></div>
+              <div id="commission_space_0_{PLAYER_ID}" class="commission_space_spot commission_space_spot_0 developable"></div>
+              <div id="commission_space_1_{PLAYER_ID}" class="commission_space_spot commission_space_spot_1 developable"></div>
               <div id="commission_space_2_{PLAYER_ID}" class="commission_space_spot commission_space_spot_2"></div>
             </div>
             <div class="garrison_spaces">
-              <div id="garrison_space_0_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_0"></div>
-              <div id="garrison_space_1_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_1"></div>
+              <div id="garrison_space_0_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_0 developable"></div>
+              <div id="garrison_space_1_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_1 developable"></div>
               <div id="garrison_space_2_{PLAYER_ID}" class="garrison_space_spot garrison_space_spot_2"></div>
             </div>
-            <div class="conspire_spaces">
-              <div id="conspire_space_0_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_0"></div>
-              <div id="conspire_space_1_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_1"></div>
-              <div id="conspire_space_2_{PLAYER_ID}" class="conspire_space_spot conspire_space_spot_2"></div>
-            </div>
             <div class="absolve_spaces">
-              <div id="absolve_space_0_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_0"></div>
-              <div id="absolve_space_1_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_1"></div>
+              <div id="absolve_space_0_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_0 developable"></div>
+              <div id="absolve_space_1_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_1 developable"></div>
               <div id="absolve_space_2_{PLAYER_ID}" class="absolve_space_spot absolve_space_spot_2"></div>
             </div>
             <div class="attack_spaces">
-              <div id="attack_space_0_{PLAYER_ID}" class="attack_space_spot attack_space_spot_0"></div>
-              <div id="attack_space_1_{PLAYER_ID}" class="attack_space_spot attack_space_spot_1"></div>
+              <div id="attack_space_0_{PLAYER_ID}" class="attack_space_spot attack_space_spot_0 developable"></div>
+              <div id="attack_space_1_{PLAYER_ID}" class="attack_space_spot attack_space_spot_1 developable"></div>
               <div id="attack_space_2_{PLAYER_ID}" class="attack_space_spot attack_space_spot_2"></div>
             </div>
             <div class="convert_spaces">
-              <div id="convert_space_0_{PLAYER_ID}" class="convert_space_spot convert_space_spot_0"></div>
-              <div id="convert_space_1_{PLAYER_ID}" class="convert_space_spot convert_space_spot_1"></div>
+              <div id="convert_space_0_{PLAYER_ID}" class="convert_space_spot convert_space_spot_0 developable"></div>
+              <div id="convert_space_1_{PLAYER_ID}" class="convert_space_spot convert_space_spot_1 developable"></div>
               <div id="convert_space_2_{PLAYER_ID}" class="convert_space_spot convert_space_spot_2"></div>
             </div>
-            <div class="develop_spaces">
-              <div id="develop_space_0_{PLAYER_ID}" class="develop_space_spot develop_space_spot_0"></div>
-              <div id="develop_space_1_{PLAYER_ID}" class="develop_space_spot develop_space_spot_1"></div>
-              <div id="develop_space_2_{PLAYER_ID}" class="develop_space_spot develop_space_spot_2"></div>
-            </div>
-            <div class="trade_spaces">
-              <div id="trade_space_0_{PLAYER_ID}" class="trade_space_spot trade_space_spot_0"></div>
-              <div id="trade_space_1_{PLAYER_ID}" class="trade_space_spot trade_space_spot_1"></div>
-              <div id="trade_space_2_{PLAYER_ID}" class="trade_space_spot trade_space_spot_2"></div>
+            <div class="playerboard_action_labels">
+              <div class="playerboard_action_label commission_action_label">{COMMISSION_ACTION_LABEL}</div>
+              <div class="playerboard_action_label fortify_action_label">{FORTIFY_ACTION_LABEL}</div>
+              <div class="playerboard_action_label garrison_action_label">{GARRISON_ACTION_LABEL}</div>
+              <div class="playerboard_action_label absolve_action_label">{ABSOLVE_ACTION_LABEL}</div>
+              <div class="playerboard_action_label attack_action_label">{ATTACK_ACTION_LABEL}</div>
+              <div class="playerboard_action_label convert_action_label">{CONVERT_ACTION_LABEL}</div>
             </div>
           </div>
           <div class="playerboard_cards" id="playerboard_cards_{PLAYER_ID}"></div>

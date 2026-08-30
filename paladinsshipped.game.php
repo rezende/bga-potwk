@@ -102,6 +102,7 @@ class PaladinsShipped extends Table
         'develop_qty',
         'commission_qty',
         'garrison_qty',
+        'fortify_qty',
         'strength',
         'faith',
         'influence',
@@ -130,6 +131,8 @@ class PaladinsShipped extends Table
             "current_round" => 10,
             "can_undo" => 11,
             "tax_supply" => 12,
+            "kings_favour_used" => 13,
+            "kings_favour_newly_revealed" => 14,
         ));
         $this->deck = self::getNew("module.common.deck");
         $this->deck->init("card");
@@ -248,7 +251,12 @@ class PaladinsShipped extends Table
         }
         $result['tavern_display'] = $this->deck->getCardsInLocation('tavern_display');
         $result['tavern_cards_material'] = $this->tavern_cards_material;
-        $result['wall_cards'] = $this->deck->getCardsInLocation('wall_hand', $current_player_id);
+        $result['wall_cards'] = $this->getPlayerWallCardsForClient($current_player_id);
+        $result['all_players_wall_cards'] = [];
+        foreach ($players as $player_id => $player) {
+            $result['all_players_wall_cards'][$player_id] = $this->getPlayerWallCardsForClient($player_id);
+        }
+        $result['wall_cards_material'] = $this->wall_cards_material;
         $result['kingsorder_display'] = $this->deck->getCardsInLocation('kingsorder_display');
         $result['kingsfavour_display'] = $this->deck->getCardsInLocation('kingsfavour_display');
         $result['board_positions_material'] = $this->board_positions_material;
@@ -257,6 +265,8 @@ class PaladinsShipped extends Table
         
         // Add tax supply information
         $result['tax_supply'] = $this->getTaxSupply();
+        $result['kings_favour_used'] = $this->getKingsFavourUsedCardIds();
+        $result['kings_favour_newly_revealed'] = $this->getKingsFavourNewlyRevealedId();
         
         // Add action space information for all players
         $result['action_spaces'] = [];
@@ -282,6 +292,14 @@ class PaladinsShipped extends Table
         $result['player_panels'] = [];
         foreach ($players as $player_id => $player) {
             $result['player_panels'][$player_id] = $this->getPlayerPanelData($player_id);
+        }
+
+        $result['player_active_paladins'] = [];
+        foreach ($players as $player_id => $player) {
+            $paladin_cards = $this->deck->getCardsInLocation('paladin_hand', $player_id);
+            if (count($paladin_cards) === 1) {
+                $result['player_active_paladins'][$player_id] = reset($paladin_cards);
+            }
         }
         
         return $result;
@@ -369,7 +387,7 @@ class PaladinsShipped extends Table
             'coin', 'provision', 'white_worker', 'green_worker', 'blue_worker', 
             'red_worker', 'black_worker', 'purple_worker', 'paid_debt', 'unpaid_debt',
             'strength', 'faith', 'influence', 'parchment', 'develop_qty', 
-            'commission_qty', 'garrison_qty'
+            'commission_qty', 'garrison_qty', 'fortify_qty'
         ];
         
         if (in_array($resource, $valid_resources)) {
@@ -379,10 +397,26 @@ class PaladinsShipped extends Table
             if ($notify_resource_update) {
                 $this->notifyPlayerResourceUpdate($player_id);
             }
-        } else {
-            // Log error for debugging
-            self::warn("Attempted to add invalid resource: $resource");
+            return;
         }
+
+        $attribute_map = [
+            ATTR_FAITH => 'faith',
+            ATTR_STRENGTH => 'strength',
+            ATTR_INFLUENCE => 'influence',
+        ];
+        if (isset($attribute_map[$resource])) {
+            $column = $attribute_map[$resource];
+            $sql = "UPDATE player SET $column = $column + $qty WHERE player_id = $player_id";
+            self::DbQuery($sql);
+
+            if ($notify_resource_update) {
+                $this->notifyPlayerResourceUpdate($player_id);
+            }
+            return;
+        }
+
+        self::warn("Attempted to add invalid resource: $resource");
     }
 
     public function addWorkersForPlayer($player_id, $workers)
@@ -610,9 +644,6 @@ class PaladinsShipped extends Table
 
     public function setupBoardPositions($player_count)
     {
-        // Commission/garrison spot layout will be added later; no pre-filled pieces.
-        return;
-
         // Initialize board positions for all players
         $players = self::loadPlayersBasicInfos();
         $initial_board_positions = [];
@@ -927,10 +958,14 @@ class PaladinsShipped extends Table
         if ($num_revealed > 4) {
             //TODO: error: should not happen
         }
-        $this->deck->pickCardForLocation('kingsfavour_deck', 'kingsfavour_display');
+        $card = $this->deck->pickCardForLocation('kingsfavour_deck', 'kingsfavour_display');
+        if ($card) {
+            $this->setKingsFavourNewlyRevealed(intval($card['id']));
+        }
         $this->normalizeCardDisplay('kingsfavour_display');
         self::notifyAllPlayers('kingsDisplayUpdated', '', array(
             'kingsfavour_display' => $this->deck->getCardsInLocation('kingsfavour_display'),
+            'kings_favour_newly_revealed' => $this->getKingsFavourNewlyRevealedId(),
         ));
     }
 
@@ -1021,7 +1056,8 @@ class PaladinsShipped extends Table
         // Notify players
         self::notifyAllPlayers("pickedPaladins", clienttranslate('${player_name} has arranged their Paladins'), array(
             'player_id' => $player_id,
-            'player_name' => $this->getPlayerNameById($player_id)
+            'player_name' => $this->getPlayerNameById($player_id),
+            'chosen_card' => $chosen_card,
         ));
 
         // Notify the specific player about their chosen card
@@ -1127,24 +1163,30 @@ class PaladinsShipped extends Table
         if ($new_round <= 3) {
             $this->revealKingsOrder($new_round);
         }
+        self::setGameStateValue('current_round', $new_round);
+        $this->refillDisplays($new_round);
+
+        // Player board action spaces reset every round; passing also clears a player's board mid-round.
+        $this->clearActionSpaces();
+
+        // King's Favour cards are cleaned at the start of rounds 4-7.
+        if ($new_round >= 4 && $new_round <= 7) {
+            $this->clearKingsFavourForNewRound();
+        }
+
         if ($new_round >= 3) {
             $this->revealKingsFavour($new_round);
         }
         if ($new_round >= 2) {
             $this->setNextFirstPlayer();
         }
-        self::setGameStateValue('current_round', $new_round);
-        $this->refillDisplays($new_round);
-        
-        // Clear all action spaces for the new round
-        $this->clearActionSpaces();
         
         $this->gamestate->nextState('done');
     }
 
     public function clearActionSpaces()
     {
-        // Clear all action spaces for all players at the start of a new round
+        // New-round reset for all players: action availability and pass status.
         $sql = "UPDATE player SET 
                 action_develop_used = 0,
                 action_hunt_used = 0,
@@ -1169,10 +1211,111 @@ class PaladinsShipped extends Table
                 action_garrison_workers = NULL,
                 action_absolve_workers = NULL,
                 action_attack_workers = NULL,
-                action_convert_workers = NULL";
+                action_convert_workers = NULL,
+                has_passed = 0";
         self::DbQuery($sql);
         
         self::notifyAllPlayers("clearActionSpaces", clienttranslate('Action spaces cleared for new round'), []);
+    }
+
+    public function clearKingsFavourForNewRound()
+    {
+        $this->clearKingsFavourUsed();
+        $this->clearKingsFavourNewlyRevealed();
+
+        self::notifyAllPlayers('kingsFavourCleared', clienttranslate('King\'s Favour cards refreshed for the new round'), [
+            'kings_favour_used' => [],
+            'kings_favour_newly_revealed' => 0,
+        ]);
+    }
+
+    public function getKingsFavourUsedCardIds()
+    {
+        $used_json = self::getGameStateValue('kings_favour_used');
+        if (!$used_json) {
+            return [];
+        }
+
+        $used = json_decode($used_json, true);
+        return is_array($used) ? array_map('intval', $used) : [];
+    }
+
+    public function isKingsFavourUsed($card_id)
+    {
+        return in_array(intval($card_id), $this->getKingsFavourUsedCardIds(), true);
+    }
+
+    public function markKingsFavourUsed($card_id)
+    {
+        $used = $this->getKingsFavourUsedCardIds();
+        $card_id = intval($card_id);
+        if (!in_array($card_id, $used, true)) {
+            $used[] = $card_id;
+            self::setGameStateValue('kings_favour_used', json_encode($used));
+        }
+    }
+
+    public function clearKingsFavourUsed()
+    {
+        self::setGameStateValue('kings_favour_used', json_encode([]));
+    }
+
+    public function getKingsFavourNewlyRevealedId()
+    {
+        return intval(self::getGameStateValue('kings_favour_newly_revealed'));
+    }
+
+    public function setKingsFavourNewlyRevealed($card_id)
+    {
+        self::setGameStateValue('kings_favour_newly_revealed', intval($card_id));
+    }
+
+    public function clearKingsFavourNewlyRevealed()
+    {
+        self::setGameStateValue('kings_favour_newly_revealed', 0);
+    }
+
+    public function isKingsFavourUsable($card_id)
+    {
+        $card_id = intval($card_id);
+        if ($card_id <= 0) {
+            return false;
+        }
+
+        if ($card_id === $this->getKingsFavourNewlyRevealedId()) {
+            return false;
+        }
+
+        return !$this->isKingsFavourUsed($card_id);
+    }
+
+    public function getKingsFavourCardCost($type_arg)
+    {
+        if (!isset($this->kingsfavour_cards_material[$type_arg]['worker_cost'])) {
+            return [COST_ANY_WORKER];
+        }
+
+        return [$this->kingsfavour_cards_material[$type_arg]['worker_cost']];
+    }
+
+    public function validateKingsFavourCard($kings_favour_id)
+    {
+        $kings_favour_id = intval($kings_favour_id);
+        $card = $this->deck->getCard($kings_favour_id);
+
+        if (!$card || $card['type'] !== CARD_TYPE_KINGS_FAVOUR || $card['location'] !== 'kingsfavour_display') {
+            throw new BgaUserException(self::_("Invalid King's Favour card"));
+        }
+
+        if ($this->isKingsFavourUsed($kings_favour_id)) {
+            throw new BgaUserException(self::_("This King's Favour has already been used this round"));
+        }
+
+        if (!$this->isKingsFavourUsable($kings_favour_id)) {
+            throw new BgaUserException(self::_("This King's Favour cannot be used until next round"));
+        }
+
+        return $card;
     }
 
     /**
@@ -1200,6 +1343,35 @@ class PaladinsShipped extends Table
                 $used_field = 1,
                 $workers_field = " . ($workers_json ? "'$workers_json'" : "NULL") . "
                 WHERE player_id = $player_id";
+        self::DbQuery($sql);
+    }
+
+    /**
+     * Clear a used action space (Pray target). Workers are removed from the board and return to supply.
+     */
+    public function validateClearableActionSpace($player_id, $action_name)
+    {
+        $clearable_actions = ['develop', 'hunt', 'trade', 'recruit', 'conspire',
+            'commission', 'fortify', 'garrison', 'absolve', 'attack', 'convert'];
+
+        if (!in_array($action_name, $clearable_actions, true)) {
+            throw new BgaUserException(self::_("This action space cannot be cleared"));
+        }
+
+        $used_field = "action_{$action_name}_used";
+        $sql = "SELECT $used_field FROM player WHERE player_id = $player_id";
+        if ((int)self::getUniqueValueFromDb($sql) !== 1) {
+            throw new BgaUserException(self::_("The selected action has not been used this round"));
+        }
+    }
+
+    public function clearActionSpace($player_id, $action_name)
+    {
+        $this->validateClearableActionSpace($player_id, $action_name);
+
+        $used_field = "action_{$action_name}_used";
+        $workers_field = "action_{$action_name}_workers";
+        $sql = "UPDATE player SET $used_field = 0, $workers_field = NULL WHERE player_id = $player_id";
         self::DbQuery($sql);
     }
 
@@ -1315,10 +1487,18 @@ class PaladinsShipped extends Table
 
     public function stGameActionPhaseManager()
     {
-        // For now, just move to the next player
-        // TODO: Implement proper action phase management with multiple active players
-        $this->activeNextPlayer();
-        $this->gamestate->nextState('nextPlayer');
+        $player_count = count(self::loadPlayersBasicInfos());
+
+        for ($i = 0; $i < $player_count; $i++) {
+            $this->activeNextPlayer();
+            $active_player_id = self::getActivePlayerId();
+            if (!$this->hasPlayerPassed($active_player_id)) {
+                $this->gamestate->nextState('nextPlayer');
+                return;
+            }
+        }
+
+        $this->gamestate->nextState('endOfRound');
     }
 
     public function stPerformInquisition()
@@ -1358,26 +1538,193 @@ class PaladinsShipped extends Table
     //////////// CORE GAME ACTIONS
     ////////////
 
-    public function pass()
+    public function pass($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers)
     {
         self::checkAction('pass');
         $player_id = self::getCurrentPlayerId();
-        
-        // TODO: Implement worker clearing logic
-        // For now, just pass to next player
-        
+
+        if ($this->hasPlayerPassed($player_id)) {
+            throw new BgaUserException(self::_("You have already passed this round"));
+        }
+
+        $keep_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers),
+        ];
+
+        $this->validatePassWorkerKeep($player_id, $keep_counts);
+
+        $this->clearPlayerActionSpacesOnPass($player_id);
+        $this->setWorkerCountsForPlayer($player_id, $keep_counts, false);
+        $this->markPlayerPassed($player_id);
+
         self::notifyAllPlayers('pass', clienttranslate('${player_name} passes'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'panel_data' => $this->getPlayerPanelData($player_id),
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
         ]);
-        
+
+        $this->notifyPlayerResourceUpdate($player_id);
         $this->gamestate->nextState('nextPlayer');
+    }
+
+    private function getWorkerTypeColumns()
+    {
+        return ['white_worker', 'green_worker', 'blue_worker', 'red_worker', 'black_worker', 'purple_worker'];
+    }
+
+    public function hasPlayerPassed($player_id)
+    {
+        $sql = "SELECT has_passed FROM player WHERE player_id = $player_id";
+        return (int)self::getUniqueValueFromDb($sql) === 1;
+    }
+
+    private function markPlayerPassed($player_id)
+    {
+        $sql = "UPDATE player SET has_passed = 1 WHERE player_id = $player_id";
+        self::DbQuery($sql);
+    }
+
+    private function collectBoardWorkerCounts($player_id)
+    {
+        $actions = ['develop', 'hunt', 'trade', 'recruit', 'pray', 'conspire',
+            'commission', 'fortify', 'garrison', 'absolve', 'attack', 'convert'];
+        $counts = array_fill_keys($this->getWorkerTypeColumns(), 0);
+
+        foreach ($actions as $action) {
+            $workers_field = "action_{$action}_workers";
+            $sql = "SELECT $workers_field FROM player WHERE player_id = $player_id";
+            $workers_json = self::getUniqueValueFromDb($sql);
+            if (!$workers_json) {
+                continue;
+            }
+
+            $workers = json_decode($workers_json, true);
+            if (!is_array($workers)) {
+                continue;
+            }
+
+            foreach ($workers as $worker_type) {
+                if (isset($counts[$worker_type])) {
+                    $counts[$worker_type]++;
+                }
+            }
+        }
+
+        return $counts;
+    }
+
+    private function clearPlayerActionSpacesOnPass($player_id)
+    {
+        $sql = "UPDATE player SET
+                action_develop_used = 0,
+                action_hunt_used = 0,
+                action_trade_used = 0,
+                action_recruit_used = 0,
+                action_pray_used = 0,
+                action_conspire_used = 0,
+                action_commission_used = 0,
+                action_fortify_used = 0,
+                action_garrison_used = 0,
+                action_absolve_used = 0,
+                action_attack_used = 0,
+                action_convert_used = 0,
+                action_develop_workers = NULL,
+                action_hunt_workers = NULL,
+                action_trade_workers = NULL,
+                action_recruit_workers = NULL,
+                action_pray_workers = NULL,
+                action_conspire_workers = NULL,
+                action_commission_workers = NULL,
+                action_fortify_workers = NULL,
+                action_garrison_workers = NULL,
+                action_absolve_workers = NULL,
+                action_attack_workers = NULL,
+                action_convert_workers = NULL
+                WHERE player_id = $player_id";
+        self::DbQuery($sql);
+    }
+
+    private function clearBoardWorkers($player_id)
+    {
+        $sql = "UPDATE player SET
+                action_develop_workers = NULL,
+                action_hunt_workers = NULL,
+                action_trade_workers = NULL,
+                action_recruit_workers = NULL,
+                action_pray_workers = NULL,
+                action_conspire_workers = NULL,
+                action_commission_workers = NULL,
+                action_fortify_workers = NULL,
+                action_garrison_workers = NULL,
+                action_absolve_workers = NULL,
+                action_attack_workers = NULL,
+                action_convert_workers = NULL
+                WHERE player_id = $player_id";
+        self::DbQuery($sql);
+    }
+
+    public function setWorkerCountsForPlayer($player_id, $worker_counts, $notify_resource_update = true)
+    {
+        $updates = [];
+        foreach ($this->getWorkerTypeColumns() as $type) {
+            $count = max(0, intval($worker_counts[$type] ?? 0));
+            $updates[] = "$type = $count";
+        }
+
+        $sql = "UPDATE player SET " . implode(', ', $updates) . " WHERE player_id = $player_id";
+        self::DbQuery($sql);
+
+        if ($notify_resource_update) {
+            $this->notifyPlayerResourceUpdate($player_id);
+        }
+    }
+
+    private function validatePassWorkerKeep($player_id, $keep_counts)
+    {
+        $worker_types = $this->getWorkerTypeColumns();
+        $total_counts = [];
+
+        foreach ($worker_types as $type) {
+            $total_counts[$type] = $this->getResourceCount($player_id, $type);
+        }
+
+        $board_counts = $this->collectBoardWorkerCounts($player_id);
+        foreach ($worker_types as $type) {
+            $total_counts[$type] += $board_counts[$type];
+        }
+
+        $total_available = array_sum($total_counts);
+        $total_keep = 0;
+
+        foreach ($worker_types as $type) {
+            $keep_count = max(0, intval($keep_counts[$type] ?? 0));
+            if ($keep_count > $total_counts[$type]) {
+                throw new BgaUserException(self::_("Invalid worker selection for pass"));
+            }
+            $total_keep += $keep_count;
+        }
+
+        if ($total_keep > 3) {
+            throw new BgaUserException(self::_("You can keep at most 3 workers when passing"));
+        }
     }
 
     public function pray($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $action_space)
     {
         self::checkAction('pray');
         $player_id = self::getCurrentPlayerId();
+
+        if (!$this->canUseAction($player_id, 'pray')) {
+            throw new BgaUserException(self::_("You have already used Pray this round"));
+        }
+
+        $this->validateClearableActionSpace($player_id, $action_space);
         
         $cost = $this->getCurrentActionCost(ACTION_PRAY, $player_id);
         $worker_counts = [
@@ -1402,15 +1749,20 @@ class PaladinsShipped extends Table
         // Remove workers and pay silver
         $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
         $this->addResource($player_id, RESOURCE_COIN, -2);
-        
-        // Clear workers from specified action space
-        // TODO: Implement worker clearing logic
+
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'pray', $ordered_workers);
+        $this->clearActionSpace($player_id, $action_space);
         
         self::notifyAllPlayers('pray', clienttranslate('${player_name} prays and clears workers from ${action_space}'), [
             'player_name' => self::getCurrentPlayerName(),
             'action_space' => $action_space,
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
+
+        $this->notifyPlayerResourceUpdate($player_id);
         
         $this->gamestate->nextState('nextPlayer');
     }
@@ -1437,13 +1789,20 @@ class PaladinsShipped extends Table
         
         // Remove workers
         $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'recruit', $ordered_workers);
         
         // TODO: Implement discard logic
         
         self::notifyAllPlayers('recruitDiscard', clienttranslate('${player_name} discards a townsfolk'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
+
+        $this->notifyPlayerResourceUpdate($player_id);
         
         $this->gamestate->nextState('nextPlayer');
     }
@@ -1470,13 +1829,20 @@ class PaladinsShipped extends Table
         
         // Remove workers
         $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'recruit', $ordered_workers);
         
         // TODO: Implement hiring logic
         
         self::notifyAllPlayers('recruitHire', clienttranslate('${player_name} hires a townsfolk'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
+
+        $this->notifyPlayerResourceUpdate($player_id);
         
         $this->gamestate->nextState('nextPlayer');
     }
@@ -1512,12 +1878,19 @@ class PaladinsShipped extends Table
         
         // Place workshop and gain worker
         // TODO: Implement workshop placement logic
+
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'develop', $ordered_workers);
         
         self::notifyAllPlayers('develop', clienttranslate('${player_name} develops ${action_space}'), [
             'player_name' => self::getCurrentPlayerName(),
             'action_space' => $action_space,
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
+
+        $this->notifyPlayerResourceUpdate($player_id);
         
         $this->gamestate->nextState('nextPlayer');
     }
@@ -1526,8 +1899,11 @@ class PaladinsShipped extends Table
     {
         self::checkAction('hunt');
         $player_id = self::getCurrentPlayerId();
+
+        if (!$this->canUseAction($player_id, 'hunt')) {
+            throw new BgaUserException(self::_('You have already used the hunt action this round'));
+        }
         
-        $cost = $this->getCurrentActionCost(ACTION_HUNT, $player_id);
         $worker_counts = [
             'white_worker' => intval($white_workers),
             'green_worker' => intval($green_workers),
@@ -1536,25 +1912,43 @@ class PaladinsShipped extends Table
             'black_worker' => intval($black_workers),
             'purple_worker' => intval($purple_workers)
         ];
+
+        $total_workers = array_sum($worker_counts);
+        if ($total_workers < 1 || $total_workers > 2) {
+            throw new BgaUserException(self::_('Hunt requires 1 or 2 workers'));
+        }
+
+        $cost = $total_workers === 1
+            ? [COST_ANY_WORKER]
+            : [COST_ANY_WORKER, WORKER_GREEN];
         
         // Validate worker counts
         if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
-            throw new BgaUserException(self::_("Invalid worker selection for Hunt action"));
+            throw new BgaUserException($this->getWorkerValidationErrorMessage('hunt', $cost));
         }
         
         // Remove workers
         $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
         
         // Gain provisions based on number of workers
-        $total_workers = array_sum($worker_counts);
         $provisions_gained = ($total_workers > 1) ? 3 : 1;
+        $paladin_hunt_bonus = $this->getHuntPaladinProvisionBonus($player_id);
+        $provisions_gained += $paladin_hunt_bonus;
         $this->addResource($player_id, RESOURCE_PROVISION, $provisions_gained);
+
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'hunt', $ordered_workers);
         
         self::notifyAllPlayers('hunt', clienttranslate('${player_name} hunts and gains ${provisions} provisions'), [
             'player_name' => self::getCurrentPlayerName(),
             'provisions' => $provisions_gained,
-            'player_id' => $player_id
+            'paladin_hunt_bonus' => $paladin_hunt_bonus,
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
+
+        $this->notifyPlayerResourceUpdate($player_id);
         
         $this->gamestate->nextState('nextPlayer');
     }
@@ -1563,6 +1957,10 @@ class PaladinsShipped extends Table
     {
         self::checkAction('trade');
         $player_id = self::getCurrentPlayerId();
+
+        if (!$this->canUseAction($player_id, 'trade')) {
+            throw new BgaUserException(self::_('You have already used the trade action this round'));
+        }
         
         $cost = $this->getCurrentActionCost(ACTION_TRADE, $player_id);
         $worker_counts = [
@@ -1586,12 +1984,19 @@ class PaladinsShipped extends Table
         $total_workers = array_sum($worker_counts);
         $silver_gained = ($total_workers > 1) ? 3 : 1;
         $this->addResource($player_id, RESOURCE_COIN, $silver_gained);
+
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'trade', $ordered_workers);
         
         self::notifyAllPlayers('trade', clienttranslate('${player_name} trades and gains ${silver} silver'), [
             'player_name' => self::getCurrentPlayerName(),
             'silver' => $silver_gained,
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
+
+        $this->notifyPlayerResourceUpdate($player_id);
         
         $this->gamestate->nextState('nextPlayer');
     }
@@ -1682,109 +2087,238 @@ class PaladinsShipped extends Table
     }
 
     // Helper to validate worker counts against action cost requirements
-    public function validateWorkerCountsForAction($player_id, $worker_counts, $cost) {
-        // Debug logging
-        self::trace("validateWorkerCountsForAction called with:");
-        self::trace("player_id: $player_id");
-        self::trace("worker_counts: " . json_encode($worker_counts));
-        self::trace("cost: " . json_encode($cost));
-        
-        // Get player's current worker counts
-        $player_workers = [];
-        $worker_types = ['white_worker', 'green_worker', 'blue_worker', 'red_worker', 'black_worker', 'purple_worker'];
-        foreach ($worker_types as $type) {
-            $count = $this->getResourceCount($player_id, $type);
-            if ($count > 0) {
-                $player_workers[$type] = $count;
-            }
-        }
-        
-        self::trace("Player worker counts: " . json_encode($player_workers));
-        
-        // Count total workers being used
-        $total_workers_used = array_sum($worker_counts);
-        $total_workers_required = count($cost);
-        
-        if ($total_workers_used !== $total_workers_required) {
-            self::trace("Total worker count mismatch: $total_workers_used vs $total_workers_required");
+    private function takeWorkerFromPool(array &$pool, $worker_type)
+    {
+        if (!isset($pool[$worker_type]) || $pool[$worker_type] <= 0) {
             return false;
         }
-        
-        // Create a copy to track available workers for validation
-        $available_workers = $player_workers;
-        
-        // First, check if the player has enough workers of each type they're trying to use
-        foreach ($worker_counts as $worker_type => $count) {
-            if ($count > 0) {
-                $player_count = $this->getResourceCount($player_id, $worker_type);
-                if ($player_count < $count) {
-                    self::trace("Player doesn't have enough $worker_type: has $player_count, needs $count");
-                    return false;
-                }
-                // Consume the workers from available pool
-                $available_workers[$worker_type] -= $count;
-                if ($available_workers[$worker_type] <= 0) {
-                    unset($available_workers[$worker_type]);
-                }
-            }
+
+        $pool[$worker_type]--;
+        if ($pool[$worker_type] <= 0) {
+            unset($pool[$worker_type]);
         }
-        
-        // Now validate that the provided workers can satisfy the cost requirements
-        // For each cost requirement, check if we have the specific worker type or can use purple workers
-        for ($i = 0; $i < count($cost); $i++) {
-            $required_type = $cost[$i];
-            
-            if ($required_type === COST_ANY_WORKER) {
-                self::trace("Required: ANY_WORKER");
-                // Any worker is acceptable, but we need to check if player has any
-                if (empty($available_workers)) {
-                    self::trace("No available workers for ANY_WORKER");
-                    return false;
-                }
-                // Find any available worker type
-                $found = false;
-                foreach ($available_workers as $type => $count) {
-                    if ($count > 0) {
-                        $available_workers[$type]--;
-                        if ($available_workers[$type] <= 0) {
-                            unset($available_workers[$type]);
-                        }
-                        $found = true;
-                        self::trace("Found available worker type: $type");
-                        break;
-                    }
-                }
-                if (!$found) {
-                    self::trace("No available workers found for ANY_WORKER");
-                    return false;
-                }
-            } else {
-                self::trace("Required: $required_type");
-                // Check if we have the specific required worker type
-                if (isset($available_workers[$required_type]) && $available_workers[$required_type] > 0) {
-                    $available_workers[$required_type]--;
-                    if ($available_workers[$required_type] <= 0) {
-                        unset($available_workers[$required_type]);
-                    }
-                    self::trace("Used specific worker type: $required_type");
-                } else {
-                    // Try to use purple workers as wild
-                    if (isset($available_workers['purple_worker']) && $available_workers['purple_worker'] > 0) {
-                        $available_workers['purple_worker']--;
-                        if ($available_workers['purple_worker'] <= 0) {
-                            unset($available_workers['purple_worker']);
-                        }
-                        self::trace("Used purple worker as wild for: $required_type");
-                    } else {
-                        self::trace("No specific worker or purple worker available for: $required_type");
-                        return false;
-                    }
-                }
-            }
-        }
-        
-        self::trace("Validation successful");
+
         return true;
+    }
+
+    private function restoreWorkerToPool(array &$pool, $worker_type)
+    {
+        $pool[$worker_type] = ($pool[$worker_type] ?? 0) + 1;
+    }
+
+    private function getWorkerTypesForCostSlot(array $pool, array $cost, $cost_index, $required_type)
+    {
+        if ($required_type === COST_ANY_WORKER) {
+            $remaining_specific = [];
+            for ($i = $cost_index + 1; $i < count($cost); $i++) {
+                if ($cost[$i] !== COST_ANY_WORKER) {
+                    $remaining_specific[$cost[$i]] = true;
+                }
+            }
+
+            $preferred = [];
+            $reserved = [];
+            foreach ($pool as $type => $count) {
+                if ($count <= 0) {
+                    continue;
+                }
+                if (isset($remaining_specific[$type])) {
+                    $reserved[] = $type;
+                } else {
+                    $preferred[] = $type;
+                }
+            }
+
+            return array_merge($preferred, $reserved);
+        }
+
+        $candidates = [];
+        if (isset($pool[$required_type]) && $pool[$required_type] > 0) {
+            $candidates[] = $required_type;
+        }
+        if ($required_type !== WORKER_PURPLE && isset($pool[WORKER_PURPLE]) && $pool[WORKER_PURPLE] > 0) {
+            $candidates[] = WORKER_PURPLE;
+        }
+
+        return $candidates;
+    }
+
+    private function canSatisfyWorkerCostFromPool(array $pool, array $cost, $cost_index = 0)
+    {
+        if ($cost_index >= count($cost)) {
+            return true;
+        }
+
+        foreach ($this->getWorkerTypesForCostSlot($pool, $cost, $cost_index, $cost[$cost_index]) as $worker_type) {
+            $next_pool = $pool;
+            if (!$this->takeWorkerFromPool($next_pool, $worker_type)) {
+                continue;
+            }
+            if ($this->canSatisfyWorkerCostFromPool($next_pool, $cost, $cost_index + 1)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function buildOrderedWorkersFromPool(array &$pool, array $cost, $cost_index, array &$ordered_workers)
+    {
+        if ($cost_index >= count($cost)) {
+            return true;
+        }
+
+        foreach ($this->getWorkerTypesForCostSlot($pool, $cost, $cost_index, $cost[$cost_index]) as $worker_type) {
+            if (!$this->takeWorkerFromPool($pool, $worker_type)) {
+                continue;
+            }
+
+            $ordered_workers[] = $worker_type;
+            if ($this->buildOrderedWorkersFromPool($pool, $cost, $cost_index + 1, $ordered_workers)) {
+                return true;
+            }
+
+            array_pop($ordered_workers);
+            $this->restoreWorkerToPool($pool, $worker_type);
+        }
+
+        return false;
+    }
+
+    public function validateWorkerCountsForAction($player_id, $worker_counts, $cost) {
+        $worker_types = ['white_worker', 'green_worker', 'blue_worker', 'red_worker', 'black_worker', 'purple_worker'];
+
+        $total_workers_used = array_sum($worker_counts);
+        $total_workers_required = count($cost);
+
+        if ($total_workers_used !== $total_workers_required) {
+            return false;
+        }
+
+        foreach ($worker_types as $type) {
+            $count = intval($worker_counts[$type] ?? 0);
+            if ($count > 0 && $this->getResourceCount($player_id, $type) < $count) {
+                return false;
+            }
+        }
+
+        $pool = [];
+        foreach ($worker_types as $type) {
+            $count = intval($worker_counts[$type] ?? 0);
+            if ($count > 0) {
+                $pool[$type] = $count;
+            }
+        }
+
+        return $this->canSatisfyWorkerCostFromPool($pool, $cost);
+    }
+
+    public function buildOrderedActionWorkers($worker_counts, $cost)
+    {
+        $worker_types = ['white_worker', 'green_worker', 'blue_worker', 'red_worker', 'black_worker', 'purple_worker'];
+        $pool = [];
+
+        foreach ($worker_types as $type) {
+            $count = intval($worker_counts[$type] ?? 0);
+            if ($count > 0) {
+                $pool[$type] = $count;
+            }
+        }
+
+        $ordered_workers = [];
+        if ($this->buildOrderedWorkersFromPool($pool, $cost, 0, $ordered_workers)) {
+            return $ordered_workers;
+        }
+
+        return [];
+    }
+
+    private function findAndConsumeWorkerFromPool(&$pool, $required_type)
+    {
+        if ($required_type === COST_ANY_WORKER) {
+            foreach ($pool as $type => $count) {
+                if ($count > 0) {
+                    $pool[$type]--;
+                    if ($pool[$type] <= 0) {
+                        unset($pool[$type]);
+                    }
+                    return $type;
+                }
+            }
+            return null;
+        }
+
+        if (isset($pool[$required_type]) && $pool[$required_type] > 0) {
+            $pool[$required_type]--;
+            if ($pool[$required_type] <= 0) {
+                unset($pool[$required_type]);
+            }
+            return $required_type;
+        }
+
+        if ($required_type !== WORKER_PURPLE && isset($pool[WORKER_PURPLE]) && $pool[WORKER_PURPLE] > 0) {
+            $pool[WORKER_PURPLE]--;
+            if ($pool[WORKER_PURPLE] <= 0) {
+                unset($pool[WORKER_PURPLE]);
+            }
+            return WORKER_PURPLE;
+        }
+
+        return null;
+    }
+
+    private function consumeWorkerFromPool(&$pool, $required_type)
+    {
+        return $this->findAndConsumeWorkerFromPool($pool, $required_type) !== null;
+    }
+
+    public function getWorkerValidationErrorMessage($action_name, $cost)
+    {
+        $specific_requirements = array_values(array_filter(
+            $cost,
+            function ($requirement) {
+                return $requirement !== COST_ANY_WORKER;
+            }
+        ));
+
+        if ($action_name === 'hunt' || $action_name === ACTION_HUNT) {
+            if (count($cost) === 1) {
+                return clienttranslate('Invalid worker selection for Hunt.');
+            }
+            return clienttranslate('When hunting with 2 workers, one must be a Scout (green) or Criminal (purple, wild).');
+        }
+
+        if (count($specific_requirements) === 1) {
+            $worker_name = $this->getWorkerDisplayName($specific_requirements[0]);
+            return sprintf(
+                clienttranslate('This action requires a %s. Criminals (purple workers) can be used as a wild card.'),
+                $worker_name
+            );
+        }
+
+        if (count($specific_requirements) > 1) {
+            $worker_names = array_map([$this, 'getWorkerDisplayName'], $specific_requirements);
+            return sprintf(
+                clienttranslate('This action requires specific workers: %s. Criminals (purple workers) can be used as a wild card.'),
+                implode(', ', $worker_names)
+            );
+        }
+
+        return clienttranslate('Invalid worker selection for this action.');
+    }
+
+    private function getWorkerDisplayName($worker_type)
+    {
+        $names = [
+            WORKER_WHITE => clienttranslate('Labourer'),
+            WORKER_GREEN => clienttranslate('Scout'),
+            WORKER_RED => clienttranslate('Fighter'),
+            WORKER_BLUE => clienttranslate('Merchant'),
+            WORKER_BLACK => clienttranslate('Cleric'),
+            WORKER_PURPLE => clienttranslate('Criminal'),
+        ];
+
+        return $names[$worker_type] ?? $worker_type;
     }
 
     // Helper to calculate provision cost for commission based on current count
@@ -1854,24 +2388,16 @@ class PaladinsShipped extends Table
             'strength' => 0,
             'influence' => 0,
             'name' => null,
+            'action' => null,
         ];
 
-        $cards = $this->deck->getCardsInLocation('paladin_hand', $player_id);
-        // Active paladin is the single card kept in hand after pick; during setup there are 3
-        if (count($cards) !== 1) {
-            return $bonuses;
-        }
-
-        $card = reset($cards);
-        if (!$card || !isset($card['type_arg'])) {
-            return $bonuses;
-        }
-        $paladin_info = $this->paladins_cards_material[$card['type_arg']] ?? null;
+        $paladin_info = $this->getActivePaladinInfo($player_id);
         if ($paladin_info === null) {
             return $bonuses;
         }
 
         $bonuses['name'] = $paladin_info['name'] ?? null;
+        $bonuses['action'] = $paladin_info['action'] ?? null;
 
         if (!isset($paladin_info['stats'])) {
             return $bonuses;
@@ -1888,6 +2414,251 @@ class PaladinsShipped extends Table
         }
 
         return $bonuses;
+    }
+
+    public function getActivePaladinInfo($player_id)
+    {
+        $cards = $this->deck->getCardsInLocation('paladin_hand', $player_id);
+        // Active paladin is the single card kept in hand after pick; during setup there are 3
+        if (count($cards) !== 1) {
+            return null;
+        }
+
+        $card = reset($cards);
+        if (!$card || !isset($card['type_arg'])) {
+            return null;
+        }
+
+        return $this->paladins_cards_material[$card['type_arg']] ?? null;
+    }
+
+    public function getHuntPaladinProvisionBonus($player_id)
+    {
+        // Girard only: bonus applies to this player's active paladin for the round, not others.
+        $paladin_info = $this->getActivePaladinInfo($player_id);
+        if ($paladin_info === null) {
+            return 0;
+        }
+
+        if (($paladin_info['action'] ?? null) !== ACTION_HUNT) {
+            return 0;
+        }
+
+        return 2;
+    }
+
+    public function playerHasFortifyPaladinFreeProvision($player_id)
+    {
+        $paladin_info = $this->getActivePaladinInfo($player_id);
+        if ($paladin_info === null) {
+            return false;
+        }
+
+        return ($paladin_info['action'] ?? null) === ACTION_FORTIFY;
+    }
+
+    public function getFortifyCount($player_id)
+    {
+        return intval($this->getResourceCount($player_id, 'fortify_qty'));
+    }
+
+    public function getFortifyProvisionCost($player_id)
+    {
+        $fortify_count = $this->getFortifyCount($player_id);
+        if ($fortify_count < 3) {
+            return 1;
+        }
+        if ($fortify_count < 5) {
+            return 2;
+        }
+        return 3;
+    }
+
+    public function getFortifyInfluenceRequirement($player_id)
+    {
+        $requirements = [0, 1, 3, 5, 7, 9, 11];
+        $fortify_count = $this->getFortifyCount($player_id);
+        if ($fortify_count >= count($requirements)) {
+            return PHP_INT_MAX;
+        }
+        return $requirements[$fortify_count];
+    }
+
+    public function validateFortifyPrerequisites($player_id)
+    {
+        if ($this->getFortifyCount($player_id) >= 7) {
+            throw new BgaUserException(self::_('You have already built all 7 walls'));
+        }
+
+        if ($this->deck->countCardInLocation('wall_deck') < 1) {
+            throw new BgaUserException(self::_('No wall cards remain in the deck'));
+        }
+
+        $required_influence = $this->getFortifyInfluenceRequirement($player_id);
+        if ($this->getTotalInfluence($player_id) < $required_influence) {
+            throw new BgaUserException(sprintf(
+                self::_('You need at least %d Influence to fortify your next wall'),
+                $required_influence
+            ));
+        }
+
+        if (!$this->playerHasFortifyPaladinFreeProvision($player_id)) {
+            $provision_cost = $this->getFortifyProvisionCost($player_id);
+            $provisions = $this->getResourceCount($player_id, RESOURCE_PROVISION);
+            if ($provisions < $provision_cost) {
+                throw new BgaUserException(sprintf(
+                    self::_('You need %d Provision(s) to fortify'),
+                    $provision_cost
+                ));
+            }
+        }
+    }
+
+    public function drawWallCardForPlayer($player_id, $slot_index)
+    {
+        $card = $this->deck->pickCardForLocation('wall_deck', 'wall_hand', $player_id);
+        if (!$card) {
+            throw new BgaSystemException('Wall deck is empty');
+        }
+
+        $slot_index = intval($slot_index);
+        $card_id = intval($card['id']);
+        $player_id = intval($player_id);
+        self::DbQuery(
+            "UPDATE card SET card_location_position = $slot_index WHERE card_id = $card_id"
+        );
+
+        return $this->enrichWallCardForClient($this->deck->getCard($card_id));
+    }
+
+    private function enrichWallCardForClient($card)
+    {
+        if (!$card) {
+            return $card;
+        }
+
+        if (!isset($card['location_position'])) {
+            $card_id = intval($card['id']);
+            $card['location_position'] = intval(self::getUniqueValueFromDB(
+                "SELECT card_location_position FROM card WHERE card_id = $card_id"
+            ));
+        }
+
+        return $card;
+    }
+
+    private function getPlayerWallCardsForClient($player_id)
+    {
+        $cards = $this->deck->getCardsInLocation('wall_hand', $player_id, 'card_location_position');
+        $result = [];
+        $slot_fallback = 0;
+
+        foreach ($cards as $key => $card) {
+            if (!is_array($card)) {
+                continue;
+            }
+
+            $card = $this->enrichWallCardForClient($card);
+            $slot = intval($card['location_position'] ?? 0);
+
+            // Legacy rows may all have position 0 — assign sequential slots on load.
+            if ($slot === 0 && $slot_fallback > 0) {
+                $slot = $slot_fallback;
+                $card['location_position'] = $slot;
+            }
+
+            $result[$card['id']] = $card;
+            $slot_fallback = max($slot_fallback, $slot + 1);
+        }
+
+        return $result;
+    }
+
+    public function removeTopSuspicionForPlayer($player_id)
+    {
+        if ($this->deck->countCardInLocation('player_suspicion', $player_id) < 1) {
+            return false;
+        }
+
+        $top_card_id = $this->deck->getExtremePosition(true, 'player_suspicion', $player_id);
+        if (!$top_card_id) {
+            return false;
+        }
+
+        $this->deck->moveCard($top_card_id, 'suspicion_discard');
+        return true;
+    }
+
+    public function applyWallCardEffect($player_id, $effect, &$applied_messages)
+    {
+        if ($effect === ATTR_STRENGTH) {
+            $this->addResource($player_id, 'strength', 1, false);
+            $applied_messages[] = clienttranslate('+1 Strength');
+            return;
+        }
+
+        if ($effect === EFFECT_PAY_DEBT) {
+            if ($this->getResourceCount($player_id, RESOURCE_UNPAID_DEBT) > 0) {
+                $this->addResource($player_id, RESOURCE_UNPAID_DEBT, -1, false);
+                $this->addResource($player_id, RESOURCE_PAID_DEBT, 1, false);
+                $applied_messages[] = clienttranslate('Paid 1 Debt');
+            }
+            return;
+        }
+
+        if ($effect === EFFECT_RMV_SUSPICION) {
+            if ($this->removeTopSuspicionForPlayer($player_id)) {
+                $applied_messages[] = clienttranslate('Removed 1 Suspicion');
+            }
+            return;
+        }
+
+        if ($effect === '2_COINS') {
+            $this->addResource($player_id, RESOURCE_COIN, 2, false);
+            $applied_messages[] = clienttranslate('+2 Silver');
+            return;
+        }
+
+        if (strpos($effect, '_worker') !== false) {
+            $this->addWorkersForPlayer($player_id, [$effect]);
+            $applied_messages[] = sprintf(
+                clienttranslate('+%s'),
+                $this->getWorkerDisplayName($effect)
+            );
+        }
+    }
+
+    public function applyWallCardRewards($player_id, $type_arg)
+    {
+        if (!isset($this->wall_cards_material[$type_arg])) {
+            return ['messages' => []];
+        }
+
+        $card = $this->wall_cards_material[$type_arg];
+        $applied_messages = [];
+
+        if (isset($card['gain'])) {
+            foreach ($card['gain'] as $effect) {
+                $this->applyWallCardEffect($player_id, $effect, $applied_messages);
+            }
+        }
+
+        if (isset($card['choice'])) {
+            // Simplified: choice wall cards always grant +2 Silver for now.
+            $this->applyWallCardEffect($player_id, '2_COINS', $applied_messages);
+        }
+
+        $this->notifyPlayerResourceUpdate($player_id);
+
+        return [
+            'messages' => $applied_messages,
+            'vp' => intval($card['vp'] ?? 0),
+        ];
+    }
+
+    public function playerHasActiveGirardPaladin($player_id)
+    {
+        return $this->getHuntPaladinProvisionBonus($player_id) > 0;
     }
 
     public function getPlayerPanelData($player_id) {
@@ -2136,10 +2907,11 @@ class PaladinsShipped extends Table
         self::checkAction('fortify');
         $player_id = self::getCurrentPlayerId();
         
-        // Check if action is available
         if (!$this->canUseAction($player_id, 'fortify')) {
             throw new BgaUserException(self::_("You have already used the fortify action this round"));
         }
+
+        $this->validateFortifyPrerequisites($player_id);
         
         $cost = $this->getCurrentActionCost(ACTION_FORTIFY, $player_id);
         $worker_counts = [
@@ -2151,38 +2923,39 @@ class PaladinsShipped extends Table
             'purple_worker' => intval($purple_workers)
         ];
         
-        // Validate worker counts
         if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
-            throw new BgaUserException(self::_("Invalid worker selection for Fortify action"));
+            throw new BgaUserException($this->getWorkerValidationErrorMessage('fortify', $cost));
+        }
+
+        $provision_cost = 0;
+        if (!$this->playerHasFortifyPaladinFreeProvision($player_id)) {
+            $provision_cost = $this->getFortifyProvisionCost($player_id);
         }
         
-        // Check influence requirement (minimum 2 influence needed)
-        $influence = $this->getResourceCount($player_id, ATTR_INFLUENCE);
-        if ($influence < 2) {
-            throw new BgaUserException(self::_("You need at least 2 Influence to fortify"));
-        }
-        
-        // Check provision cost (1 provision)
-        $provisions = $this->getResourceCount($player_id, RESOURCE_PROVISION);
-        if ($provisions < 1) {
-            throw new BgaUserException(self::_("You need 1 Provision to fortify"));
-        }
-        
-        // Remove workers and pay costs
         $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
-        $this->addResource($player_id, RESOURCE_PROVISION, -1);
+        if ($provision_cost > 0) {
+            $this->addResource($player_id, RESOURCE_PROVISION, -$provision_cost);
+        }
+
+        $wall_slot = $this->getFortifyCount($player_id);
+        $wall_card = $this->drawWallCardForPlayer($player_id, $wall_slot);
+        $reward_result = $this->applyWallCardRewards($player_id, $wall_card['type_arg']);
+        $this->addResource($player_id, 'fortify_qty', 1, false);
+
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'fortify', $ordered_workers);
         
-        // Mark action as used
-        $this->markActionAsUsed($player_id, 'fortify', $worker_counts);
-        
-        // TODO: Implement wall building logic
-        // TODO: Add fortify count tracking
-        
-        self::notifyAllPlayers('fortify', clienttranslate('${player_name} fortifies with a wall'), [
+        self::notifyAllPlayers('fortify', clienttranslate('${player_name} fortifies and builds a wall'), [
             'player_name' => self::getCurrentPlayerName(),
             'player_id' => $player_id,
-            'action_space_info' => $this->getActionSpaceInfo($player_id)
+            'wall_card' => $wall_card,
+            'wall_slot' => $wall_slot,
+            'provision_cost' => $provision_cost,
+            'reward_messages' => $reward_result['messages'],
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
+        $this->notifyPlayerResourceUpdate($player_id);
         $this->gamestate->nextState('nextPlayer');
     }
 
@@ -2504,22 +3277,38 @@ class PaladinsShipped extends Table
         $this->gamestate->nextState('nextPlayer');
     }
 
-    public function kingsFavour($worker_id, $kings_favour_id)
+    public function kingsFavour($white_workers, $green_workers, $blue_workers, $red_workers, $black_workers, $purple_workers, $kings_favour_id)
     {
         self::checkAction('kingsFavour');
         $player_id = self::getCurrentPlayerId();
-        
-        // Validate worker and kings favour card
-        // TODO: Add validation logic
-        
-        // Use kings favour and gain rewards
-        // TODO: Implement kings favour logic
-        
+
+        $card = $this->validateKingsFavourCard($kings_favour_id);
+        $cost = $this->getKingsFavourCardCost($card['type_arg']);
+        $worker_counts = [
+            'white_worker' => intval($white_workers),
+            'green_worker' => intval($green_workers),
+            'blue_worker' => intval($blue_workers),
+            'red_worker' => intval($red_workers),
+            'black_worker' => intval($black_workers),
+            'purple_worker' => intval($purple_workers),
+        ];
+
+        if (!$this->validateWorkerCountsForAction($player_id, $worker_counts, $cost)) {
+            throw new BgaUserException(self::_("Invalid worker selection for King's Favour"));
+        }
+
+        $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
+        $this->markKingsFavourUsed($kings_favour_id);
+
         self::notifyAllPlayers('kingsFavour', clienttranslate('${player_name} uses a King\'s Favour'), [
             'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id
+            'player_id' => $player_id,
+            'kings_favour_id' => intval($kings_favour_id),
+            'kings_favour_used' => $this->getKingsFavourUsedCardIds(),
+            'kings_favour_newly_revealed' => $this->getKingsFavourNewlyRevealedId(),
+            'panel_data' => $this->getPlayerPanelData($player_id),
         ]);
-        
+
         $this->gamestate->nextState('nextPlayer');
     }
 
@@ -2531,7 +3320,7 @@ class PaladinsShipped extends Table
             'coin', 'provision', 'white_worker', 'green_worker', 'blue_worker', 
             'red_worker', 'black_worker', 'purple_worker', 'paid_debt', 'unpaid_debt',
             'strength', 'faith', 'influence', 'parchment', 'develop_qty', 
-            'commission_qty', 'garrison_qty'
+            'commission_qty', 'garrison_qty', 'fortify_qty'
         ];
         
         if (in_array($resource_type, $valid_resources)) {
