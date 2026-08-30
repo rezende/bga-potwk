@@ -318,7 +318,47 @@ class PaladinsShipped extends Table
         $this->placeNewCardsOnDisplay(CARD_TYPE_OUTSIDER, 'new_round');
     }
 
-    public function addResource($player_id, $resource, $qty = 1)
+    public function normalizeWorkerType($worker)
+    {
+        $worker_map = [
+            'WORKER_WHITE' => 'white_worker',
+            'WORKER_GREEN' => 'green_worker',
+            'WORKER_BLUE' => 'blue_worker',
+            'WORKER_RED' => 'red_worker',
+            'WORKER_BLACK' => 'black_worker',
+            'WORKER_PURPLE' => 'purple_worker',
+            WORKER_WHITE => 'white_worker',
+            WORKER_GREEN => 'green_worker',
+            WORKER_BLUE => 'blue_worker',
+            WORKER_RED => 'red_worker',
+            WORKER_BLACK => 'black_worker',
+            WORKER_PURPLE => 'purple_worker',
+        ];
+
+        return $worker_map[$worker] ?? $worker;
+    }
+
+    public function formatWorkersListForMessage($workers)
+    {
+        $labels = [
+            'white_worker' => clienttranslate('Labourer'),
+            'green_worker' => clienttranslate('Scout'),
+            'blue_worker' => clienttranslate('Merchant'),
+            'red_worker' => clienttranslate('Fighter'),
+            'black_worker' => clienttranslate('Cleric'),
+            'purple_worker' => clienttranslate('Criminal'),
+        ];
+
+        $parts = [];
+        foreach ($workers as $worker) {
+            $normalized = $this->normalizeWorkerType($worker);
+            $parts[] = $labels[$normalized] ?? $normalized;
+        }
+
+        return implode(', ', $parts);
+    }
+
+    public function addResource($player_id, $resource, $qty = 1, $notify_resource_update = true)
     {
         // Check if the resource exists as a column in the player table
         $valid_resources = [
@@ -332,8 +372,9 @@ class PaladinsShipped extends Table
             $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
             self::DbQuery($sql);
             
-            // Send notification to update the resource table
-            $this->notifyPlayerResourceUpdate($player_id);
+            if ($notify_resource_update) {
+                $this->notifyPlayerResourceUpdate($player_id);
+            }
         } else {
             // Log error for debugging
             self::warn("Attempted to add invalid resource: $resource");
@@ -349,7 +390,12 @@ class PaladinsShipped extends Table
         ];
         
         $updates = [];
+        $criminal_count = 0;
         foreach ($workers as $worker) {
+            $worker = $this->normalizeWorkerType($worker);
+            if ($worker === 'purple_worker') {
+                $criminal_count++;
+            }
             if (in_array($worker, $valid_workers)) {
                 $updates[] = "$worker = $worker + 1";
             }
@@ -358,10 +404,69 @@ class PaladinsShipped extends Table
         if (!empty($updates)) {
             $sql = "UPDATE player SET " . implode(', ', $updates) . " WHERE player_id = $player_id";
             self::DbQuery($sql);
-            
-            // Send notification to update the resource table
+        }
+
+        if ($criminal_count > 0) {
+            $this->gainSuspicionForCriminals($player_id, $criminal_count);
+        } else if (!empty($updates)) {
             $this->notifyPlayerResourceUpdate($player_id);
         }
+    }
+
+    public function getPlayerSuspicionCount($player_id)
+    {
+        return intval($this->deck->countCardInLocation('player_suspicion', $player_id));
+    }
+
+    public function getSuspicionTaxAmount($type_arg)
+    {
+        // Suspicion card type_arg is the printed tax value: 0, 1, or 2 silver.
+        return intval($type_arg);
+    }
+
+    public function buildSuspicionDrawMessage($player_id, $suspicion_info)
+    {
+        $tax_amount = intval($suspicion_info['tax_amount']);
+        $tax_given = intval($suspicion_info['tax_given']);
+
+        $message = clienttranslate('${player_name} draws a suspicion card with ${tax_amount} tax');
+        if ($tax_given > 0) {
+            $message .= clienttranslate(' and gains ${tax_given} silver from the tax supply');
+        } else if ($tax_amount > 0) {
+            $message .= clienttranslate(' (tax supply empty)');
+        }
+
+        return $message;
+    }
+
+    public function gainSuspicionForCriminals($player_id, $criminal_count)
+    {
+        for ($i = 0; $i < $criminal_count; $i++) {
+            $suspicion_info = $this->addSuspicionCard($player_id, false);
+
+            if (!$suspicion_info) {
+                continue;
+            }
+
+            $suspicion_count = $this->getPlayerSuspicionCount($player_id);
+
+            self::notifyAllPlayers(
+                'suspicionGained',
+                $this->buildSuspicionDrawMessage($player_id, $suspicion_info),
+                [
+                    'player_id' => $player_id,
+                    'player_name' => self::getPlayerNameById($player_id),
+                    'suspicion_card' => $suspicion_info,
+                    'tax_given' => $suspicion_info['tax_given'],
+                    'tax_amount' => $suspicion_info['tax_amount'],
+                    'tax_supply' => $this->getTaxSupply(),
+                    'suspicion_count' => $suspicion_count,
+                    'panel_data' => $this->getPlayerPanelData($player_id),
+                ]
+            );
+        }
+
+        $this->notifyPlayerResourceUpdate($player_id);
     }
 
     public function getTaxSupply()
@@ -399,10 +504,10 @@ class PaladinsShipped extends Table
     public function triggerInquisition()
     {
         // Find players with the most suspicion
-        $sql = "SELECT player_id, COUNT(*) as suspicion_count 
+        $sql = "SELECT card_location_arg as player_id, COUNT(*) as suspicion_count 
                 FROM card 
-                WHERE card_location LIKE 'suspicion_deck_%' 
-                GROUP BY player_id 
+                WHERE card_location = 'player_suspicion' 
+                GROUP BY card_location_arg 
                 ORDER BY suspicion_count DESC";
         $suspicion_counts = self::getCollectionFromDb($sql);
         
@@ -520,17 +625,14 @@ class PaladinsShipped extends Table
         }
     }
 
-    public function addSuspicionCard($player_id)
+    public function addSuspicionCard($player_id, $notify_resource_update = true)
     {
         // Draw a suspicion card from the deck and add it to the player's suspicion pile
-        $suspicion_card = $this->deck->pickCardForLocation('suspicion_deck', "suspicion_deck_$player_id");
+        $suspicion_card = $this->deck->pickCardForLocation('suspicion_deck', 'player_suspicion', $player_id);
         
         if ($suspicion_card) {
-            // Get suspicion card info for notification
-            $suspicion_info = $this->getCardInfoByGlobalId($suspicion_card['id']);
-            
-            // Get tax amount from suspicion card
-            $tax_amount = $this->suspicion_cards_material[$suspicion_card['type_arg']] ?? 0;
+            // type_arg is the printed tax value on the card: 0, 1, or 2
+            $tax_amount = $this->getSuspicionTaxAmount($suspicion_card['type_arg']);
             
             // Get current tax supply amount
             $tax_supply = $this->getTaxSupply();
@@ -540,16 +642,22 @@ class PaladinsShipped extends Table
             if ($tax_amount > 0) {
                 $tax_to_give = $this->removeFromTaxSupply($tax_amount);
                 if ($tax_to_give > 0) {
-                    $this->addResource($player_id, RESOURCE_COIN, $tax_to_give);
+                    $this->addResource($player_id, RESOURCE_COIN, $tax_to_give, false);
                 }
             }
             
-            // Add tax information to suspicion info
-            $suspicion_info['tax_amount'] = $tax_amount;
-            $suspicion_info['tax_supply'] = $tax_supply;
-            $suspicion_info['tax_given'] = $tax_to_give ?? 0;
+            $suspicion_info = [
+                'id' => $suspicion_card['id'],
+                'type' => $suspicion_card['type'],
+                'type_arg' => $suspicion_card['type_arg'],
+                'tax_amount' => $tax_amount,
+                'tax_supply' => $tax_supply,
+                'tax_given' => $tax_to_give,
+            ];
 
-            $this->notifyPlayerResourceUpdate($player_id);
+            if ($notify_resource_update) {
+                $this->notifyPlayerResourceUpdate($player_id);
+            }
             
             return $suspicion_info;
         }
@@ -561,9 +669,9 @@ class PaladinsShipped extends Table
     {
         $resource = "";
         if ($effect == EFFECT_RMV_SUSPICION) {
-            $suspicion_cards = $this->deck->countCardInLocation("suspicion_deck_$player_id");
+            $suspicion_cards = $this->deck->countCardInLocation('player_suspicion', $player_id);
             if ($suspicion_cards) {
-                $top_suspicion_location = $this->deck->getExtremePosition(true, "suspicion_deck_$player_id");
+                $top_suspicion_location = $this->deck->getExtremePosition(true, 'player_suspicion', $player_id);
                 // TODO: discard top player suspicion to the top of discard
             } else {
                 // no suspicion to discard
@@ -855,31 +963,36 @@ class PaladinsShipped extends Table
         self::checkAction('pickTavern');
         $player_id = self::getCurrentPlayerId();
         $tavern_card = $this->deck->getCard($tavern_id);
-        $tavern_card_info = $this->tavern_cards_material[$tavern_card['type_arg']];
+        $type_arg = intval($tavern_card['type_arg']);
+        $tavern_card_info = $this->tavern_cards_material[$type_arg];
         $this->deck->moveCard($tavern_id, 'tavern_discard');
         
         // Add all workers from the tavern card in a single query
         $this->addWorkersForPlayer($player_id, $tavern_card_info);
         
-        $tavern_name = implode(", ", $tavern_card_info);
+        $worker_list = $this->formatWorkersListForMessage($tavern_card_info);
         self::notifyAllPlayers(
             "message",
-            clienttranslate('${player_name} picks tavern containing {tavern_name}'),
+            clienttranslate('${player_name} picks a tavern and gains ${worker_list}'),
             [
                 "player_name" => self::getPlayerNameById($player_id),
-                "tavern_name" => $tavern_name,
+                "worker_list" => $worker_list,
             ]
         );
-        
-        // Update the tavern display data for all clients
-        $remaining_tavern_cards = $this->deck->getCardsInLocation('tavern_display');
+
         self::notifyAllPlayers(
-            "tavernDisplayUpdated",
-            clienttranslate('Tavern display updated'),
+            "tavernPicked",
+            '',
             [
-                "tavern_display" => $remaining_tavern_cards
+                "player_id" => $player_id,
+                "tavern_card_id" => $tavern_id,
+                "type_arg" => $type_arg,
+                "workers" => $tavern_card_info,
+                "panel_data" => $this->getPlayerPanelData($player_id),
             ]
         );
+
+        $this->notifyPlayerResourceUpdate($player_id);
         
         $this->gamestate->nextState("");
     }
@@ -1685,7 +1798,7 @@ class PaladinsShipped extends Table
             'red_worker' => intval($this->getResourceCount($player_id, 'red_worker')),
             'black_worker' => intval($this->getResourceCount($player_id, 'black_worker')),
             'purple_worker' => intval($this->getResourceCount($player_id, 'purple_worker')),
-            'suspicion' => intval($this->deck->countCardInLocation("suspicion_deck_$player_id")),
+            'suspicion' => $this->getPlayerSuspicionCount($player_id),
             'unpaid_debt' => intval($this->getResourceCount($player_id, 'unpaid_debt')),
             'paid_debt' => intval($this->getResourceCount($player_id, 'paid_debt')),
             'parchment' => intval($this->getResourceCount($player_id, 'parchment')),

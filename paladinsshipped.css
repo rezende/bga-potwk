@@ -82,104 +82,6 @@
   flex-wrap: wrap;
 }
 
-/* Player Resources Table */
-.player_resources_table {
-  margin-bottom: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  padding: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.resources_table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  margin-bottom: 5px;
-}
-
-.resources_table th {
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  padding: 4px 2px;
-  text-align: center;
-  font-weight: bold;
-  color: #333;
-}
-
-.resources_table td {
-  border: 1px solid #ccc;
-  padding: 4px 2px;
-  text-align: center;
-  background-color: #fff;
-  font-weight: bold;
-}
-
-.resources_table th:first-child,
-.resources_table td:first-child {
-  border-left: 2px solid #666;
-}
-
-.resources_table th:last-child,
-.resources_table td:last-child {
-  border-right: 2px solid #666;
-}
-
-.resources_table thead tr:first-child th {
-  border-top: 2px solid #666;
-}
-
-.resources_table tbody tr:last-child td {
-  border-bottom: 2px solid #666;
-}
-
-.debt_info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #666;
-  padding: 2px 4px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-}
-
-.debt_info span {
-  font-weight: bold;
-}
-
-/* Responsive design for resource table */
-@media (max-width: 768px) {
-  .resources_table {
-    font-size: 10px;
-  }
-  
-  .resources_table th,
-  .resources_table td {
-    padding: 2px 1px;
-  }
-  
-  .debt_info {
-    font-size: 10px;
-    flex-direction: column;
-    gap: 2px;
-  }
-}
-
-@media (max-width: 480px) {
-  .resources_table {
-    font-size: 9px;
-  }
-  
-  .resources_table th,
-  .resources_table td {
-    padding: 1px;
-  }
-  
-  .debt_info {
-    font-size: 9px;
-  }
-}
-
 #board {
   width: 100%;
   margin-bottom: 15px;
@@ -745,6 +647,7 @@
 /* style="background-color: white; border-radius: 10px; padding: 20px; display: none; */
 
 .tavern_card {
+  position: relative;
   min-width: 127px;
   width: 127px;
   height: 130px;
@@ -1620,6 +1523,33 @@
   border-color: #6c757d;
 }
 
+.tavern_selection_cards_container .tavern_card.picked {
+  cursor: default;
+  pointer-events: none;
+  border: 6px solid var(--tavern-picker-color, #6c757d);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--tavern-picker-color, #6c757d) 55%, transparent);
+  opacity: 0.55;
+}
+
+.tavern_selection_cards_container .tavern_card.picked-animating {
+  animation: tavern_card_fade_out 0.6s ease forwards;
+}
+
+@keyframes tavern_card_fade_out {
+  0% {
+    opacity: 1;
+    transform: translateY(-5px);
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.4);
+    border-color: #28a745;
+  }
+  100% {
+    opacity: 0.55;
+    transform: translateY(0);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--tavern-picker-color, #6c757d) 55%, transparent);
+    border-color: var(--tavern-picker-color, #6c757d);
+  }
+}
+
 /* Responsive design for tavern selection modal */
 @media (max-width: 768px) {
   .tavern_selection_content {
@@ -1904,122 +1834,6 @@
   left: 1226px;
 }
 
-/* Resource Update Visual Feedback */
-.resource-update-highlight {
-  animation: resource-pulse 1.2s ease-in-out;
-  border-radius: 4px;
-  padding: 2px 4px;
-  transition: all 0.3s ease;
-}
-
-.resource-gain {
-  background-color: rgba(40, 167, 69, 0.2);
-  color: #28a745;
-  font-weight: bold;
-  box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
-}
-
-.resource-loss {
-  background-color: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
-  font-weight: bold;
-  box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
-}
-
-@keyframes resource-pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 8px rgba(74, 144, 226, 0.4);
-  }
-  50% {
-    transform: scale(1.1);
-    box-shadow: 0 0 15px rgba(74, 144, 226, 0.6);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 8px rgba(74, 144, 226, 0.4);
-  }
-}
-
-/* Enhanced resource table styling for better visual feedback */
-.resources_table td {
-  border: 1px solid #ccc;
-  padding: 4px 2px;
-  text-align: center;
-  background-color: #fff;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.resources_table td.resource-update-highlight {
-  z-index: 10;
-}
-
-/* Player resource table highlight */
-.player-resource-update {
-  animation: table-highlight 1.5s ease-in-out;
-  border: 2px solid #4a90e2;
-  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
-}
-
-@keyframes table-highlight {
-  0% {
-    border-color: #4a90e2;
-    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
-  }
-  50% {
-    border-color: #28a745;
-    box-shadow: 0 0 30px rgba(40, 167, 69, 0.5);
-  }
-  100% {
-    border-color: #4a90e2;
-    box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
-  }
-}
-
-/* Floating resource change indicator */
-.resource-change-indicator {
-  font-weight: bold;
-  font-size: 16px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  animation: float-up 1.5s ease-out forwards;
-  pointer-events: none;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.resource-change-indicator.gain {
-  background-color: rgba(40, 167, 69, 0.9);
-  color: white;
-  border: 2px solid #28a745;
-}
-
-.resource-change-indicator.loss {
-  background-color: rgba(220, 53, 69, 0.9);
-  color: white;
-  border: 2px solid #dc3545;
-}
-
-@keyframes float-up {
-  0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.8);
-  }
-  20% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: translateY(-30px) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-40px) scale(0.8);
-  }
-}
-
 /* Responsive design for worker spots */
 @media (max-width: 768px) {
   .action_space {
@@ -2038,32 +1852,6 @@
   }
 }
 
-/* Mobile responsive design for resource updates */
-@media (max-width: 768px) {
-  .resource-change-indicator {
-    font-size: 14px;
-    padding: 3px 6px;
-  }
-  
-  .resource-update-highlight {
-    animation-duration: 1s;
-  }
-  
-  .player-resource-update {
-    animation-duration: 1.2s;
-  }
-}
-
-@media (max-width: 480px) {
-  .resource-change-indicator {
-    font-size: 12px;
-    padding: 2px 4px;
-  }
-  
-  .resource-update-highlight {
-    padding: 1px 2px;
-  }
-}
 
 @media (max-width: 480px) {
   .action_space {

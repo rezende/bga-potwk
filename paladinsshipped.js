@@ -392,9 +392,6 @@ define([
           if (gamedatas.player_panels && gamedatas.player_panels[player_id]) {
             this.updatePlayerPanelResources(player_id, gamedatas.player_panels[player_id]);
           }
-          
-          // Update player resource table (legacy player-board table; kept for now)
-          this.updatePlayerResourceTable(player_id, player);
         }
 
         // TODO: Set up your game interface here, according to "gamedatas"
@@ -589,47 +586,6 @@ define([
 
 
 
-    // Handle tavern card click
-    handleTavernCardClick: function(event, card) {
-      // Check if the current player is the active player
-      const currentPlayerId = this.player_id;
-      const activePlayerId = this.gamedatas.gamestate.active_player;
-      
-      if (String(currentPlayerId) !== String(activePlayerId)) {
-        console.log(`Player ${currentPlayerId} is not the active player (${activePlayerId}). Cannot select tavern card.`);
-        return;
-      }
-      
-      // Check if this card has already been selected
-      if (this.selectedTavernCards.includes(card.data.id)) {
-        console.log(`Card ${card.data.id} has already been selected, ignoring click`);
-        return;
-      }
-      
-      // Add the card to the selected cards tracking array
-      this.selectedTavernCards.push(card.data.id);
-      
-      // Remove selectable class from all cards
-      const allCards = document.querySelectorAll('#tavern_selection_cards .selectable');
-      allCards.forEach(c => dojo.removeClass(c, 'selectable'));
-      
-      // Add selected class to clicked card
-      dojo.addClass(event.target, 'selected');
-      
-      // Disable the click event on this card
-      event.target.style.pointerEvents = 'none';
-      event.target.style.opacity = '0.5';
-      
-      // Send the selection to the server
-      this.ajaxcall('/paladinsshipped/paladinsshipped/pickTavern.html', {
-        tavern_card_id: card.data.id
-      }, this, function(result) {
-        console.log('Tavern selection confirmed:', result);
-      }, function(error) {
-        console.error('Error selecting tavern card:', error);
-      });
-    },
-
     displayTaverns: function () {
       dojo.setStyle("tavernsSelection", "display", "flex");
       dojo.setStyle("tavernsSelection", "justify-content", "center");
@@ -669,7 +625,7 @@ define([
           card.isSelectable = false;
           const uiType = "tavern_card";
           const params = card;
-          this.uiItems.createAndAddItem(uiType, params);
+          const uiItem = this.uiItems.createAndAddItem(uiType, params);
           cardsCreated++;
         }
         
@@ -944,7 +900,6 @@ define([
       
       // Handle tavern selection state
       if (stateName === 'pickTavern') {
-        // Show the tavern selection area
         this.showTavernSelectionModal();
       }
     },
@@ -973,9 +928,11 @@ define([
     //                        action status bar (ie: the HTML links in the status bar).
     //
     onUpdateActionButtons: function (stateName, args) {
-      
-      // Update action buttons visibility when current player changes
       this.updateActionButtons();
+
+      if (stateName === 'pickTavern') {
+        this.refreshTavernSelectionInteractability();
+      }
     },
 
     ///////////////////////////////////////////////////
@@ -1183,17 +1140,15 @@ define([
       // Townsfolk slide animation notification
       dojo.subscribe("slideCards", this, "notif_slideCards");
       
-      // Tavern card updates - intercept and remove selected cards
-      dojo.subscribe("tavernCardsUpdated", this, "notif_tavernCardsUpdated");
-      
-      // Tavern display updates
-      dojo.subscribe("tavernDisplayUpdated", this, "notif_tavernDisplayUpdated");
+      // Tavern card picked notification
+      dojo.subscribe("tavernPicked", this, "notif_tavernPicked");
       
       // Paladin cards updates
       dojo.subscribe("paladinCards", this, "notif_paladinCards");
       
       // Player resources update notification
       dojo.subscribe("playerResourcesUpdated", this, "notif_playerResourcesUpdated");
+      dojo.subscribe("suspicionGained", this, "notif_suspicionGained");
       console.log("Subscribed to playerResourcesUpdated notification");
       
       // Other existing notifications...
@@ -1248,18 +1203,14 @@ define([
 
     notif_cleanupTaverns: function (notif) {
       dojo.setStyle("tavernsSelection", "display", "none");
+      this.pickedTavernCards = {};
+      this.pendingTavernCardId = null;
     },
 
     // Handle player resources updates (coins, provisions, workers, etc.)
     notif_playerResourcesUpdated: function (notif) {
-      const player_id = notif.args.player_id;
-      const player_data = notif.args.player_data;
+      const player_id = String(notif.args.player_id);
       const panel_data = notif.args.panel_data;
-
-      if (player_id && player_data) {
-        this.highlightPlayerResourceTable(player_id);
-        this.updatePlayerResourceTable(player_id, player_data);
-      }
 
       if (player_id && panel_data) {
         this.updatePlayerPanelResources(player_id, panel_data);
@@ -1267,8 +1218,28 @@ define([
           this.gamedatas.player_panels[player_id] = panel_data;
         }
       } else if (notif.args.all_players) {
-        this.updateAllPlayerResourceTables();
         this.updateAllPlayerPanels();
+      }
+    },
+
+    notif_suspicionGained: function(notif) {
+      const player_id = String(notif.args.player_id);
+      const panel_data = notif.args.panel_data;
+      const suspicion_count = notif.args.suspicion_count;
+
+      if (panel_data) {
+        if (suspicion_count !== undefined) {
+          panel_data.suspicion = suspicion_count;
+        }
+        this.updatePlayerPanelResources(player_id, panel_data);
+        if (this.gamedatas.player_panels) {
+          this.gamedatas.player_panels[player_id] = panel_data;
+        }
+      } else if (suspicion_count !== undefined) {
+        const el = document.getElementById(`panel_value_suspicion_${player_id}`);
+        if (el) {
+          el.textContent = suspicion_count;
+        }
       }
     },
 
@@ -2311,158 +2282,6 @@ define([
       }
     },
 
-    updatePlayerResourceTable: function(player_id, player_data) {
-      console.log(`Updating resource table for player ${player_id}:`, player_data);
-      
-      // Update resource values in the table
-      const resourceElements = {
-        'provisions': player_data.provision || 0,
-        'coins': player_data.coin || 0,
-        'white_workers': player_data.white_worker || 0,
-        'green_workers': player_data.green_worker || 0,
-        'blue_workers': player_data.blue_worker || 0,
-        'red_workers': player_data.red_worker || 0,
-        'black_workers': player_data.black_worker || 0,
-        'purple_workers': player_data.purple_worker || 0,
-        'faith': player_data.faith || 0,
-        'strength': player_data.strength || 0,
-        'influence': player_data.influence || 0,
-        'paid_debt': player_data.paid_debt || 0,
-        'unpaid_debt': player_data.unpaid_debt || 0
-      };
-
-      console.log(`Resource elements to update:`, resourceElements);
-
-      // Update each resource element with visual feedback
-      for (const [resource, value] of Object.entries(resourceElements)) {
-        const element = document.getElementById(`${resource}_${player_id}`);
-        if (element) {
-          const oldValue = parseInt(element.textContent) || 0;
-          const newValue = value;
-          
-          console.log(`Updating ${resource}_${player_id} from ${oldValue} to ${newValue}`);
-          
-          // Only animate if the value actually changed
-          if (oldValue !== newValue) {
-            this.animateResourceChange(element, oldValue, newValue, resource);
-          } else {
-            element.textContent = newValue;
-          }
-        } else {
-          console.warn(`Element ${resource}_${player_id} not found`);
-        }
-      }
-    },
-
-    // Method to update all player resource tables (called when game state changes)
-    updateAllPlayerResourceTables: function() {
-      if (this.gamedatas && this.gamedatas.players) {
-        for (const player_id in this.gamedatas.players) {
-          this.updatePlayerResourceTable(player_id, this.gamedatas.players[player_id]);
-        }
-      }
-    },
-
-    // Animate resource changes with visual feedback
-    animateResourceChange: function(element, oldValue, newValue, resourceType) {
-      // Add highlight class for visual feedback
-      element.classList.add('resource-update-highlight');
-      
-      // Determine if this is a gain or loss
-      const isGain = newValue > oldValue;
-      const changeAmount = Math.abs(newValue - oldValue);
-      
-      // Add appropriate CSS class for gain/loss
-      if (isGain) {
-        element.classList.add('resource-gain');
-        element.classList.remove('resource-loss');
-      } else {
-        element.classList.add('resource-loss');
-        element.classList.remove('resource-gain');
-      }
-      
-      // Show floating change indicator for significant changes
-      if (changeAmount > 0) {
-        this.showResourceChangeIndicator(element, changeAmount, isGain);
-      }
-      
-      // Animate the counting effect
-      this.animateCount(element, oldValue, newValue, () => {
-        // Remove highlight classes after animation
-        setTimeout(() => {
-          element.classList.remove('resource-update-highlight', 'resource-gain', 'resource-loss');
-        }, 500);
-      });
-    },
-
-    // Animate counting from old value to new value
-    animateCount: function(element, startValue, endValue, callback) {
-      const duration = 800; // Animation duration in milliseconds
-      const steps = 20; // Number of steps in the animation
-      const stepDuration = duration / steps;
-      const valueDiff = endValue - startValue;
-      const valueStep = valueDiff / steps;
-      
-      let currentStep = 0;
-      
-      const animateStep = () => {
-        if (currentStep >= steps) {
-          element.textContent = endValue;
-          if (callback) callback();
-          return;
-        }
-        
-        currentStep++;
-        const currentValue = Math.round(startValue + (valueStep * currentStep));
-        element.textContent = currentValue;
-        
-        setTimeout(animateStep, stepDuration);
-      };
-      
-      animateStep();
-    },
-
-    // Highlight the player's resource table to draw attention
-    highlightPlayerResourceTable: function(player_id) {
-      const playerBoard = document.getElementById('playerboard_' + player_id);
-      if (playerBoard) {
-        // Find the resource table within this player board
-        const resourceTable = playerBoard.querySelector('.player_resources_table');
-        if (resourceTable) {
-          // Add highlight class
-          resourceTable.classList.add('player-resource-update');
-          
-          // Remove highlight after animation
-          setTimeout(() => {
-            resourceTable.classList.remove('player-resource-update');
-          }, 1500);
-        }
-      }
-    },
-
-    // Show floating indicator for resource changes
-    showResourceChangeIndicator: function(element, changeAmount, isGain) {
-      // Create floating indicator element
-      const indicator = document.createElement('div');
-      indicator.className = `resource-change-indicator ${isGain ? 'gain' : 'loss'}`;
-      indicator.textContent = (isGain ? '+' : '-') + changeAmount;
-      
-      // Position it relative to the resource element
-      const rect = element.getBoundingClientRect();
-      indicator.style.position = 'absolute';
-      indicator.style.left = (rect.left + rect.width / 2) + 'px';
-      indicator.style.top = (rect.top - 20) + 'px';
-      indicator.style.zIndex = '1000';
-      
-      // Add to body
-      document.body.appendChild(indicator);
-      
-      // Animate and remove
-      setTimeout(() => {
-        indicator.remove();
-      }, 1500);
-    },
-
     // Function to set data attributes on player boards for identification
     setPlayerBoardAttributes: function() {
       if (!this.gamedatas || !this.gamedatas.players) {
@@ -2955,349 +2774,307 @@ define([
       }, position * 100); // Stagger the animations
     },
 
-    // Track selected tavern cards to prevent them from reappearing
-    selectedTavernCards: [],
+    // Tavern selection state
+    pickedTavernCards: {},
+    pendingTavernCardId: null,
 
-    // Show tavern selection area
-    showTavernSelectionModal: function() {
-      console.log("=== SHOW TAVERN SELECTION AREA ===");
-      console.log("Current player_id:", this.player_id);
-      console.log("Active player_id:", this.gamedatas.gamestate.active_player);
-      console.log("tavern_display data:", this.tavern_display);
-      
-      // Check if modal is already visible to prevent duplicate calls
-      const tavernSelectionArea = document.getElementById('tavern_selection_area');
-      if (tavernSelectionArea && tavernSelectionArea.style.display === 'block') {
-        console.log("Tavern selection modal is already visible, skipping duplicate call");
+    isTavernCardPicked: function(cardId) {
+      return Object.prototype.hasOwnProperty.call(this.pickedTavernCards, String(cardId));
+    },
+
+    getTavernSelectionCardElement: function(cardId) {
+      const container = document.getElementById('tavern_selection_cards');
+      if (!container) {
+        return null;
+      }
+      return container.querySelector(`[data-card-id="${cardId}"]`);
+    },
+
+    getPickedTavernPlayerId: function(cardId) {
+      const picked = this.pickedTavernCards[String(cardId)];
+      return picked ? picked.playerId : null;
+    },
+
+    getPlayerColorHex: function(playerId) {
+      const playerData =
+        this.gamedatas && this.gamedatas.players && this.gamedatas.players[playerId];
+      if (playerData && playerData.color) {
+        return "#" + playerData.color;
+      }
+      return "#6c757d";
+    },
+
+    applyPickedTavernCardStyle: function(cardElement, playerId, animate) {
+      if (!cardElement || !playerId) {
         return;
       }
-      
-      // Clear previous content completely and ensure we start fresh
-      const tavernSelectionCards = document.getElementById('tavern_selection_cards');
-      if (tavernSelectionCards) {
-        // Remove all child nodes to prevent duplication
-        while (tavernSelectionCards.firstChild) {
-          tavernSelectionCards.removeChild(tavernSelectionCards.firstChild);
-        }
-        console.log("Cleared previous tavern selection cards");
-      } else {
-        console.error("tavern_selection_cards element not found!");
+
+      const playerColor = this.getPlayerColorHex(playerId);
+      cardElement.style.setProperty("--tavern-picker-color", playerColor);
+      cardElement.dataset.pickedBy = String(playerId);
+
+      dojo.removeClass(cardElement, "selectable");
+      dojo.removeClass(cardElement, "selected");
+      dojo.addClass(cardElement, "picked");
+      dojo.removeClass(cardElement, "picked-animating");
+      if (animate) {
+        dojo.addClass(cardElement, "picked-animating");
+      }
+
+      cardElement.style.pointerEvents = "none";
+      cardElement.style.cursor = "default";
+    },
+
+    decorateTavernSelectionCard: function(cardElement, card, isActivePlayer) {
+      const cardId = card.data.id;
+
+      const pickedPlayerId = this.getPickedTavernPlayerId(cardId);
+      if (pickedPlayerId) {
+        this.applyPickedTavernCardStyle(cardElement, pickedPlayerId, false);
         return;
       }
-      
-      // Get tavern cards from UI items
-      let tavernCards = this.uiItems.getByUiType("tavern_card");
-      console.log("Tavern cards in UI items:", tavernCards.length);
-      
-      // If no tavern cards exist in UI items but they exist in game data, create them
-      if (tavernCards.length === 0 && this.tavern_display) {
-        console.log("Creating tavern UI items from tavern_display");
-        this.createTavernUiItems(this.tavern_display);
-        // Get the cards again after creation
-        tavernCards = this.uiItems.getByUiType("tavern_card");
-        console.log("New tavern cards created:", tavernCards.length);
-      }
-      
-      // Additional debugging: log all tavern cards to see what we have
-      console.log("All tavern cards details:", tavernCards.map(card => ({
-        id: card.data.id,
-        location: card.data.location,
-        location_arg: card.data.location_arg
-      })));
-      
-      // Filter out already selected cards
-      const availableTavernCards = tavernCards.filter(card => 
-        !this.selectedTavernCards.includes(card.data.id)
-      );
-      console.log("Available tavern cards:", availableTavernCards.length);
-      
-      // Check if current player is the active player
-      const currentPlayerId = this.player_id;
-      const activePlayerId = this.gamedatas.gamestate.active_player;
-      const isActivePlayer = String(currentPlayerId) === String(activePlayerId);
-      console.log("Is current player active:", isActivePlayer);
-      
-      // Display available tavern cards in the selection area
-      console.log(`Displaying ${availableTavernCards.length} available tavern cards`);
-      
-      // Track displayed cards to prevent duplicates
-      const displayedCardIds = new Set();
-      
-      availableTavernCards.forEach(card => {
-        // Skip if we've already displayed this card
-        if (displayedCardIds.has(card.data.id)) {
-          console.log(`Skipping duplicate card ${card.data.id}`);
-          return;
-        }
-        
-        displayedCardIds.add(card.data.id);
-        const cardClone = card.htmlNode.cloneNode(true);
-        
-        if (tavernSelectionCards) {
-          dojo.place(cardClone, tavernSelectionCards);
-          
-          // Check if this card has already been selected
-          if (this.selectedTavernCards.includes(card.data.id)) {
-            // Card has been selected - disable it
-            dojo.addClass(cardClone, 'selected');
-            cardClone.style.pointerEvents = 'none';
-            cardClone.style.opacity = '0.5';
-            cardClone.style.cursor = 'default';
-          } else {
-            // Card is available - make it selectable for active player
-            if (isActivePlayer) {
-              dojo.addClass(cardClone, 'selectable');
-              cardClone.style.cursor = 'pointer';
-              cardClone.dataset.cardId = card.data.id;
-              
-              // Add click event listener for selection
-              cardClone.addEventListener('click', (e) => this.handleTavernCardClick(e, card));
-            } else {
-              // For non-active players, show cards as read-only (no special styling)
-              cardClone.style.cursor = 'default';
-            }
-          }
-        }
-      });
-      
-      console.log(`Actually displayed ${displayedCardIds.size} unique tavern cards`);
-      
-      // Show the tavern selection area (using the already declared variable)
-      if (tavernSelectionArea) {
-        console.log("Showing tavern selection area");
-        tavernSelectionArea.style.display = 'block';
+
+      if (this.pendingTavernCardId === String(cardId)) {
+        dojo.addClass(cardElement, 'selected');
+      } else if (isActivePlayer) {
+        dojo.addClass(cardElement, 'selectable');
+        cardElement.style.cursor = 'pointer';
+        cardElement.addEventListener('click', (e) => this.handleTavernCardClick(e, card));
       } else {
-        console.error("tavern_selection_area element not found!");
+        cardElement.style.cursor = 'default';
       }
     },
 
-    // Hide tavern selection area
+    resetTavernConfirmButton: function() {
+      const confirmButton = document.getElementById('confirm_tavern_selection');
+      if (!confirmButton) {
+        return;
+      }
+
+      confirmButton.disabled = false;
+      confirmButton.textContent = 'Confirm Selection';
+      confirmButton.style.display = this.pendingTavernCardId ? 'block' : 'none';
+    },
+
+    showTavernSelectionModal: function() {
+      const tavernSelectionArea = document.getElementById('tavern_selection_area');
+      const tavernSelectionCards = document.getElementById('tavern_selection_cards');
+      if (!tavernSelectionCards) {
+        return;
+      }
+
+      while (tavernSelectionCards.firstChild) {
+        tavernSelectionCards.removeChild(tavernSelectionCards.firstChild);
+      }
+
+      let tavernCards = this.uiItems.getByUiType("tavern_card");
+      if (tavernCards.length === 0 && this.tavern_display) {
+        this.createTavernUiItems(this.tavern_display);
+        tavernCards = this.uiItems.getByUiType("tavern_card");
+      }
+
+      const isActivePlayer =
+        String(this.player_id) === String(this.gamedatas.gamestate.active_player);
+
+      const displayedCardIds = new Set();
+
+      tavernCards.forEach((card) => {
+        const cardClone = card.htmlNode.cloneNode(true);
+        cardClone.dataset.cardId = String(card.data.id);
+        dojo.place(cardClone, tavernSelectionCards);
+        displayedCardIds.add(String(card.data.id));
+        this.decorateTavernSelectionCard(cardClone, card, isActivePlayer);
+      });
+
+      Object.keys(this.pickedTavernCards).forEach((cardId) => {
+        if (displayedCardIds.has(cardId)) {
+          return;
+        }
+
+        const picked = this.pickedTavernCards[cardId];
+        const card = this.uiItems
+          .getByUiType("tavern_card")
+          .find((item) => String(item.data.id) === cardId);
+
+        if (!card) {
+          return;
+        }
+
+        const cardClone = card.htmlNode.cloneNode(true);
+        cardClone.dataset.cardId = cardId;
+        dojo.place(cardClone, tavernSelectionCards);
+        this.applyPickedTavernCardStyle(cardClone, picked.playerId, false);
+      });
+
+      if (tavernSelectionArea) {
+        tavernSelectionArea.style.display = 'block';
+      }
+
+      this.resetTavernConfirmButton();
+    },
+
     hideTavernSelectionModal: function() {
       const tavernSelectionArea = document.getElementById('tavern_selection_area');
       if (tavernSelectionArea) {
         tavernSelectionArea.style.display = 'none';
       }
-      
-      // Clear the selected cards tracking when leaving the state
-      this.selectedTavernCards = [];
+
+      this.pendingTavernCardId = null;
+      this.resetTavernConfirmButton();
     },
 
-    // Handle tavern card updates - remove selected cards from uiItems
-    notif_tavernCardsUpdated: function(notif) {
-      // Remove selected cards from uiItems
-      this.selectedTavernCards.forEach(cardId => {
-        const cardUiItem = this.uiItems.getByUiType("tavern_card").find(item => item.data.id === cardId);
-        if (cardUiItem && cardUiItem.htmlNode) {
-          cardUiItem.htmlNode.remove();
-        }
-      });
-    },
-
-    // Handle tavern display updates from server
-    
-    // Handle tavern card click for selection
     handleTavernCardClick: function(event, card) {
       const cardId = card.data.id;
       const cardElement = event.currentTarget;
-      
-      // Toggle selection
-      if (this.selectedTavernCards.includes(cardId)) {
-        // Deselect the card
-        this.selectedTavernCards = this.selectedTavernCards.filter(id => id !== cardId);
-        dojo.removeClass(cardElement, 'selected');
-        dojo.addClass(cardElement, 'selectable');
-      } else {
-        // Select the card
-        this.selectedTavernCards.push(cardId);
-        dojo.removeClass(cardElement, 'selectable');
-        dojo.addClass(cardElement, 'selected');
-      }
-      
-      // Show/hide confirm button based on selection
-      const confirmButton = document.getElementById('confirm_tavern_selection');
-      if (confirmButton) {
-        confirmButton.style.display = this.selectedTavernCards.length > 0 ? 'block' : 'none';
-      }
-      
-      console.log('Tavern card selection updated:', this.selectedTavernCards);
-      
-      // Don't refresh the display immediately - let the player see their selection
-      // The card will only disappear after they confirm
-    },
-    
-    // Refresh the tavern selection display to show current state
-    refreshTavernSelectionDisplay: function() {
-      console.log("=== REFRESHING TAVERN SELECTION DISPLAY ===");
-      console.log("Current selected cards:", this.selectedTavernCards);
-      
-      // Get the tavern selection cards container
-      const tavernSelectionCards = document.getElementById('tavern_selection_cards');
-      if (!tavernSelectionCards) {
-        console.error("tavern_selection_cards element not found!");
+
+      if (this.isTavernCardPicked(cardId)) {
         return;
       }
-      
-      // Clear the current display
-      while (tavernSelectionCards.firstChild) {
-        tavernSelectionCards.removeChild(tavernSelectionCards.firstChild);
-      }
-      
-      // Get current tavern cards from UI items
-      // These should now exclude the selected cards since the server updated the display
-      const tavernCards = this.uiItems.getByUiType("tavern_card");
-      console.log("Available tavern cards from server:", tavernCards.length);
-      
-      // Check if current player is the active player
-      const currentPlayerId = this.player_id;
+
       const activePlayerId = this.gamedatas.gamestate.active_player;
-      const isActivePlayer = String(currentPlayerId) === String(activePlayerId);
-      
-      // Display all remaining tavern cards (server has already filtered out selected ones)
-      tavernCards.forEach(card => {
-        const cardClone = card.htmlNode.cloneNode(true);
-        dojo.place(cardClone, tavernSelectionCards);
-        
-        if (isActivePlayer) {
-          dojo.addClass(cardClone, 'selectable');
-          cardClone.style.cursor = 'pointer';
-          cardClone.dataset.cardId = card.data.id;
-          
-          // Add click event listener for selection
-          cardClone.addEventListener('click', (e) => this.handleTavernCardClick(e, card));
-        } else {
-          cardClone.style.cursor = 'default';
+      if (String(this.player_id) !== String(activePlayerId)) {
+        return;
+      }
+
+      const container = document.getElementById('tavern_selection_cards');
+      if (!container) {
+        return;
+      }
+
+      container.querySelectorAll('.tavern_card').forEach((el) => {
+        dojo.removeClass(el, 'selected');
+        if (!this.isTavernCardPicked(el.dataset.cardId)) {
+          dojo.addClass(el, 'selectable');
         }
       });
-      
-      console.log("Tavern selection display refreshed with server-filtered cards");
+
+      this.pendingTavernCardId = String(cardId);
+      dojo.removeClass(cardElement, 'selectable');
+      dojo.addClass(cardElement, 'selected');
+      this.resetTavernConfirmButton();
     },
-    
-    // Initialize tavern selection functionality
+
+    refreshTavernSelectionInteractability: function() {
+      const container = document.getElementById('tavern_selection_cards');
+      if (!container) {
+        return;
+      }
+
+      const isActivePlayer =
+        String(this.player_id) === String(this.gamedatas.gamestate.active_player);
+      const tavernCards = this.uiItems.getByUiType("tavern_card");
+      const cardById = {};
+      tavernCards.forEach((card) => {
+        cardById[card.data.id] = card;
+      });
+
+      this.pendingTavernCardId = null;
+      this.resetTavernConfirmButton();
+
+      container.querySelectorAll('.tavern_card').forEach((cardElement) => {
+        const cardId = cardElement.dataset.cardId;
+        const card = cardById[cardId];
+        if (!card || this.isTavernCardPicked(cardId)) {
+          return;
+        }
+
+        const clone = cardElement.cloneNode(true);
+        clone.dataset.cardId = cardId;
+        cardElement.parentNode.replaceChild(clone, cardElement);
+        this.decorateTavernSelectionCard(clone, card, isActivePlayer);
+      });
+    },
+
+    greyOutTavernCard: function(cardId, playerId) {
+      const normalizedId = String(cardId);
+      if (!this.isTavernCardPicked(normalizedId)) {
+        this.pickedTavernCards[normalizedId] = { playerId: playerId };
+      }
+
+      const cardElement = this.getTavernSelectionCardElement(normalizedId);
+      this.applyPickedTavernCardStyle(cardElement, playerId, true);
+    },
+
     initTavernSelection: function() {
-      // Initialize selected tavern cards array
-      this.selectedTavernCards = [];
-      
-      // Initialize flag to prevent tavern card updates during processing
+      this.pickedTavernCards = {};
+      this.pendingTavernCardId = null;
       this.isUpdatingTavernCards = false;
-      
-      // Initialize flag to prevent rapid tavern display updates
-      this.tavernDisplayUpdateInProgress = false;
-      
-      // Add event listeners for modal buttons
+
       const confirmButton = document.getElementById('confirm_tavern_selection');
       const cancelButton = document.getElementById('cancel_tavern_selection');
-      
+
       if (confirmButton) {
         confirmButton.addEventListener('click', () => this.confirmTavernSelection());
       }
-      
+
       if (cancelButton) {
         cancelButton.addEventListener('click', () => this.cancelTavernSelection());
       }
     },
-    
-    // Confirm tavern selection
+
+    cancelTavernSelection: function() {
+      this.pendingTavernCardId = null;
+
+      const container = document.getElementById('tavern_selection_cards');
+      if (container) {
+        container.querySelectorAll('.tavern_card.selected').forEach((el) => {
+          dojo.removeClass(el, 'selected');
+          if (!this.isTavernCardPicked(el.dataset.cardId)) {
+            dojo.addClass(el, 'selectable');
+          }
+        });
+      }
+
+      this.resetTavernConfirmButton();
+    },
+
     confirmTavernSelection: function() {
-      if (this.selectedTavernCards.length === 0) {
-        console.warn('No tavern card selected');
+      if (!this.pendingTavernCardId) {
         return;
       }
-      
-      // Send the selection to the server
-      const selectedCardId = this.selectedTavernCards[0]; // Assuming only one card can be selected
-      console.log('Confirming tavern selection:', selectedCardId);
-      
-      // Disable the confirm button to prevent double-clicks
+
+      this.checkAction("pickTavern");
+
+      const selectedCardId = this.pendingTavernCardId;
       const confirmButton = document.getElementById('confirm_tavern_selection');
       if (confirmButton) {
         confirmButton.disabled = true;
         confirmButton.textContent = 'Processing...';
       }
-      
-      // Call the server action to confirm tavern selection
-      this.ajaxcall('/paladinsshipped/paladinsshipped/pickTavern.html', 
-        { tavern_card_id: selectedCardId }, this, function(result) {
-          console.log('Tavern selection confirmed successfully:', result);
-          // Don't hide the modal here - let the server handle it
-        }, function(is_error) {
-          console.error('Error confirming tavern selection:', is_error);
-          // Re-enable the button on error
+
+      this.ajaxcall(
+        "/paladinsshipped/paladinsshipped/pickTavern.html",
+        {
+          lock: true,
+          tavern_card_id: selectedCardId,
+        },
+        this,
+        function () {},
+        function () {
           if (confirmButton) {
             confirmButton.disabled = false;
             confirmButton.textContent = 'Confirm Selection';
           }
-        });
-      
-      // Don't hide the modal immediately - let the server response handle it
-      // This prevents the flickering issue
+        },
+      );
     },
-    
-    // Cancel tavern selection
-    cancelTavernSelection: function() {
-      console.log('Canceling tavern selection');
-      this.hideTavernSelectionModal();
-    },
-    // Handle tavern selection completion
-    notif_tavernSelectionComplete: function(notif) {
-      console.log('Tavern selection completed:', notif);
-      
-      // Clear the selected cards only when selection is actually completed
-      this.selectedTavernCards = [];
-      console.log('Cleared selected tavern cards after completion');
-      
-      // Hide the tavern selection modal
-      this.hideTavernSelectionModal();
-      
-      // Re-enable the confirm button if it was disabled
-      const confirmButton = document.getElementById('confirm_tavern_selection');
-      if (confirmButton) {
-        confirmButton.disabled = false;
-        confirmButton.textContent = 'Confirm Selection';
-      }
-    },
-    
-    // Update tavern display from server notification
-    notif_tavernDisplayUpdated: function(notif) {
-      console.log("=== TAVERN DISPLAY UPDATED ===");
-      console.log("Notification received:", notif);
-      
-      // Prevent multiple rapid updates
-      if (this.tavernDisplayUpdateInProgress) {
-        console.log("Tavern display update already in progress, skipping");
-        return;
-      }
-      
-      this.tavernDisplayUpdateInProgress = true;
-      
-      try {
-        // Update the client-side tavern display data
-        this.tavern_display = notif.args.tavern_display;
-        
-        // Recreate tavern card UI items with the updated data
-        // createTavernUiItems now handles removing existing cards
-        if (this.tavern_display) {
-          this.createTavernUiItems(this.tavern_display);
+
+    notif_tavernPicked: function(notif) {
+      const cardId = notif.args.tavern_card_id;
+      const playerId = notif.args.player_id;
+      const panel_data = notif.args.panel_data;
+
+      this.greyOutTavernCard(cardId, playerId);
+      this.pendingTavernCardId = null;
+      this.resetTavernConfirmButton();
+      this.refreshTavernSelectionInteractability();
+
+      if (panel_data) {
+        const player_id = String(playerId);
+        this.updatePlayerPanelResources(player_id, panel_data);
+        if (this.gamedatas.player_panels) {
+          this.gamedatas.player_panels[player_id] = panel_data;
         }
-        
-        // After server confirms selection, the tavern_display should now exclude the selected cards
-        // We can clear the selectedTavernCards since the server has processed them
-        console.log("Server updated tavern display, clearing selected cards:", this.selectedTavernCards);
-        this.selectedTavernCards = [];
-        
-        // If the modal is currently visible, refresh it to show the updated state
-        // This will hide the selected cards permanently
-        const tavernSelectionArea = document.getElementById('tavern_selection_area');
-        if (tavernSelectionArea && tavernSelectionArea.style.display === 'block') {
-          console.log("Modal is visible, refreshing to show updated state");
-          this.refreshTavernSelectionDisplay();
-        }
-        
-        console.log("Tavern display update completed successfully");
-      } finally {
-        // Reset the flag after a delay to prevent rapid successive calls
-        setTimeout(() => {
-          this.tavernDisplayUpdateInProgress = false;
-        }, 500);
       }
     },
   });

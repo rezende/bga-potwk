@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paladins — Tavern Card Mapping (approved)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #1f1f1f;
+      color: #eee;
+      margin: 0;
+      padding: 24px;
+    }
+    h1 { margin: 0 0 8px; }
+    p.lead { color: #bbb; max-width: 900px; line-height: 1.5; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 18px;
+      max-width: 1100px;
+      margin-top: 20px;
+    }
+    .card {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-number {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: #f0d090; color: #1a1a1a;
+      font-size: 1.25rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .codes-line { font-size: 0.8rem; color: #888; font-family: monospace; }
+    .tavern-sprite {
+      width: 127px; height: 198px; border-radius: 12px;
+      background-image: url("../img/sprite_tavern.png");
+      background-repeat: no-repeat;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+    }
+    .workers {
+      width: 100%; text-align: center; font-size: 0.82rem; font-weight: 600;
+      text-transform: lowercase; background: rgba(0,0,0,0.55);
+      border-radius: 8px; padding: 8px; line-height: 1.35;
+    }
+    .labourer { color: #f8f9fa; }
+    .scout { color: #3ddc84; }
+    .fighter { color: #ff4d4f; }
+    .merchant { color: #4dabf7; }
+    .cleric { color: #868e96; }
+    .criminal { color: #b197fc; }
+    .sep { color: #666; }
+    .note { margin-top: 20px; color: #f0d090; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Tavern card mapping — approved</h1>
+  <p class="lead">Cards 1–24 match <code>material.inc.php</code>. Card 19 was recorded as <code>r,r,w,w</code> (your line had <code>r,rw,w</code>).</p>
+  <div class="grid" id="grid"></div>
+  <p class="note">Start a new game after deploy for deck cards to use this mapping.</p>
+  <script>
+    const W = 127, H = 198, COLS = 5;
+    const mapping = [
+      "bl,g,w,w", "r,r,g,p", "b,b,g,p", "r,r,p,w", "bl,g,g,p",
+      "r,b,g,p", "b,b,w,w", "b,b,g,g", "bl,bl,r,g", "bl,bl,b,g",
+      "r,r,b,p", "r,g,p,p", "b,b,g,w", "bl,bl,b,w", "r,b,g,g",
+      "r,p,p,w", "bl,w,p,w", "bl,bl,b,b", "r,r,w,w", "bl,bl,bl,r",
+      "bl,bl,r,b", "g,g,g,w", "r,b,p,p", "r,p,w,w",
+    ];
+    const names = {
+      r: ["fighter", "fighter"], b: ["merchant", "merchant"], w: ["labourer", "labourer"],
+      p: ["criminal", "criminal"], bl: ["cleric", "cleric"], g: ["scout", "scout"],
+    };
+    function pos(i) {
+      const c = i % COLS, r = Math.floor(i / COLS);
+      return { x: -(c * W), y: -(r * H) };
+    }
+    function render(codes) {
+      return codes.split(",").map((c, i) => {
+        const [label, cls] = names[c.trim()];
+        return (i ? '<span class="sep">, </span>' : "") + `<span class="${cls}">${label}</span>`;
+      }).join("");
+    }
+    const grid = document.getElementById("grid");
+    mapping.forEach((codes, i) => {
+      const n = i + 1, p = pos(i);
+      const el = document.createElement("article");
+      el.className = "card";
+      el.innerHTML = `
+        <div class="card-number">${n}</div>
+        <div class="codes-line">${codes}</div>
+        <div class="tavern-sprite" style="background-position:${p.x}px ${p.y}px"></div>
+        <div class="workers">${render(codes)}</div>`;
+      grid.appendChild(el);
+    });
+  </script>
+</body>
+</html>
