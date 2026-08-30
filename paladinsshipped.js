@@ -490,7 +490,7 @@ define([
         return;
       }
 
-      const validViews = ["full", "left"];
+      const validViews = ["full", "left", "right"];
       if (!validViews.includes(view)) {
         view = "full";
       }
@@ -498,6 +498,7 @@ define([
       board.classList.remove(
         "board-view-full",
         "board-view-left",
+        "board-view-right",
       );
       board.classList.add("board-view-" + view);
 
@@ -513,7 +514,7 @@ define([
       if (this.zoomManager) {
         if (this.zoomManager.settings.autoZoom) {
           this.zoomManager.settings.autoZoom.expectedWidth =
-            view === "left" ? 1480 : 1552;
+            view === "full" ? 1552 : 1480;
         }
         this.zoomManager.zoomOrDimensionChanged();
         if (this.zoomManager.settings.autoZoom) {

@@ -98,6 +98,7 @@
     <div id="boardViewControls" class="board-view-controls">
       <button type="button" class="board-view-btn" data-board-view="left" title="Left side">Left</button>
       <button type="button" class="board-view-btn active" data-board-view="full" title="Entire board">Full</button>
+      <button type="button" class="board-view-btn" data-board-view="right" title="Right side">Right</button>
     </div>
     <!-- mainBoardContainer contains the main board -->
     <div id="board" class="map-only-view board-view-full">

@@ -181,7 +181,8 @@
   color: #fff;
 }
 
-#board.board-view-left {
+#board.board-view-left,
+#board.board-view-right {
   --board-piece-scale: 2;
 }
 
@@ -194,7 +195,13 @@
   padding-bottom: 20px;
 }
 
-#board.board-view-left #boardMapsRow {
+#board.board-view-right.map-only-view {
+  padding-top: calc(36px + var(--display-suspicion-debt-height) * var(--board-piece-scale));
+  padding-bottom: calc(20px + var(--display-card-height) * var(--board-piece-scale));
+}
+
+#board.board-view-left #boardMapsRow,
+#board.board-view-right #boardMapsRow {
   width: var(--board-piece-width);
   overflow-x: clip;
   overflow-y: visible;
@@ -204,11 +211,22 @@
   display: none;
 }
 
+#board.board-view-right #boardLeft {
+  display: none;
+}
+
 #board.board-view-left #outsider_cards,
 #board.board-view-left #tax_supply,
 #board.board-view-left #debt_pile,
 #board.board-view-left #suspicion_deck,
 #board.board-view-left #suspicion_discard {
+  display: none !important;
+}
+
+#board.board-view-right #townsfolk_cards,
+#board.board-view-right #kingsorder_cards,
+#board.board-view-right #kingsfavour_cards,
+#board.board-view-right #wall_deck {
   display: none !important;
 }
 
@@ -244,6 +262,11 @@
   pointer-events: none;
   z-index: 5;
   overflow: visible;
+}
+
+#board.map-only-view.board-view-right #boardMapOverlay {
+  transform: scale(var(--board-piece-scale))
+    translateX(calc(var(--board-full-native-width) / -2));
 }
 
 #board.map-only-view #boardMapOverlay > * {
