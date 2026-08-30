@@ -430,83 +430,71 @@
   height: 113px;
 }
 
-/* Townsfolk — bottom touches board top (y=0), grows upward */
+/* Townsfolk — bottom of slot on board top (y=0), grows upward */
+#board.map-only-view [id^="townsfolk_spot_"] {
+  height: 122px;
+  top: -122px;
+}
+
 #board.map-only-view #townsfolk_spot_0 {
   left: 19px;
-  top: -122px;
   width: 88px;
-  height: 122px;
 }
 
 #board.map-only-view #townsfolk_spot_1 {
   left: 140px;
-  top: -122px;
   width: 88px;
-  height: 119px;
 }
 
 #board.map-only-view #townsfolk_spot_2 {
   left: 261px;
-  top: -124px;
   width: 88px;
-  height: 122px;
 }
 
 #board.map-only-view #townsfolk_spot_3 {
   left: 380px;
-  top: -120px;
   width: 88px;
-  height: 118px;
 }
 
 #board.map-only-view #townsfolk_spot_4 {
   left: 498px;
-  top: -119px;
   width: 88px;
-  height: 116px;
 }
 
-/* Outsiders — top touches board bottom, grows downward */
+/* Outsiders — top of slot on board bottom (y=180), grows downward */
+#board.map-only-view [id^="outsider_spot_"] {
+  top: 180px;
+  height: 108px;
+}
+
 #board.map-only-view #outsider_spot_0 {
   left: 752px;
-  top: 183px;
   width: 88px;
-  height: 106px;
 }
 
 #board.map-only-view #outsider_spot_1 {
   left: 873px;
-  top: 182px;
   width: 88px;
-  height: 107px;
 }
 
 #board.map-only-view #outsider_spot_2 {
   left: 996px;
-  top: 181px;
   width: 88px;
-  height: 97px;
 }
 
 #board.map-only-view #outsider_spot_3 {
   left: 1118px;
-  top: 180px;
   width: 88px;
-  height: 107px;
 }
 
 #board.map-only-view #outsider_spot_4 {
   left: 1235px;
-  top: 184px;
   width: 88px;
-  height: 108px;
 }
 
 #board.map-only-view #outsider_spot_5 {
   left: 1361px;
-  top: 181px;
   width: 88px;
-  height: 112px;
 }
 
 /* Debt pile, suspicion deck & discard — grow upward from board top */
