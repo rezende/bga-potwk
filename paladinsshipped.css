@@ -88,28 +88,182 @@
   padding: 5px;
   background-color: rgba(255, 255, 255, 0.3);
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   justify-content: center;
+  /* Right board pieces: native 734x180, displayed at 1109x272 */
+  --board-piece-scale: 1.511111111;
+  --board-piece-width: 1109px;
+  --board-piece-height: 272px;
+  /* Left board: native 1631x200, same display height as right pieces */
+  --board-left-native-width: 1631px;
+  --board-left-native-height: 200px;
+  --board-left-scale: 1.36;
+  --board-left-width: calc(var(--board-left-native-width) * var(--board-left-scale));
+}
+
+#board.map-only-view {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: transparent;
+}
+
+#board.map-only-view #boardLeft,
+#board.map-only-view #boardRightColumn {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+#board.map-only-view #boardLeft {
+  /* Map-only: show the outsider/invader strip (left bottom-row map), not mainboard.png */
+  width: var(--board-piece-width);
+  height: var(--board-piece-height);
+  background-image: url("img/main_board_1.png");
+  background-size: var(--board-piece-width) var(--board-piece-height);
+}
+
+#board.map-only-view #boardLeftOverlay {
+  display: none !important;
+}
+
+#board.map-only-view #boardBottomRight {
+  display: none;
+}
+
+/* Map-only: hide board overlays (kings cards hidden for now) */
+#board.map-only-view #townsfolk_cards,
+#board.map-only-view #wall_deck,
+#board.map-only-view #kingsorder_cards,
+#board.map-only-view #kingsfavour_cards,
+#board.map-only-view #boardRight > *,
+#board.map-only-view #boardBottomRight > * {
+  display: none !important;
+}
+
+#paladin_selection_area,
+#action_buttons,
+#townsfolkSelection,
+#paladinsSelection,
+#tavernsSelection,
+#tavern_selection_area {
+  display: none !important;
 }
 
 #boardLeft {
   position: relative;
-  width: 1109px; /* Figma size */
-  height: 272px; /* Figma size */
-  background-image: url("img/main_board_1.png");
-  background-size: 1109px 272px;
-  margin-top: 243px; /* Changed margin for original board */
-  margin-bottom: 167px; /* Original margins */
+  width: var(--board-left-width);
+  height: var(--board-piece-height);
+  background-image: url("img/mainboard.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: left top;
+  margin-top: 243px;
+  margin-bottom: 167px;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
-/* #boardRight {
+/* Overlay coordinates are in native mainboard.png space (1631x200) */
+#boardLeftOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--board-left-native-width);
+  height: var(--board-left-native-height);
+  transform: scale(var(--board-left-scale));
+  transform-origin: top left;
+}
+
+#boardRightColumn {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  margin-top: 243px;
+  margin-bottom: 167px;
+}
+
+/* Commission board — right half of the bottom row (main_board_2) */
+#boardRight {
   position: relative;
-  width: 734px;
-  height: 180px;
+  width: var(--board-piece-width);
+  height: var(--board-piece-height);
   background-image: url("img/main_board_2.png");
-  background-size: 734px 180px;
-} */
+  background-size: var(--board-piece-width) var(--board-piece-height);
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}
+
+/* Outsider strip — below the commission board on the right */
+#boardBottomRight {
+  position: relative;
+  width: var(--board-piece-width);
+  height: var(--board-piece-height);
+  background-image: url("img/main_board_1.png");
+  background-size: var(--board-piece-width) var(--board-piece-height);
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}
+
+#main_board_regions {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 144px;
+  display: flex;
+}
+
+.main_board_region {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 3px;
+  padding-top: 6px;
+}
+
+.board_position_spot {
+  width: 42px;
+  height: 42px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.board_position_spot.selectable {
+  cursor: pointer;
+  box-shadow: 0 0 0 2px cyan;
+  border-radius: 3px;
+}
+
+.board_position_spot.selected {
+  box-shadow: 0 0 0 2px #4caf50;
+  border-radius: 3px;
+}
+
+.main_board_piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 158px;
+  height: 155px;
+  background-image: url("img/sprite_wooden_components.png");
+  background-repeat: no-repeat;
+  transform: scale(0.27);
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.main_board_piece.commission {
+  background-position: -792px -430px;
+}
+
+.main_board_piece.garrison {
+  background-position: -975px -430px;
+}
 
 #playersBoardContainer {
   width: 100%;
@@ -342,25 +496,27 @@
 }
 
 .kingsorder_card {
-  min-width: 127px;
-  min-height: 198px;
-  border-radius: 15px;
-  background: url("img/sprite_kingsorders.png");
+  width: 127px;
+  height: 198px;
+  background-image: url("img/sprite_kingsorders.png");
+  background-color: transparent;
+  background-repeat: no-repeat;
   transform-origin: 0px 0px;
 }
 
 .kingsfavour_card {
-  min-width: 127px;
-  min-height: 198px;
-  border-radius: 15px;
-  background: url("img/sprite_kingsfavours.png");
+  width: 127px;
+  height: 198px;
+  background-image: url("img/sprite_kingsfavours.png");
+  background-color: transparent;
+  background-repeat: no-repeat;
   transform-origin: 0px 0px;
 }
 
 #wall_deck {
   position: absolute;
-  top: -160px; 
-  left: 986px;
+  top: -118px;
+  left: 1451px;
 }
 
 #wall_deck .wall_card {
@@ -374,20 +530,19 @@
 
 #townsfolk_cards {
   position: absolute;
-  /* TODO: Replace with actual Figma coordinates */
-  left: 27px; /* Figma coordinate - replace with actual value */
-  top: 0px; /* Figma coordinate - replace with actual value */
-  width: 690px; /* Figma coordinate - replace with actual value */
+  left: 40px;
+  top: 0px;
+  width: 1015px;
   display: flex;
-  gap: 40px; /* Increased gap between cards */
+  gap: 59px;
   align-items: flex-start;
 }
 
 /* Individual spots for townsfolk cards */
 .townsfolk_spot {
-  flex: 0 0 auto; /* Don't grow, don't shrink, auto basis */
-  width: 80px; /* Increased width for each spot */
-  height: 84px; /* 145px * 0.58 - matches the scaled visual size */
+  flex: 0 0 auto;
+  width: 118px;
+  height: 62px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -395,32 +550,32 @@
 
 #townsfolk_spot_0 {
   position: absolute;
-  left: 50px;
-  top: -210px;
+  left: 74px;
+  top: -154px;
 }
 
 #townsfolk_spot_1 {
   position: absolute;
-  left: 230px;
-  top: -210px;
+  left: 338px;
+  top: -154px;
 }
 
 #townsfolk_spot_2 {
   position: absolute;
-  left: 410px;
-  top: -210px;
+  left: 603px;
+  top: -154px;
 }
 
 #townsfolk_spot_3 {
   position: absolute;
-  left: 590px;
-  top: -210px;
+  left: 868px;
+  top: -154px;
 }
 
 #townsfolk_spot_4 {
   position: absolute;
-  left: 770px;
-  top: -210px;
+  left: 1133px;
+  top: -154px;
 }
 
 /* Individual spot positioning is now handled by flexbox */
@@ -445,106 +600,98 @@
 
 #kingsorder_cards {
   position: absolute;
-  /* Figma coordinates from CSV */
-  left: 20px; /* -488 - (-508) = 20px */
-  top: 69px; /* -48 - (-117) = 69px */
-  width: 321px; /* 3 cards * 107px width */
-  /* Removed flexbox since individual spots are absolutely positioned */
+  left: 29px;
+  top: 51px;
+  width: 472px;
+  z-index: 5;
 }
 
 #kingsorder_cards .kingsorder_card {
   transform: scale(0.85);
   transform-origin: top left;
-  margin-right: -52px;
-  margin-bottom: -108px;
+  margin-right: -77px;
+  margin-bottom: -79px;
   position: relative;
 }
 
-/* Individual kings order spot positioning from CSV */
+/* Individual kings order spot positioning (native mainboard coords) */
 #kingsorder_spot_0 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 0px; /* -488 - (-508) = 20px, but container is at 20px */
+  width: 158px;
+  height: 126px;
+  left: 0px;
   top: 0px;
-  /* Debug: make spots visible */
-  background-color: rgba(255, 0, 0, 0.1);
 }
 
 #kingsorder_spot_1 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 136px; /* -352 - (-488) = 136px */
+  width: 158px;
+  height: 126px;
+  left: 200px;
   top: 0px;
-  /* Debug: make spots visible */
-  background-color: rgba(255, 0, 0, 0.1);
 }
 
 #kingsorder_spot_2 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 272px; /* -216 - (-488) = 272px */
+  width: 158px;
+  height: 126px;
+  left: 400px;
   top: 0px;
-  /* Debug: make spots visible */
-  background-color: rgba(255, 0, 0, 0.1);
 }
 
 #kingsfavour_cards {
   position: absolute;
-  /* Figma coordinates from CSV */
-  left: 428px; /* -80 - (-508) = 428px */
-  top: 69px; /* -48 - (-117) = 69px */
-  width: 749px; /* 7 cards * 107px width */
-  /* Removed flexbox since individual spots are absolutely positioned */
+  left: 630px;
+  top: 51px;
+  width: 1102px;
+  z-index: 5;
 }
 
 #kingsfavour_cards .kingsfavour_card {
   transform: scale(0.85);
   transform-origin: top left;
-  margin-right: -52px;
+  margin-right: -77px;
   position: relative;
 }
 
-/* Individual kings favour spot positioning from CSV */
+/* Individual kings favour spot positioning (native mainboard coords) */
 #kingsfavour_spot_0 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 0px; /* -80 - (-80) = 0px */
+  width: 158px;
+  height: 126px;
+  left: 0px;
   top: 0px;
 }
 
 #kingsfavour_spot_1 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 147px; /* 67 - (-80) = 147px */
+  width: 158px;
+  height: 126px;
+  left: 216px;
   top: 0px;
 }
 
 #kingsfavour_spot_2 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 283px; /* 203 - (-80) = 283px */
+  width: 158px;
+  height: 126px;
+  left: 417px;
   top: 0px;
 }
 
 #kingsfavour_spot_3 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 419px; /* 339 - (-80) = 419px */
+  width: 158px;
+  height: 126px;
+  left: 617px;
   top: 0px;
 }
 
 #kingsfavour_spot_4 {
   position: absolute;
-  width: 107px; /* From CSV */
-  height: 171px; /* From CSV */
-  left: 555px; /* 475 - (-80) = 555px */
+  width: 158px;
+  height: 126px;
+  left: 817px;
   top: 0px;
 }
 
@@ -564,13 +711,14 @@
 /*mainboard bottom start*/
 
 .outsider {
-  min-width: 160px;
-  height: 130px;
-  min-height: 250px;
+  width: 94px;
+  height: 145px;
   border-radius: 15px;
   background: url("img/sprite_outsiders.png");
   background-color: white;
-  transform-origin: 0px 0px;
+  background-repeat: no-repeat;
+  transform: scale(0.8);
+  transform-origin: top center;
 }
 
 .outsider_box {
@@ -579,8 +727,48 @@
 }
 
 #outsider_cards {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  width: 100%;
+  height: 220px;
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 36px;
+  box-sizing: border-box;
+}
+
+.outsider_spot {
+  width: 75px;
+  height: 116px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+#outsider_cards .outsider {
+  width: 94px;
+  height: 145px;
+  transform: scale(0.8);
+  transform-origin: top center;
+  position: relative;
+  background-repeat: no-repeat;
+}
+
+#outsider_deck {
+  position: absolute;
+  top: 28px;
+  right: 8px;
+  width: 47px;
+  height: 72px;
+  background: url("img/sprite_outsiders.png") 0 0;
+  background-repeat: no-repeat;
+  transform: scale(0.8);
+  transform-origin: top left;
+  border-radius: 4px;
 }
 
 /*mainboard bottom end*/

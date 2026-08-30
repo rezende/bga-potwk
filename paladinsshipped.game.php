@@ -193,6 +193,7 @@ class PaladinsShipped extends Table
         // TODO: setup the initial game situation here
         $this->createAllDecks();
         // $this->createDefaultGamePieces($players);
+        $this->setupDebugStartingResources(array_keys($players));
         $this->setNextFirstPlayer();
         
         // Initialize tax supply based on player count
@@ -250,6 +251,9 @@ class PaladinsShipped extends Table
         $result['wall_cards'] = $this->deck->getCardsInLocation('wall_hand', $current_player_id);
         $result['kingsorder_display'] = $this->deck->getCardsInLocation('kingsorder_display');
         $result['kingsfavour_display'] = $this->deck->getCardsInLocation('kingsfavour_display');
+        $result['board_positions_material'] = $this->board_positions_material;
+        $result['outsider_material'] = $this->os_cards_material;
+        $result['main_board_positions'] = $this->getMainBoardPositions();
         
         // Add tax supply information
         $result['tax_supply'] = $this->getTaxSupply();
@@ -542,6 +546,26 @@ class PaladinsShipped extends Table
             'players_with_debt' => array_column($players_with_max, 'player_id'),
             'tax_refill' => $refill_amount
         ]);
+    }
+
+    /**
+     * Temporary debug setup: generous starting resources so board actions can be tested.
+     * TODO: replace with real game setup (paladin/tavern rewards, etc.)
+     */
+    private function setupDebugStartingResources(array $player_ids)
+    {
+        foreach ($player_ids as $player_id) {
+            self::DbQuery("UPDATE player SET
+                coin = 10,
+                provision = 10,
+                white_worker = 10,
+                green_worker = 10,
+                blue_worker = 10,
+                red_worker = 10,
+                black_worker = 10,
+                purple_worker = 0
+                WHERE player_id = $player_id");
+        }
     }
 
     public function initializeTaxSupply($player_count)
@@ -906,7 +930,7 @@ class PaladinsShipped extends Table
             'player_id' => $player_id
         ]);
         
-        $this->gamestate->nextState("");
+        $this->gamestate->nextState('end_picking_card');
     }
 
     public function pickPaladins($id_bottom, $id_chosen, $id_top)
@@ -1242,6 +1266,30 @@ class PaladinsShipped extends Table
         // TODO: Implement proper action phase management with multiple active players
         $this->activeNextPlayer();
         $this->gamestate->nextState('nextPlayer');
+    }
+
+    public function stPerformInquisition()
+    {
+        $this->triggerInquisition();
+        $this->gamestate->nextState('');
+    }
+
+    public function stCalculateScores()
+    {
+        $players = self::loadPlayersBasicInfos();
+        foreach ($players as $player_id => $player) {
+            $score = $this->calculatePlayerScore($player_id);
+            self::DbQuery("UPDATE player SET player_score = $score WHERE player_id = $player_id");
+        }
+        $this->gamestate->nextState('endGame');
+    }
+
+    /**
+     * End-game scoring. TODO: implement full rulebook scoring.
+     */
+    private function calculatePlayerScore($player_id)
+    {
+        return 0;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -2536,6 +2584,22 @@ class PaladinsShipped extends Table
         $sql = "SELECT board_positions FROM player WHERE player_id = $player_id";
         $result = self::getUniqueValueFromDb($sql);
         return $result ? json_decode($result, true) : [];
+    }
+
+    public function getMainBoardPositions()
+    {
+        $merged = [];
+        $players = self::loadPlayersBasicInfos();
+        foreach ($players as $player_id => $player) {
+            $positions = $this->getBoardPositions($player_id);
+            foreach ($positions as $index => $type) {
+                $merged[$index] = [
+                    'type' => $type,
+                    'player_id' => $player_id,
+                ];
+            }
+        }
+        return $merged;
     }
 
     // Helper to get positions for a specific piece type

@@ -62,6 +62,7 @@ define([
         fort_piece_uiitem: { cssClass: "fort_piece" },
         fort_mock_piece_uiitem: { cssClass: "fort_mock_piece" },
         monk_piece_uiitem: { cssClass: "monk_piece" },
+        main_board_piece_uiitem: { cssClass: "main_board_piece" },
       };
 
       this.uiItems.itemBackgroundConfig = {
@@ -157,6 +158,12 @@ define([
         if (uiItem.uiType == "monk_piece_uiitem") {
           return { x: -792, y: 430 };
         }
+        if (uiItem.uiType == "main_board_piece_uiitem") {
+          if (uiItem.data.piece_type === "garrison") {
+            return { x: -975, y: 430 };
+          }
+          return { x: -792, y: 430 };
+        }
         if (uiItem.uiType == "fort_piece_uiitem") {
           return { x: -975, y: 430 };
         }
@@ -174,6 +181,12 @@ define([
       };
 
       this.uiItems.setBackgroundUiItem = function (uiItem) {
+        if (uiItem.uiType === "main_board_piece_uiitem") {
+          dojo.removeClass(uiItem.htmlNode, "commission");
+          dojo.removeClass(uiItem.htmlNode, "garrison");
+          dojo.addClass(uiItem.htmlNode, uiItem.data.piece_type);
+          return;
+        }
         const background = this.getBackgroundPositionForUiItem(uiItem);
         dojo.setStyle(
           uiItem.htmlNode,
@@ -332,6 +345,9 @@ define([
         this.onScreenWidthChange();
 
         this.outsider_display = gamedatas.outsider_display;
+        this.outsider_material = gamedatas.outsider_material;
+        this.board_positions_material = gamedatas.board_positions_material;
+        this.main_board_positions = gamedatas.main_board_positions;
         this.townsfolk_display = gamedatas.townsfolk_display;
         this.townsfolk_material = gamedatas.townsfolk_material;
         this.paladin_material = gamedatas.paladin_material;
@@ -344,11 +360,13 @@ define([
         this.kingsfavour_display = gamedatas.kingsfavour_display;
         this.attachFunctionsToUiItems();
         
+        this.setupMainBoardSpots();
         this.createTokens();
-        // this.uiItems.createItems(
-        //   "outsider",
-        //   this.getValuesFromObject(this.outsider_display)
-        // );
+        this.uiItems.createItems(
+          "outsider",
+          this.getValuesFromObject(this.outsider_display)
+        );
+        this.setupMainBoardPieces();
         this.uiItems.createItems(
           "townsfolk_uiitem",
           this.getValuesFromObject(this.townsfolk_display),
@@ -374,6 +392,7 @@ define([
         this.setupActionButtons();
         this.updateActionButtons(); // Ensure action buttons are properly hidden/shown based on initial state
         this.drawUi();
+        this.addOutsiderTooltips();
 
         // Setting up player boards
         for (var player_id in gamedatas.players) {
@@ -712,6 +731,211 @@ define([
       }
     },
 
+    MAIN_BOARD_REGIONS: [
+      { id: 0, spots: [0, 1, 2, 3] },
+      { id: 1, spots: [4, 5, 6, 7, 8, 9, 10] },
+      { id: 2, spots: [11, 12, 13, 14, 15, 16, 17, 18, 19] },
+      { id: 3, spots: [20, 21, 22, 23, 24, 25, 26, 27, 28, 29] },
+      { id: 4, spots: [30, 31, 32, 33, 34, 35, 36] },
+      { id: 5, spots: [37, 38, 39] },
+    ],
+
+    setupMainBoardSpots: function () {
+      const regionsContainer = document.getElementById("main_board_regions");
+      if (!regionsContainer) {
+        return;
+      }
+      regionsContainer.innerHTML = "";
+
+      this.MAIN_BOARD_REGIONS.forEach((region) => {
+        const regionEl = dojo.create("div", {
+          class: "main_board_region",
+          id: "main_board_region_" + region.id,
+        });
+        region.spots.forEach((index) => {
+          const spotEl = dojo.create("div", {
+            class: "board_position_spot",
+            id: "board_position_spot_" + index,
+          });
+          spotEl.dataset.positionIndex = index;
+          dojo.connect(spotEl, "onclick", this, "onClickBoardPositionSpot");
+          dojo.place(spotEl, regionEl);
+        });
+        dojo.place(regionEl, regionsContainer);
+      });
+
+      const outsiderContainer = document.getElementById("outsider_cards");
+      if (outsiderContainer) {
+        outsiderContainer.innerHTML = "";
+        for (let i = 0; i < 6; i++) {
+          dojo.create(
+            "div",
+            { class: "outsider_spot", id: "outsider_spot_" + i },
+            outsiderContainer
+          );
+        }
+      }
+    },
+
+    setupMainBoardPieces: function () {
+      const positions = this.main_board_positions || {};
+      for (const index in positions) {
+        const entry = positions[index];
+        this.createMainBoardPiece(
+          parseInt(index, 10),
+          entry.type,
+          entry.player_id
+        );
+      }
+    },
+
+    createMainBoardPiece: function (positionIndex, pieceType, playerId) {
+      const existing = this.uiItems.filter(
+        (item) =>
+          item.uiType === "main_board_piece_uiitem" &&
+          item.data.position_index === positionIndex
+      );
+      existing.forEach((item) => {
+        if (item.htmlNode && item.htmlNode.parentNode) {
+          item.htmlNode.parentNode.removeChild(item.htmlNode);
+        }
+        const idx = this.uiItems.indexOf(item);
+        if (idx >= 0) {
+          this.uiItems.splice(idx, 1);
+        }
+      });
+
+      const uiItem = this.uiItems.createAndAddItem("main_board_piece_uiitem", {
+        position_index: positionIndex,
+        piece_type: pieceType,
+        player_id: playerId,
+      });
+      this.drawUiItem(uiItem);
+      return uiItem;
+    },
+
+    getMergedMainBoardPositions: function () {
+      const merged = Object.assign({}, this.main_board_positions || {});
+      if (this.gamedatas && this.gamedatas.board_positions) {
+        for (const playerId in this.gamedatas.board_positions) {
+          const playerPositions =
+            this.gamedatas.board_positions[playerId].all_positions || {};
+          for (const index in playerPositions) {
+            merged[index] = {
+              type: playerPositions[index],
+              player_id: playerId,
+            };
+          }
+        }
+      }
+      return merged;
+    },
+
+    refreshMainBoardPieces: function () {
+      this.main_board_positions = this.getMergedMainBoardPositions();
+      const currentPieces = this.uiItems
+        .getByUiType("main_board_piece_uiitem")
+        .slice();
+      currentPieces.forEach((item) => {
+        if (item.htmlNode && item.htmlNode.parentNode) {
+          item.htmlNode.parentNode.removeChild(item.htmlNode);
+        }
+        const idx = this.uiItems.indexOf(item);
+        if (idx >= 0) {
+          this.uiItems.splice(idx, 1);
+        }
+      });
+      this.setupMainBoardPieces();
+    },
+
+    addOutsiderTooltips: function () {
+      const outsiderCards = this.uiItems.getByUiType("outsider");
+      outsiderCards.forEach((card) => {
+        const cardInfo = this.outsider_material[card.data.type_arg];
+        if (!cardInfo) {
+          return;
+        }
+        const tooltip = cardInfo.name;
+        this.addTooltip(card.htmlNode, tooltip, () => tooltip);
+      });
+    },
+
+    onClickBoardPositionSpot: function (evt) {
+      if (this.currentMove !== "selectBoardPosition") {
+        return;
+      }
+      const spot = evt.currentTarget;
+      if (!dojo.hasClass(spot, "selectable")) {
+        return;
+      }
+      const positionIndex = parseInt(spot.dataset.positionIndex, 10);
+      const action =
+        this.pendingBoardAction === "garrison"
+          ? "selectGarrisonPosition"
+          : "selectCommissionPosition";
+      this.ajaxcall(
+        "/paladinsshipped/paladinsshipped/" + action + ".html",
+        {
+          lock: true,
+          board_position_index: positionIndex,
+        },
+        this,
+        function () {},
+        function () {}
+      );
+    },
+
+    setupBoardPositionSelection: function () {
+      const spots = document.querySelectorAll(".board_position_spot");
+      spots.forEach((spot) => dojo.removeClass(spot, "selectable"));
+      spots.forEach((spot) => dojo.removeClass(spot, "selected"));
+
+      const playerId = this.player_id;
+      const boardInfo = this.gamedatas.board_positions[playerId];
+      if (!boardInfo) {
+        return;
+      }
+
+      const availablePositions =
+        this.pendingBoardAction === "garrison"
+          ? boardInfo.available_board_positions_by_strength || []
+          : boardInfo.available_board_positions_by_faith || [];
+
+      availablePositions.forEach((pos) => {
+        const spot = document.getElementById(
+          "board_position_spot_" + pos.index
+        );
+        if (spot) {
+          dojo.addClass(spot, "selectable");
+        }
+      });
+    },
+
+    clearBoardPositionSelection: function () {
+      document.querySelectorAll(".board_position_spot").forEach((spot) => {
+        dojo.removeClass(spot, "selectable");
+        dojo.removeClass(spot, "selected");
+      });
+    },
+
+    updateOutsiderDisplay: function (cards) {
+      const outsiderCards = this.uiItems.getByUiType("outsider");
+      outsiderCards.forEach((card) => {
+        if (card.htmlNode && card.htmlNode.parentNode) {
+          card.htmlNode.parentNode.removeChild(card.htmlNode);
+        }
+        const idx = this.uiItems.indexOf(card);
+        if (idx >= 0) {
+          this.uiItems.splice(idx, 1);
+        }
+      });
+
+      const cardValues = this.getValuesFromObject(cards);
+      this.uiItems.createItems("outsider", cardValues);
+      this.drawUi();
+      this.addOutsiderTooltips();
+    },
+
     createPaladinUiItems: function (cards) {
       console.log("=== CREATE PALADIN UI ITEMS ===");
       console.log("Cards received:", cards);
@@ -902,6 +1126,12 @@ define([
       if (stateName === 'pickTavern') {
         this.showTavernSelectionModal();
       }
+
+      if (stateName === 'selectBoardPosition') {
+        this.setupBoardPositionSelection();
+      } else {
+        this.clearBoardPositionSelection();
+      }
     },
 
     // onLeavingState: this method is called each time we are leaving a game state.
@@ -920,6 +1150,10 @@ define([
             case 'pickTavern':
                 // Hide tavern selection area when leaving this state
                 this.hideTavernSelectionModal();
+                break;
+            case 'selectBoardPosition':
+                this.clearBoardPositionSelection();
+                this.pendingBoardAction = null;
                 break;
         }
     },
@@ -963,6 +1197,8 @@ define([
           } 
         } else if (
           uiItem.uiType == "townsfolk_uiitem" && parentContainer.startsWith("townsfolk_spot_") ||
+          uiItem.uiType == "outsider" && parentContainer.startsWith("outsider_spot_") ||
+          uiItem.uiType == "main_board_piece_uiitem" && parentContainer.startsWith("board_position_spot_") ||
           uiItem.uiType == "kingsorder_card" && parentContainer.startsWith("kingsorder_spot_") ||
           uiItem.uiType == "kingsfavour_card" && parentContainer.startsWith("kingsfavour_spot_") ||
           uiItem.uiType == "absolve_jar_uiitem" && parentContainer.startsWith("absolve_jar_") ||
@@ -985,7 +1221,7 @@ define([
     getParentContainerForUiItem: function (uiItem) {
       var containerName = "";
       if (uiItem.uiType == "outsider") {
-        containerName = "outsider_cards";
+        containerName = "outsider_spot_" + uiItem.data.location_arg;
       }
       if (uiItem.uiType == "townsfolk_uiitem") {
         if (uiItem.data.location == "playerboard_cards") {
@@ -1024,6 +1260,9 @@ define([
       }
       if (uiItem.uiType == "monk_piece_uiitem") {
         containerName = "monk_piece_" + uiItem.data.order_index + "_" + uiItem.data.player_id;
+      }
+      if (uiItem.uiType == "main_board_piece_uiitem") {
+        containerName = "board_position_spot_" + uiItem.data.position_index;
       }
       return containerName;
     },
@@ -1139,6 +1378,9 @@ define([
       
       // Townsfolk slide animation notification
       dojo.subscribe("slideCards", this, "notif_slideCards");
+      dojo.subscribe("setupBoardPositions", this, "notif_setupBoardPositions");
+      dojo.subscribe("commissionPositionSelected", this, "notif_commissionPositionSelected");
+      dojo.subscribe("garrisonPositionSelected", this, "notif_garrisonPositionSelected");
       
       // Tavern card picked notification
       dojo.subscribe("tavernPicked", this, "notif_tavernPicked");
@@ -1211,6 +1453,41 @@ define([
     notif_playerResourcesUpdated: function (notif) {
       const player_id = String(notif.args.player_id);
       const panel_data = notif.args.panel_data;
+      const player_data = notif.args.player_data;
+
+      if (player_id && player_data && this.gamedatas.players && this.gamedatas.players[player_id]) {
+        const resourceFields = [
+          "coin",
+          "provision",
+          "white_worker",
+          "green_worker",
+          "blue_worker",
+          "red_worker",
+          "black_worker",
+          "purple_worker",
+        ];
+        resourceFields.forEach((field) => {
+          if (player_data[field] !== undefined) {
+            this.gamedatas.players[player_id][field] = player_data[field];
+          }
+        });
+      } else if (player_id && panel_data && this.gamedatas.players && this.gamedatas.players[player_id]) {
+        const resourceFields = [
+          "coin",
+          "provision",
+          "white_worker",
+          "green_worker",
+          "blue_worker",
+          "red_worker",
+          "black_worker",
+          "purple_worker",
+        ];
+        resourceFields.forEach((field) => {
+          if (panel_data[field] !== undefined) {
+            this.gamedatas.players[player_id][field] = panel_data[field];
+          }
+        });
+      }
 
       if (player_id && panel_data) {
         this.updatePlayerPanelResources(player_id, panel_data);
@@ -1865,9 +2142,7 @@ define([
     },
 
     notif_commission: function(notif) {
-      
-      // Update UI to show monk commission
-      // Refresh action buttons to update availability
+      this.pendingBoardAction = 'commission';
       this.updateActionButtons();
     },
 
@@ -1879,9 +2154,7 @@ define([
     },
 
     notif_garrison: function(notif) {
-      
-      // Update UI to show outpost placement
-      // Refresh action buttons to update availability
+      this.pendingBoardAction = 'garrison';
       this.updateActionButtons();
     },
 
@@ -1904,28 +2177,6 @@ define([
       // Update UI to show conversion
       // Refresh action buttons to update availability
       this.updateActionButtons();
-    },
-
-    notif_fortify: function(notif) {
-      
-      // Update UI to show fortification
-    },
-
-    notif_garrison: function(notif) {
-      
-      // Update UI to show outpost garrison
-    },
-
-    notif_absolve: function(notif) {
-      // Update UI to show absolution
-    },
-
-    notif_attack: function(notif) {
-      // Update UI to show attack
-    },
-
-    notif_convert: function(notif) {
-      // Update UI to show conversion
     },
 
     notif_kingsFavour: function(notif) {
@@ -2106,43 +2357,63 @@ define([
       }
     },
 
+    buildWorkerCountParams: function(selectedWorkers) {
+      const counts = {
+        white_workers: 0,
+        green_workers: 0,
+        blue_workers: 0,
+        red_workers: 0,
+        black_workers: 0,
+        purple_workers: 0,
+      };
+
+      selectedWorkers.forEach((worker) => {
+        const key = worker.type.replace("_worker", "_workers");
+        if (counts[key] !== undefined) {
+          counts[key]++;
+        }
+      });
+
+      return counts;
+    },
+
     confirmWorkerSelection: function() {
       if (!this.currentAction || this.currentAction.selectedWorkers.length === 0) {
         return;
       }
 
-      // Prepare the action parameters with selected workers
-      const actionParams = { ...this.currentAction.params };
-      
-      // Add worker IDs to the parameters
-      this.currentAction.selectedWorkers.forEach((worker, index) => {
-        actionParams[`worker${index + 1}_id`] = worker.id;
-      });
+      const workerCounts = this.buildWorkerCountParams(this.currentAction.selectedWorkers);
+      const actionParams = { ...this.currentAction.params, ...workerCounts };
 
-      // Submit the action
       this.submitAction(this.currentAction.type, actionParams);
-      
-      // Hide the modal
       this.hideWorkerSelectionModal();
     },
 
     submitAction: function(actionType, params) {
-      // Map action types to their corresponding AJAX calls
+      const workerParams = {
+        white_workers: params.white_workers || 0,
+        green_workers: params.green_workers || 0,
+        blue_workers: params.blue_workers || 0,
+        red_workers: params.red_workers || 0,
+        black_workers: params.black_workers || 0,
+        purple_workers: params.purple_workers || 0,
+      };
+
       const actionMap = {
         'pass': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pass.html', {}, this, function(result) {}, function(is_error) {}),
-        'pray': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pray.html', { action_space: params.action_space }, this, function(result) {}, function(is_error) {}),
-        'recruitDiscard': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitDiscard.html', { worker_id: params.worker1_id, townsfolk_card_id: params.townsfolk_card_id }, this, function(result) {}, function(is_error) {}),
-        'recruitHire': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitHire.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, townsfolk_card_id: params.townsfolk_card_id, use_debt: params.use_debt }, this, function(result) {}, function(is_error) {}),
-        'develop': () => this.ajaxcall('/paladinsshipped/paladinsshipped/develop.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, action_space: params.action_space, workshop_position: params.workshop_position }, this, function(result) {}, function(is_error) {}),
-        'hunt': () => this.ajaxcall('/paladinsshipped/paladinsshipped/hunt.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id }, this, function(result) {}, function(is_error) {}),
-        'trade': () => this.ajaxcall('/paladinsshipped/paladinsshipped/trade.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id }, this, function(result) {}, function(is_error) {}),
-        'conspire': () => this.ajaxcall('/paladinsshipped/paladinsshipped/conspire.html', { worker_id: params.worker1_id }, this, function(result) {}, function(is_error) {}),
-        'commission': () => this.ajaxcall('/paladinsshipped/paladinsshipped/commission.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, board_position: params.board_position }, this, function(result) {}, function(is_error) {}),
-        'fortify': () => this.ajaxcall('/paladinsshipped/paladinsshipped/fortify.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id }, this, function(result) {}, function(is_error) {}),
-        'garrison': () => this.ajaxcall('/paladinsshipped/paladinsshipped/garrison.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, board_position: params.board_position }, this, function(result) {}, function(is_error) {}),
-        'absolve': () => this.ajaxcall('/paladinsshipped/paladinsshipped/absolve.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, jar_position: params.jar_position }, this, function(result) {}, function(is_error) {}),
-        'attack': () => this.ajaxcall('/paladinsshipped/paladinsshipped/attack.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, outsider_card_id: params.outsider_card_id, silver_cost: params.silver_cost }, this, function(result) {}, function(is_error) {}),
-        'convert': () => this.ajaxcall('/paladinsshipped/paladinsshipped/convert.html', { worker1_id: params.worker1_id, worker2_id: params.worker2_id, worker3_id: params.worker3_id, outsider_card_id: params.outsider_card_id }, this, function(result) {}, function(is_error) {}),
+        'pray': () => this.ajaxcall('/paladinsshipped/paladinsshipped/pray.html', { ...workerParams, action_space: params.action_space }, this, function(result) {}, function(is_error) {}),
+        'recruitDiscard': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitDiscard.html', { ...workerParams, townsfolk_card_id: params.townsfolk_card_id }, this, function(result) {}, function(is_error) {}),
+        'recruitHire': () => this.ajaxcall('/paladinsshipped/paladinsshipped/recruitHire.html', { ...workerParams, townsfolk_card_id: params.townsfolk_card_id, use_debt: params.use_debt }, this, function(result) {}, function(is_error) {}),
+        'develop': () => this.ajaxcall('/paladinsshipped/paladinsshipped/develop.html', { ...workerParams, action_space: params.action_space, workshop_position: params.workshop_position }, this, function(result) {}, function(is_error) {}),
+        'hunt': () => this.ajaxcall('/paladinsshipped/paladinsshipped/hunt.html', workerParams, this, function(result) {}, function(is_error) {}),
+        'trade': () => this.ajaxcall('/paladinsshipped/paladinsshipped/trade.html', workerParams, this, function(result) {}, function(is_error) {}),
+        'conspire': () => this.ajaxcall('/paladinsshipped/paladinsshipped/conspire.html', workerParams, this, function(result) {}, function(is_error) {}),
+        'commission': () => this.ajaxcall('/paladinsshipped/paladinsshipped/commission.html', workerParams, this, function(result) {}, function(is_error) {}),
+        'fortify': () => this.ajaxcall('/paladinsshipped/paladinsshipped/fortify.html', workerParams, this, function(result) {}, function(is_error) {}),
+        'garrison': () => this.ajaxcall('/paladinsshipped/paladinsshipped/garrison.html', workerParams, this, function(result) {}, function(is_error) {}),
+        'absolve': () => this.ajaxcall('/paladinsshipped/paladinsshipped/absolve.html', { ...workerParams, jar_position: params.jar_position }, this, function(result) {}, function(is_error) {}),
+        'attack': () => this.ajaxcall('/paladinsshipped/paladinsshipped/attack.html', { ...workerParams, outsider_card_id: params.outsider_card_id, silver_cost: params.silver_cost }, this, function(result) {}, function(is_error) {}),
+        'convert': () => this.ajaxcall('/paladinsshipped/paladinsshipped/convert.html', { ...workerParams, outsider_card_id: params.outsider_card_id }, this, function(result) {}, function(is_error) {}),
         'kingsFavour': () => this.ajaxcall('/paladinsshipped/paladinsshipped/kingsFavour.html', { worker_id: params.worker1_id, kings_favour_id: params.kings_favour_id }, this, function(result) {}, function(is_error) {})
       };
 
@@ -2501,18 +2772,80 @@ define([
       
     },
 
+    notif_setupBoardPositions: function (notif) {
+      const filledPositions = notif.args.filled_positions || {};
+      this.main_board_positions = this.main_board_positions || {};
+      for (const index in filledPositions) {
+        this.main_board_positions[index] = {
+          type: filledPositions[index],
+          player_id: null,
+        };
+      }
+      this.refreshMainBoardPieces();
+    },
+
+    notif_commissionPositionSelected: function (notif) {
+      const positionIndex = notif.args.position_index;
+      this.main_board_positions = this.main_board_positions || {};
+      this.main_board_positions[positionIndex] = {
+        type: "commission",
+        player_id: notif.args.player_id,
+      };
+      if (
+        this.gamedatas.board_positions &&
+        this.gamedatas.board_positions[notif.args.player_id]
+      ) {
+        this.gamedatas.board_positions[notif.args.player_id].all_positions[
+          positionIndex
+        ] = "commission";
+      }
+      this.createMainBoardPiece(
+        positionIndex,
+        "commission",
+        notif.args.player_id
+      );
+      this.clearBoardPositionSelection();
+      this.pendingBoardAction = null;
+      this.updateActionButtons();
+    },
+
+    notif_garrisonPositionSelected: function (notif) {
+      const positionIndex = notif.args.position_index;
+      this.main_board_positions = this.main_board_positions || {};
+      this.main_board_positions[positionIndex] = {
+        type: "garrison",
+        player_id: notif.args.player_id,
+      };
+      if (
+        this.gamedatas.board_positions &&
+        this.gamedatas.board_positions[notif.args.player_id]
+      ) {
+        this.gamedatas.board_positions[notif.args.player_id].all_positions[
+          positionIndex
+        ] = "garrison";
+      }
+      this.createMainBoardPiece(
+        positionIndex,
+        "garrison",
+        notif.args.player_id
+      );
+      this.clearBoardPositionSelection();
+      this.pendingBoardAction = null;
+      this.updateActionButtons();
+    },
+
     notif_slideCards: function(notif) {
-      console.log("=== SLIDE CARDS NOTIFICATION RECEIVED ===");
-      console.log("Full notification:", notif);
-      console.log("Args:", notif.args);
-      console.log("Trigger by:", notif.args.trigger_by);
-      console.log("Cards:", notif.args.cards);
-      
       if (notif.args.trigger_by === 'new_round') {
-        console.log("Triggering townsfolk display slide animation...");
         this.animateTownsfolkDisplaySlide(notif.args.cards);
-      } else {
-        console.log("Not triggering animation - trigger_by is:", notif.args.trigger_by);
+        return;
+      }
+
+      if (notif.args.cards && Object.keys(notif.args.cards).length > 0) {
+        const firstCard = notif.args.cards[Object.keys(notif.args.cards)[0]];
+        if (firstCard && firstCard.type === 'outsider') {
+          this.outsider_display = notif.args.cards;
+          this.updateOutsiderDisplay(notif.args.cards);
+        }
       }
     },
 

@@ -96,8 +96,9 @@
   <!-- boardContainer contains both the player boards and the main board -->
   <div id="boardContainer">
     <!-- mainBoardContainer contains the main board -->
-    <div id="board">
+    <div id="board" class="map-only-view">
       <div id="boardLeft">
+        <div id="boardLeftOverlay">
         <div id="townsfolk_cards">
           <div id="townsfolk_spot_0" class="townsfolk_spot"></div>
           <div id="townsfolk_spot_1" class="townsfolk_spot"></div>
@@ -117,6 +118,16 @@
           <div id="kingsfavour_spot_2"></div>
           <div id="kingsfavour_spot_3"></div>
           <div id="kingsfavour_spot_4"></div>
+        </div>
+        </div>
+      </div>
+      <div id="boardRightColumn">
+        <div id="boardRight">
+          <div id="main_board_regions"></div>
+          <div id="outsider_deck"></div>
+        </div>
+        <div id="boardBottomRight">
+          <div id="outsider_cards"></div>
         </div>
       </div>
     </div>
