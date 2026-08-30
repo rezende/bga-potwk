@@ -87,6 +87,17 @@ class PaladinsShipped extends Table
     public $paladins_cards_material;
     public Deck $deck;
 
+    /** Permanent Faith / Strength / Influence track maximum (0–12). */
+    public const MAX_PERMANENT_ATTRIBUTE = 12;
+
+    /** TEMP DEBUG — remove when done testing Fortify. */
+    private const DEBUG_UNLIMITED_FORTIFY = true;
+    private const DEBUG_STARTING_INFLUENCE = 0;
+    /** TEMP DEBUG — grant on initial townsfolk hire to test attribute milestone VP. */
+    private const DEBUG_INITIAL_TOWNSFOLK_INFLUENCE = 12;
+
+    public const PERMANENT_ATTRIBUTES = ['faith', 'strength', 'influence'];
+
     public const PLAYER_RESOURCES = array(
         'white_worker',
         'green_worker',
@@ -257,6 +268,7 @@ class PaladinsShipped extends Table
             $result['all_players_wall_cards'][$player_id] = $this->getPlayerWallCardsForClient($player_id);
         }
         $result['wall_cards_material'] = $this->wall_cards_material;
+        $result['wall_deck_count'] = intval($this->deck->countCardInLocation('wall_deck'));
         $result['kingsorder_display'] = $this->deck->getCardsInLocation('kingsorder_display');
         $result['kingsfavour_display'] = $this->deck->getCardsInLocation('kingsfavour_display');
         $result['board_positions_material'] = $this->board_positions_material;
@@ -380,8 +392,419 @@ class PaladinsShipped extends Table
         return implode(', ', $parts);
     }
 
+    public function formatWorkersWithArticleForMessage($workers)
+    {
+        $labels = [
+            'white_worker' => clienttranslate('Labourer'),
+            'green_worker' => clienttranslate('Scout'),
+            'blue_worker' => clienttranslate('Merchant'),
+            'red_worker' => clienttranslate('Fighter'),
+            'black_worker' => clienttranslate('Cleric'),
+            'purple_worker' => clienttranslate('Criminal'),
+        ];
+
+        $names = [];
+        foreach ($workers as $worker) {
+            $normalized = $this->normalizeWorkerType($worker);
+            $names[] = $labels[$normalized] ?? $normalized;
+        }
+
+        $count = count($names);
+        if ($count === 0) {
+            return '';
+        }
+        if ($count === 1) {
+            return clienttranslate('a ${worker}', ['worker' => $names[0]]);
+        }
+        if ($count === 2) {
+            return clienttranslate('a ${worker1} and ${worker2}', [
+                'worker1' => $names[0],
+                'worker2' => $names[1],
+            ]);
+        }
+
+        $last = array_pop($names);
+        return clienttranslate('a ${workers} and ${last}', [
+            'workers' => implode(', ', $names),
+            'last' => $last,
+        ]);
+    }
+
+    private function getWorkerLogLabel($worker_type, $count)
+    {
+        $labels = [
+            'white_worker' => [clienttranslate('Labourer'), clienttranslate('Labourers')],
+            'green_worker' => [clienttranslate('Scout'), clienttranslate('Scouts')],
+            'blue_worker' => [clienttranslate('Merchant'), clienttranslate('Merchants')],
+            'red_worker' => [clienttranslate('Fighter'), clienttranslate('Fighters')],
+            'black_worker' => [clienttranslate('Cleric'), clienttranslate('Clerics')],
+            'purple_worker' => [clienttranslate('Criminal'), clienttranslate('Criminals')],
+        ];
+
+        $pair = $labels[$worker_type] ?? [clienttranslate('Worker'), clienttranslate('Workers')];
+        return $count === 1 ? $pair[0] : $pair[1];
+    }
+
+    private function formatWorkerPaymentPartHtml($worker_type, $count)
+    {
+        if ($count <= 0) {
+            return '';
+        }
+
+        $css_class = 'log_worker_' . str_replace('_worker', '', $worker_type);
+        $label = $this->getWorkerLogLabel($worker_type, $count);
+
+        return sprintf(
+            '<span class="log_worker %s">%d %s</span>',
+            $css_class,
+            $count,
+            $label
+        );
+    }
+
+    private function formatProvisionPaymentPartHtml($count)
+    {
+        $count = intval($count);
+        $label = $count === 1
+            ? clienttranslate('provision')
+            : clienttranslate('provisions');
+
+        return sprintf('<span class="log_provision">%d %s</span>', $count, $label);
+    }
+
+    private function formatSilverPaymentPartHtml($count)
+    {
+        $count = intval($count);
+        if ($count <= 0) {
+            return '';
+        }
+
+        $label = $count === 1
+            ? clienttranslate('silver')
+            : clienttranslate('silver');
+
+        return sprintf('<span class="log_silver">%d %s</span>', $count, $label);
+    }
+
+    public function formatActionPaymentForLog($provision_cost, array $workers_used, $silver_cost = 0)
+    {
+        $parts = [];
+        if ($silver_cost > 0) {
+            $parts[] = $this->formatSilverPaymentPartHtml($silver_cost);
+        }
+        if ($provision_cost > 0) {
+            $parts[] = $this->formatProvisionPaymentPartHtml($provision_cost);
+        }
+
+        $used_counts = [];
+        foreach ($workers_used as $worker) {
+            $worker_type = $this->normalizeWorkerType($worker);
+            $used_counts[$worker_type] = ($used_counts[$worker_type] ?? 0) + 1;
+        }
+
+        $worker_order = [
+            'white_worker', 'green_worker', 'blue_worker',
+            'red_worker', 'black_worker', 'purple_worker',
+        ];
+
+        foreach ($worker_order as $worker_type) {
+            $count = intval($used_counts[$worker_type] ?? 0);
+            if ($count > 0) {
+                $parts[] = $this->formatWorkerPaymentPartHtml($worker_type, $count);
+            }
+        }
+
+        return $this->formatNaturalLanguageList($parts);
+    }
+
+    private function formatWorkerCountsForLog(array $worker_counts)
+    {
+        $worker_order = [
+            'white_worker', 'green_worker', 'blue_worker',
+            'red_worker', 'black_worker', 'purple_worker',
+        ];
+        $parts = [];
+
+        foreach ($worker_order as $worker_type) {
+            $count = intval($worker_counts[$worker_type] ?? 0);
+            if ($count > 0) {
+                $parts[] = $this->formatWorkerPaymentPartHtml($worker_type, $count);
+            }
+        }
+
+        return $this->formatNaturalLanguageList($parts);
+    }
+
+    private function getActionSpaceDisplayName($action_space)
+    {
+        $names = [
+            'develop' => clienttranslate('Develop'),
+            'hunt' => clienttranslate('Hunt'),
+            'trade' => clienttranslate('Trade'),
+            'recruit' => clienttranslate('Recruit'),
+            'conspire' => clienttranslate('Conspire'),
+            'commission' => clienttranslate('Commission'),
+            'fortify' => clienttranslate('Fortify'),
+            'garrison' => clienttranslate('Garrison'),
+            'absolve' => clienttranslate('Absolve'),
+            'attack' => clienttranslate('Attack'),
+            'convert' => clienttranslate('Convert'),
+        ];
+
+        return $names[$action_space] ?? $action_space;
+    }
+
+    private function notifyActionPaymentLine($player_name, $player_id, $payment_text)
+    {
+        if ($payment_text === '') {
+            return;
+        }
+
+        self::notifyAllPlayers('actionPayment', clienttranslate('${player_name} sends ${payment}'), [
+            'player_name' => $player_name,
+            'player_id' => $player_id,
+            'payment' => $payment_text,
+        ]);
+    }
+
+    private function notifyActionRewardLine($player_name, $player_id, $reward_text)
+    {
+        if ($reward_text === '') {
+            return;
+        }
+
+        self::notifyAllPlayers('actionReward', clienttranslate('${player_name} gets ${rewards}'), [
+            'player_name' => $player_name,
+            'player_id' => $player_id,
+            'rewards' => $reward_text,
+        ]);
+    }
+
+    private function notifyPassKeptWorkersLine($player_name, $player_id, $kept_workers_text)
+    {
+        if ($kept_workers_text === '') {
+            return;
+        }
+
+        self::notifyAllPlayers('passKeptWorkers', clienttranslate('${player_name} keeps ${workers}'), [
+            'player_name' => $player_name,
+            'player_id' => $player_id,
+            'workers' => $kept_workers_text,
+        ]);
+    }
+
+    private function notifyFortifyMilestoneVpLine($player_name, $player_id, $fortify_count, $milestone_vp)
+    {
+        $templates = [
+            5 => clienttranslate('${player_name} gets +${vp} VP for building their 5th wall'),
+            6 => clienttranslate('${player_name} gets +${vp} VP for building their 6th wall'),
+            7 => clienttranslate('${player_name} gets +${vp} VP for building their 7th wall'),
+        ];
+
+        $fortify_count = intval($fortify_count);
+        if (!isset($templates[$fortify_count]) || intval($milestone_vp) < 1) {
+            return;
+        }
+
+        self::notifyAllPlayers('fortifyMilestoneVp', $templates[$fortify_count], [
+            'player_name' => $player_name,
+            'player_id' => $player_id,
+            'vp' => intval($milestone_vp),
+            'fortify_count' => $fortify_count,
+        ]);
+    }
+
+    private function notifyPlayerAction($notif_type, $action_message, array $state_args, $payment_text = '', $reward_text = '')
+    {
+        $player_name = $state_args['player_name'] ?? self::getCurrentPlayerName();
+        $player_id = $state_args['player_id'] ?? self::getCurrentPlayerId();
+
+        self::notifyAllPlayers($notif_type, $action_message, $state_args);
+        $this->notifyActionPaymentLine($player_name, $player_id, $payment_text);
+        $this->notifyActionRewardLine($player_name, $player_id, $reward_text);
+    }
+
+    private function formatWallRewardForLog($message)
+    {
+        if (strpos($message, '<span') === 0) {
+            return $message;
+        }
+
+        if (preg_match('/^\+(\d+)\s+(.*)$/', $message, $matches)) {
+            return $matches[1] . ' ' . $matches[2];
+        }
+
+        if (strpos($message, '+') === 0) {
+            $reward = substr($message, 1);
+            return $reward !== '' ? ('1 ' . $reward) : '1';
+        }
+
+        return $message;
+    }
+
+    private function formatNaturalLanguageList(array $items)
+    {
+        $items = array_values(array_filter($items, function ($item) {
+            return $item !== '';
+        }));
+        $count = count($items);
+        if ($count === 0) {
+            return '';
+        }
+        if ($count === 1) {
+            return $items[0];
+        }
+        if ($count === 2) {
+            return $items[0] . clienttranslate(' and ') . $items[1];
+        }
+
+        $last = array_pop($items);
+        return implode(', ', $items) . clienttranslate(' and ') . $last;
+    }
+
+    public function formatWallRewardsForLogMessage(array $reward_messages)
+    {
+        $counts = [];
+        $other = [];
+        foreach ($reward_messages as $message) {
+            $formatted = $this->formatWallRewardForLog($message);
+            if (preg_match('/^(\d+)\s+(.*)$/', $formatted, $matches)) {
+                $label = $matches[2];
+                $counts[$label] = ($counts[$label] ?? 0) + intval($matches[1]);
+            } else {
+                $other[] = $formatted;
+            }
+        }
+
+        $parts = [];
+        foreach ($counts as $label => $qty) {
+            $parts[] = $qty . ' ' . $label;
+        }
+        $parts = array_merge($parts, $other);
+
+        return $this->formatNaturalLanguageList($parts);
+    }
+
+    private function grantPlayerVp($player_id, $vp)
+    {
+        $vp = intval($vp);
+        if ($vp <= 0) {
+            return;
+        }
+
+        $this->playerScore->inc($player_id, $vp);
+    }
+
+    private function getFortifyMilestoneVp($fortify_count)
+    {
+        $fortify_count = intval($fortify_count);
+        $milestones = [
+            5 => 1,
+            6 => 2,
+            7 => 3,
+        ];
+
+        return $milestones[$fortify_count] ?? 0;
+    }
+
+    private function getAttributeMilestoneVp($attribute_level)
+    {
+        $milestones = [
+            2 => 1,
+            4 => 2,
+            6 => 3,
+            8 => 3,
+            9 => 2,
+            10 => 2,
+            11 => 3,
+            12 => 4,
+        ];
+
+        return $milestones[intval($attribute_level)] ?? 0;
+    }
+
+    private function getAttributeDisplayName($attribute)
+    {
+        $names = [
+            'faith' => clienttranslate('Faith'),
+            'strength' => clienttranslate('Strength'),
+            'influence' => clienttranslate('Influence'),
+        ];
+
+        return $names[$attribute] ?? $attribute;
+    }
+
+    private function grantAttributeMilestoneVpForLevel($player_id, $attribute, $level)
+    {
+        $milestone_vp = $this->getAttributeMilestoneVp($level);
+        if ($milestone_vp < 1) {
+            return;
+        }
+
+        $this->grantPlayerVp($player_id, $milestone_vp);
+        self::notifyAllPlayers('attributeMilestoneVp', clienttranslate('${player_name} gets +${vp} VP for reaching ${level} ${attribute_name}'), [
+            'player_name' => self::getPlayerNameById($player_id),
+            'player_id' => $player_id,
+            'attribute' => $attribute,
+            'attribute_name' => $this->getAttributeDisplayName($attribute),
+            'level' => intval($level),
+            'vp' => $milestone_vp,
+        ]);
+    }
+
+    /**
+     * Apply a permanent attribute change one track space at a time so every
+     * crossed VP threshold triggers its own award, even on large increases.
+     */
+    private function applyPermanentAttributeChange($player_id, $attribute, $qty)
+    {
+        $current = intval($this->getResourceCount($player_id, $attribute));
+        $target = $this->clampPermanentAttribute($current + intval($qty));
+
+        if ($target === $current) {
+            return;
+        }
+
+        if ($target > $current) {
+            for ($level = $current + 1; $level <= $target; $level++) {
+                self::DbQuery("UPDATE player SET $attribute = $level WHERE player_id = $player_id");
+                $this->grantAttributeMilestoneVpForLevel($player_id, $attribute, $level);
+            }
+            return;
+        }
+
+        self::DbQuery("UPDATE player SET $attribute = $target WHERE player_id = $player_id");
+    }
+
+    private function normalizePlayerResourceColumn($resource)
+    {
+        $map = [
+            RESOURCE_UNPAID_DEBT => 'unpaid_debt',
+            RESOURCE_PAID_DEBT => 'paid_debt',
+            RESOURCE_COIN => 'coin',
+            RESOURCE_PROVISION => 'provision',
+            ATTR_STRENGTH => 'strength',
+            ATTR_FAITH => 'faith',
+            ATTR_INFLUENCE => 'influence',
+        ];
+
+        return $map[$resource] ?? $resource;
+    }
+
+    private function isPermanentAttribute($resource)
+    {
+        return in_array($resource, self::PERMANENT_ATTRIBUTES, true);
+    }
+
+    private function clampPermanentAttribute($value)
+    {
+        return max(0, min(self::MAX_PERMANENT_ATTRIBUTE, intval($value)));
+    }
+
     public function addResource($player_id, $resource, $qty = 1, $notify_resource_update = true)
     {
+        $resource = $this->normalizePlayerResourceColumn($resource);
+
         // Check if the resource exists as a column in the player table
         $valid_resources = [
             'coin', 'provision', 'white_worker', 'green_worker', 'blue_worker', 
@@ -391,25 +814,13 @@ class PaladinsShipped extends Table
         ];
         
         if (in_array($resource, $valid_resources)) {
-            $sql = "UPDATE player SET $resource = $resource + $qty where player_id = $player_id";
-            self::DbQuery($sql);
-            
-            if ($notify_resource_update) {
-                $this->notifyPlayerResourceUpdate($player_id);
+            if ($this->isPermanentAttribute($resource)) {
+                $this->applyPermanentAttributeChange($player_id, $resource, $qty);
+            } else {
+                $sql = "UPDATE player SET $resource = $resource + $qty WHERE player_id = $player_id";
+                self::DbQuery($sql);
             }
-            return;
-        }
-
-        $attribute_map = [
-            ATTR_FAITH => 'faith',
-            ATTR_STRENGTH => 'strength',
-            ATTR_INFLUENCE => 'influence',
-        ];
-        if (isset($attribute_map[$resource])) {
-            $column = $attribute_map[$resource];
-            $sql = "UPDATE player SET $column = $column + $qty WHERE player_id = $player_id";
-            self::DbQuery($sql);
-
+            
             if ($notify_resource_update) {
                 $this->notifyPlayerResourceUpdate($player_id);
             }
@@ -421,21 +832,27 @@ class PaladinsShipped extends Table
 
     public function addWorkersForPlayer($player_id, $workers)
     {
-        // Validate that all workers are valid worker types
         $valid_workers = [
             'white_worker', 'green_worker', 'blue_worker', 
             'red_worker', 'black_worker', 'purple_worker'
         ];
         
-        $updates = [];
+        $worker_counts = array_fill_keys($valid_workers, 0);
         $criminal_count = 0;
         foreach ($workers as $worker) {
             $worker = $this->normalizeWorkerType($worker);
             if ($worker === 'purple_worker') {
                 $criminal_count++;
             }
-            if (in_array($worker, $valid_workers)) {
-                $updates[] = "$worker = $worker + 1";
+            if (isset($worker_counts[$worker])) {
+                $worker_counts[$worker]++;
+            }
+        }
+
+        $updates = [];
+        foreach ($worker_counts as $worker => $count) {
+            if ($count > 0) {
+                $updates[] = "$worker = $worker + $count";
             }
         }
         
@@ -612,7 +1029,8 @@ class PaladinsShipped extends Table
         foreach ($player_ids as $player_id) {
             self::DbQuery("UPDATE player SET
                 coin = 10,
-                provision = 10,
+                provision = 13,
+                influence = " . self::DEBUG_STARTING_INFLUENCE . ",
                 white_worker = 10,
                 green_worker = 10,
                 blue_worker = 10,
@@ -882,7 +1300,8 @@ class PaladinsShipped extends Table
                 }
             );
             if ($oldest_card) {
-                $this->deck->moveCard($oldest_card[0]['id'], 'discard');
+                $oldest_card = reset($oldest_card);
+                $this->deck->moveCard($oldest_card['id'], 'discard');
             }
         }
         if ($card_type == CARD_TYPE_OUTSIDER) {
@@ -971,6 +1390,7 @@ class PaladinsShipped extends Table
 
     public function revealTaverns()
     {
+        $this->deck->moveAllCardsInLocation('tavern_display', 'tavern_discard');
         $num_of_players = sizeof(self::loadPlayersBasicInfos());
         return $this->deck->pickCardsForLocation($num_of_players + 1, 'tavern_deck', 'tavern_display');
     }
@@ -1002,6 +1422,12 @@ class PaladinsShipped extends Table
                 $player_id
             );
         }
+
+        // TEMP DEBUG — test attribute milestone VP notifications
+        if (self::DEBUG_INITIAL_TOWNSFOLK_INFLUENCE > 0) {
+            $this->addResource($player_id, ATTR_INFLUENCE, self::DEBUG_INITIAL_TOWNSFOLK_INFLUENCE);
+        }
+
         self::notifyAllPlayers(
             "message",
             clienttranslate('${player_name} hires ${townsfolk_name}'),
@@ -1527,11 +1953,13 @@ class PaladinsShipped extends Table
     }
 
     /**
-     * End-game scoring. TODO: implement full rulebook scoring.
+     * End-game scoring. Live VP is added during play via grantPlayerVp().
      */
     private function calculatePlayerScore($player_id)
     {
-        return 0;
+        return intval(self::getUniqueValueFromDb(
+            "SELECT player_score FROM player WHERE player_id = $player_id"
+        ));
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1562,12 +1990,15 @@ class PaladinsShipped extends Table
         $this->setWorkerCountsForPlayer($player_id, $keep_counts, false);
         $this->markPlayerPassed($player_id);
 
-        self::notifyAllPlayers('pass', clienttranslate('${player_name} passes'), [
-            'player_name' => self::getCurrentPlayerName(),
+        $player_name = self::getCurrentPlayerName();
+        $kept_workers_text = $this->formatWorkerCountsForLog($keep_counts);
+        $this->notifyPlayerAction('pass', clienttranslate('${player_name} passes'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'panel_data' => $this->getPlayerPanelData($player_id),
             'action_space_info' => $this->getActionSpaceInfo($player_id),
         ]);
+        $this->notifyPassKeptWorkersLine($player_name, $player_id, $kept_workers_text);
 
         $this->notifyPlayerResourceUpdate($player_id);
         $this->gamestate->nextState('nextPlayer');
@@ -1753,14 +2184,17 @@ class PaladinsShipped extends Table
         $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
         $this->markActionAsUsed($player_id, 'pray', $ordered_workers);
         $this->clearActionSpace($player_id, $action_space);
-        
-        self::notifyAllPlayers('pray', clienttranslate('${player_name} prays and clears workers from ${action_space}'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $payment_text = $this->formatActionPaymentForLog(0, $ordered_workers, 2);
+        $reward_text = $this->getActionSpaceDisplayName($action_space) . ' ' . clienttranslate('cleared');
+        $this->notifyPlayerAction('pray', clienttranslate('${player_name} uses the Pray action'), [
+            'player_name' => $player_name,
             'action_space' => $action_space,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $payment_text, $reward_text);
 
         $this->notifyPlayerResourceUpdate($player_id);
         
@@ -1794,13 +2228,14 @@ class PaladinsShipped extends Table
         $this->markActionAsUsed($player_id, 'recruit', $ordered_workers);
         
         // TODO: Implement discard logic
-        
-        self::notifyAllPlayers('recruitDiscard', clienttranslate('${player_name} discards a townsfolk'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction('recruitDiscard', clienttranslate('${player_name} uses the Recruit action (discard)'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $this->formatActionPaymentForLog(0, $ordered_workers));
 
         $this->notifyPlayerResourceUpdate($player_id);
         
@@ -1834,13 +2269,14 @@ class PaladinsShipped extends Table
         $this->markActionAsUsed($player_id, 'recruit', $ordered_workers);
         
         // TODO: Implement hiring logic
-        
-        self::notifyAllPlayers('recruitHire', clienttranslate('${player_name} hires a townsfolk'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction('recruitHire', clienttranslate('${player_name} uses the Recruit action (hire)'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $this->formatActionPaymentForLog(0, $ordered_workers));
 
         $this->notifyPlayerResourceUpdate($player_id);
         
@@ -1881,14 +2317,17 @@ class PaladinsShipped extends Table
 
         $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
         $this->markActionAsUsed($player_id, 'develop', $ordered_workers);
-        
-        self::notifyAllPlayers('develop', clienttranslate('${player_name} develops ${action_space}'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $payment_text = $this->formatActionPaymentForLog(0, $ordered_workers, 4);
+        $reward_text = $this->getActionSpaceDisplayName($action_space) . ' ' . clienttranslate('developed');
+        $this->notifyPlayerAction('develop', clienttranslate('${player_name} uses the Develop action'), [
+            'player_name' => $player_name,
             'action_space' => $action_space,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $payment_text, $reward_text);
 
         $this->notifyPlayerResourceUpdate($player_id);
         
@@ -1938,15 +2377,18 @@ class PaladinsShipped extends Table
 
         $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
         $this->markActionAsUsed($player_id, 'hunt', $ordered_workers);
-        
-        self::notifyAllPlayers('hunt', clienttranslate('${player_name} hunts and gains ${provisions} provisions'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $payment_text = $this->formatActionPaymentForLog(0, $ordered_workers);
+        $reward_text = $this->formatProvisionPaymentPartHtml($provisions_gained);
+        $this->notifyPlayerAction('hunt', clienttranslate('${player_name} uses the Hunt action'), [
+            'player_name' => $player_name,
             'provisions' => $provisions_gained,
             'paladin_hunt_bonus' => $paladin_hunt_bonus,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $payment_text, $reward_text);
 
         $this->notifyPlayerResourceUpdate($player_id);
         
@@ -1987,14 +2429,17 @@ class PaladinsShipped extends Table
 
         $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
         $this->markActionAsUsed($player_id, 'trade', $ordered_workers);
-        
-        self::notifyAllPlayers('trade', clienttranslate('${player_name} trades and gains ${silver} silver'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $payment_text = $this->formatActionPaymentForLog(0, $ordered_workers);
+        $reward_text = $this->formatSilverPaymentPartHtml($silver_gained);
+        $this->notifyPlayerAction('trade', clienttranslate('${player_name} uses the Trade action'), [
+            'player_name' => $player_name,
             'silver' => $silver_gained,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $payment_text, $reward_text);
 
         $this->notifyPlayerResourceUpdate($player_id);
         
@@ -2033,38 +2478,45 @@ class PaladinsShipped extends Table
         $this->addResource($player_id, WORKER_PURPLE, 1);
         
         // Mark this action as used and store worker info
-        $this->markActionAsUsed($player_id, 'conspire', $worker_counts);
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'conspire', $ordered_workers);
         
         // Gain suspicion (draw a suspicion card)
         $suspicion_info = $this->addSuspicionCard($player_id);
-        
-        if ($suspicion_info) {
-            $tax_message = '';
-            if ($suspicion_info['tax_given'] > 0) {
-                $tax_message = clienttranslate(' and gains ${tax_given} silver from tax (${tax_amount} available, ${tax_supply} in treasury)');
-            } else if ($suspicion_info['tax_amount'] > 0) {
-                $tax_message = clienttranslate(' but no silver available from tax (${tax_amount} needed, ${tax_supply} in treasury)');
-            }
-            
-            self::notifyAllPlayers('conspire', clienttranslate('${player_name} conspires and gains a criminal and suspicion') . $tax_message, [
-                'player_name' => self::getCurrentPlayerName(),
-                'player_id' => $player_id,
-                'suspicion_card' => $suspicion_info,
-                'tax_given' => $suspicion_info['tax_given'],
-                'tax_amount' => $suspicion_info['tax_amount'],
-                'tax_supply' => $suspicion_info['tax_supply'],
-                'action_space_info' => $this->getActionSpaceInfo($player_id)
-            ]);
 
-            if (!empty($suspicion_info['tax_depleted'])) {
-                $this->handleTaxSupplyDepleted();
-            }
-        } else {
-            self::notifyAllPlayers('conspire', clienttranslate('${player_name} conspires and gains a criminal'), [
-                'player_name' => self::getCurrentPlayerName(),
-                'player_id' => $player_id,
-                'action_space_info' => $this->getActionSpaceInfo($player_id)
-            ]);
+        $player_name = self::getCurrentPlayerName();
+        $payment_text = $this->formatActionPaymentForLog(0, $ordered_workers);
+        $reward_parts = [
+            $this->formatWorkerPaymentPartHtml(WORKER_PURPLE, 1),
+            clienttranslate('1 Suspicion'),
+        ];
+        if ($suspicion_info && $suspicion_info['tax_given'] > 0) {
+            $reward_parts[] = $this->formatSilverPaymentPartHtml($suspicion_info['tax_given']);
+        }
+
+        $state_args = [
+            'player_name' => $player_name,
+            'player_id' => $player_id,
+            'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
+        ];
+        if ($suspicion_info) {
+            $state_args['suspicion_card'] = $suspicion_info;
+            $state_args['tax_given'] = $suspicion_info['tax_given'];
+            $state_args['tax_amount'] = $suspicion_info['tax_amount'];
+            $state_args['tax_supply'] = $suspicion_info['tax_supply'];
+        }
+
+        $this->notifyPlayerAction(
+            'conspire',
+            clienttranslate('${player_name} uses the Conspire action'),
+            $state_args,
+            $payment_text,
+            $this->formatNaturalLanguageList($reward_parts)
+        );
+
+        if ($suspicion_info && !empty($suspicion_info['tax_depleted'])) {
+            $this->handleTaxSupplyDepleted();
         }
         
         $this->gamestate->nextState('nextPlayer');
@@ -2592,50 +3044,78 @@ class PaladinsShipped extends Table
     public function applyWallCardEffect($player_id, $effect, &$applied_messages)
     {
         if ($effect === ATTR_STRENGTH) {
+            if ($this->getResourceCount($player_id, 'strength') >= self::MAX_PERMANENT_ATTRIBUTE) {
+                return false;
+            }
             $this->addResource($player_id, 'strength', 1, false);
             $applied_messages[] = clienttranslate('+1 Strength');
-            return;
+            return true;
+        }
+
+        if ($effect === ATTR_FAITH) {
+            if ($this->getResourceCount($player_id, 'faith') >= self::MAX_PERMANENT_ATTRIBUTE) {
+                return false;
+            }
+            $this->addResource($player_id, 'faith', 1, false);
+            $applied_messages[] = clienttranslate('+1 Faith');
+            return true;
+        }
+
+        if ($effect === ATTR_INFLUENCE) {
+            if ($this->getResourceCount($player_id, 'influence') >= self::MAX_PERMANENT_ATTRIBUTE) {
+                return false;
+            }
+            $this->addResource($player_id, 'influence', 1, false);
+            $applied_messages[] = clienttranslate('+1 Influence');
+            return true;
         }
 
         if ($effect === EFFECT_PAY_DEBT) {
-            if ($this->getResourceCount($player_id, RESOURCE_UNPAID_DEBT) > 0) {
-                $this->addResource($player_id, RESOURCE_UNPAID_DEBT, -1, false);
-                $this->addResource($player_id, RESOURCE_PAID_DEBT, 1, false);
+            if ($this->getResourceCount($player_id, 'unpaid_debt') > 0) {
+                $this->addResource($player_id, 'unpaid_debt', -1, false);
+                $this->addResource($player_id, 'paid_debt', 1, false);
                 $applied_messages[] = clienttranslate('Paid 1 Debt');
+                return true;
             }
-            return;
+            return false;
         }
 
         if ($effect === EFFECT_RMV_SUSPICION) {
             if ($this->removeTopSuspicionForPlayer($player_id)) {
                 $applied_messages[] = clienttranslate('Removed 1 Suspicion');
+                return true;
             }
-            return;
+            return false;
         }
 
         if ($effect === '2_COINS') {
-            $this->addResource($player_id, RESOURCE_COIN, 2, false);
+            $this->addResource($player_id, 'coin', 2, false);
             $applied_messages[] = clienttranslate('+2 Silver');
-            return;
+            return true;
         }
 
-        if (strpos($effect, '_worker') !== false) {
-            $this->addWorkersForPlayer($player_id, [$effect]);
-            $applied_messages[] = sprintf(
-                clienttranslate('+%s'),
-                $this->getWorkerDisplayName($effect)
-            );
+        $worker_type = $this->normalizeWorkerType($effect);
+        if (strpos($worker_type, '_worker') !== false) {
+            $this->addWorkersForPlayer($player_id, [$worker_type]);
+            $applied_messages[] = $this->formatWorkerPaymentPartHtml($worker_type, 1);
+            return true;
         }
+
+        return false;
     }
 
     public function applyWallCardRewards($player_id, $type_arg)
     {
+        $type_arg = intval($type_arg);
         if (!isset($this->wall_cards_material[$type_arg])) {
-            return ['messages' => []];
+            return ['messages' => [], 'vp' => 0];
         }
 
         $card = $this->wall_cards_material[$type_arg];
         $applied_messages = [];
+
+        // Rules: every Wall Card grants at least +1 Strength, plus any printed rewards.
+        $this->applyWallCardEffect($player_id, ATTR_STRENGTH, $applied_messages);
 
         if (isset($card['gain'])) {
             foreach ($card['gain'] as $effect) {
@@ -2644,16 +3124,40 @@ class PaladinsShipped extends Table
         }
 
         if (isset($card['choice'])) {
-            // Simplified: choice wall cards always grant +2 Silver for now.
+            // TODO: let the player pick between the choice options.
             $this->applyWallCardEffect($player_id, '2_COINS', $applied_messages);
         }
 
-        $this->notifyPlayerResourceUpdate($player_id);
+        $wall_vp = intval($card['vp'] ?? 0);
+        if ($wall_vp > 0) {
+            $this->grantPlayerVp($player_id, $wall_vp);
+            $applied_messages[] = sprintf(
+                clienttranslate('+%d VP'),
+                $wall_vp
+            );
+        }
 
         return [
             'messages' => $applied_messages,
-            'vp' => intval($card['vp'] ?? 0),
+            'vp' => $wall_vp,
         ];
+    }
+
+    private function getPlayerWallCardVp($player_id)
+    {
+        $vp = 0;
+        $cards = $this->deck->getCardsInLocation('wall_hand', $player_id);
+        foreach ($cards as $card) {
+            if (!is_array($card)) {
+                continue;
+            }
+            $type_arg = intval($card['type_arg']);
+            if (isset($this->wall_cards_material[$type_arg]['vp'])) {
+                $vp += intval($this->wall_cards_material[$type_arg]['vp']);
+            }
+        }
+
+        return $vp;
     }
 
     public function playerHasActiveGirardPaladin($player_id)
@@ -2670,10 +3174,13 @@ class PaladinsShipped extends Table
 
         return [
             'faith' => $faith_base + $paladin_bonus['faith'],
+            'faith_base' => $faith_base,
             'faith_bonus' => $paladin_bonus['faith'],
             'strength' => $strength_base + $paladin_bonus['strength'],
+            'strength_base' => $strength_base,
             'strength_bonus' => $paladin_bonus['strength'],
             'influence' => $influence_base + $paladin_bonus['influence'],
+            'influence_base' => $influence_base,
             'influence_bonus' => $paladin_bonus['influence'],
             'provision' => intval($this->getResourceCount($player_id, 'provision')),
             'coin' => intval($this->getResourceCount($player_id, 'coin')),
@@ -2747,21 +3254,25 @@ class PaladinsShipped extends Table
         $this->addResource($player_id, RESOURCE_PROVISION, -$provision_cost);
         
         // Mark action as used
-        $this->markActionAsUsed($player_id, 'commission', $worker_counts);
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'commission', $ordered_workers);
         
         // Increment commission count
         $this->addResource($player_id, 'commission_qty', 1);
         
         // Gain +1 Influence
         $this->addResource($player_id, ATTR_INFLUENCE, 1);
-        
-        self::notifyAllPlayers('commission', clienttranslate('${player_name} commissions a monk and gains +1 Influence (cost: ${provision_cost} provision)'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $payment_text = $this->formatActionPaymentForLog($provision_cost, $ordered_workers);
+        $this->notifyPlayerAction('commission', clienttranslate('${player_name} uses the Commission action'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'provision_cost' => $provision_cost,
-            'influence_gained' => 1
-        ]);
+            'influence_gained' => 1,
+            'panel_data' => $this->getPlayerPanelData($player_id),
+        ], $payment_text, clienttranslate('+1 Influence'));
         
         // Transition to board position selection state
         $this->gamestate->nextState('selectBoardPosition');
@@ -2798,14 +3309,22 @@ class PaladinsShipped extends Table
         
         // Handle the bonus
         $bonus_result = $this->handleCommissionBonus($player_id, $bonus);
-        
-        self::notifyAllPlayers('commissionPositionSelected', clienttranslate('${player_name} places monk at position ${position_index} and gains ${bonus}'), [
-            'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id,
-            'position_index' => $board_position_index,
-            'bonus' => $bonus,
-            'bonus_result' => $bonus_result
-        ]);
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction(
+            'commissionPositionSelected',
+            clienttranslate('${player_name} places monk at position ${position_index}'),
+            [
+                'player_name' => $player_name,
+                'player_id' => $player_id,
+                'position_index' => $board_position_index,
+                'bonus' => $bonus,
+                'bonus_result' => $bonus_result,
+                'panel_data' => $this->getPlayerPanelData($player_id),
+            ],
+            '',
+            $bonus_result['message'] ?? ''
+        );
         
         // Check if we need additional game states for certain bonuses
         if ($bonus === 'free_recruit') {
@@ -2907,7 +3426,7 @@ class PaladinsShipped extends Table
         self::checkAction('fortify');
         $player_id = self::getCurrentPlayerId();
         
-        if (!$this->canUseAction($player_id, 'fortify')) {
+        if (!self::DEBUG_UNLIMITED_FORTIFY && !$this->canUseAction($player_id, 'fortify')) {
             throw new BgaUserException(self::_("You have already used the fortify action this round"));
         }
 
@@ -2942,19 +3461,40 @@ class PaladinsShipped extends Table
         $reward_result = $this->applyWallCardRewards($player_id, $wall_card['type_arg']);
         $this->addResource($player_id, 'fortify_qty', 1, false);
 
+        $fortify_count = $this->getFortifyCount($player_id);
+        $milestone_vp = $this->getFortifyMilestoneVp($fortify_count);
+        if ($milestone_vp > 0) {
+            $this->grantPlayerVp($player_id, $milestone_vp);
+        }
+
         $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
-        $this->markActionAsUsed($player_id, 'fortify', $ordered_workers);
-        
-        self::notifyAllPlayers('fortify', clienttranslate('${player_name} fortifies and builds a wall'), [
-            'player_name' => self::getCurrentPlayerName(),
+        if (!self::DEBUG_UNLIMITED_FORTIFY) {
+            $this->markActionAsUsed($player_id, 'fortify', $ordered_workers);
+        }
+
+        $payment_text = $this->formatActionPaymentForLog($provision_cost, $ordered_workers);
+        $rewards_text = $this->formatWallRewardsForLogMessage($reward_result['messages']);
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction('fortify', clienttranslate('${player_name} uses the Fortify action'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
+            'payment' => $payment_text,
+            'rewards' => $rewards_text,
             'wall_card' => $wall_card,
+            'wall_deck_count' => intval($this->deck->countCardInLocation('wall_deck')),
             'wall_slot' => $wall_slot,
             'provision_cost' => $provision_cost,
             'reward_messages' => $reward_result['messages'],
+            'wall_vp' => $reward_result['vp'],
+            'fortify_count' => $fortify_count,
+            'milestone_vp' => $milestone_vp,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $payment_text, $rewards_text);
+        if ($milestone_vp > 0) {
+            $this->notifyFortifyMilestoneVpLine($player_name, $player_id, $fortify_count, $milestone_vp);
+        }
         $this->notifyPlayerResourceUpdate($player_id);
         $this->gamestate->nextState('nextPlayer');
     }
@@ -3034,21 +3574,25 @@ class PaladinsShipped extends Table
         $this->addResource($player_id, RESOURCE_PROVISION, -$provision_cost);
         
         // Mark action as used
-        $this->markActionAsUsed($player_id, 'garrison', $worker_counts);
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'garrison', $ordered_workers);
         
         // Increment garrison count
         $this->addResource($player_id, 'garrison_qty', 1);
         
         // Gain +1 Faith
         $this->addResource($player_id, ATTR_FAITH, 1);
-        
-        self::notifyAllPlayers('garrison', clienttranslate('${player_name} garrisons an outpost and gains +1 Faith (cost: ${provision_cost} provision)'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $payment_text = $this->formatActionPaymentForLog($provision_cost, $ordered_workers);
+        $this->notifyPlayerAction('garrison', clienttranslate('${player_name} uses the Garrison action'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
             'provision_cost' => $provision_cost,
-            'faith_gained' => 1
-        ]);
+            'faith_gained' => 1,
+            'panel_data' => $this->getPlayerPanelData($player_id),
+        ], $payment_text, clienttranslate('+1 Faith'));
         
         // Transition to board position selection state
         $this->gamestate->nextState('selectBoardPosition');
@@ -3085,14 +3629,22 @@ class PaladinsShipped extends Table
         
         // Handle the bonus (same as commission)
         $bonus_result = $this->handleCommissionBonus($player_id, $bonus);
-        
-        self::notifyAllPlayers('garrisonPositionSelected', clienttranslate('${player_name} places outpost at position ${position_index} and gains ${bonus}'), [
-            'player_name' => self::getCurrentPlayerName(),
-            'player_id' => $player_id,
-            'position_index' => $board_position_index,
-            'bonus' => $bonus,
-            'bonus_result' => $bonus_result
-        ]);
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction(
+            'garrisonPositionSelected',
+            clienttranslate('${player_name} places outpost at position ${position_index}'),
+            [
+                'player_name' => $player_name,
+                'player_id' => $player_id,
+                'position_index' => $board_position_index,
+                'bonus' => $bonus,
+                'bonus_result' => $bonus_result,
+                'panel_data' => $this->getPlayerPanelData($player_id),
+            ],
+            '',
+            $bonus_result['message'] ?? ''
+        );
         
         // Check if we need additional game states for certain bonuses
         if ($bonus === 'free_recruit') {
@@ -3146,17 +3698,20 @@ class PaladinsShipped extends Table
         $this->addResource($player_id, RESOURCE_COIN, -2);
         
         // Mark action as used
-        $this->markActionAsUsed($player_id, 'absolve', $worker_counts);
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'absolve', $ordered_workers);
         
         // TODO: Implement absolution logic based on jar position
         // TODO: Add absolve count tracking
-        
-        self::notifyAllPlayers('absolve', clienttranslate('${player_name} absolves'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction('absolve', clienttranslate('${player_name} uses the Absolve action'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
-            'jar_position' => $jar_position
-        ]);
+            'panel_data' => $this->getPlayerPanelData($player_id),
+            'jar_position' => $jar_position,
+        ], $this->formatActionPaymentForLog(0, $ordered_workers, 2));
         $this->gamestate->nextState('nextPlayer');
     }
 
@@ -3206,18 +3761,21 @@ class PaladinsShipped extends Table
         }
         
         // Mark action as used
-        $this->markActionAsUsed($player_id, 'attack', $worker_counts);
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'attack', $ordered_workers);
         
         // TODO: Implement attack logic for outsider card
         // TODO: Add attack count tracking
-        
-        self::notifyAllPlayers('attack', clienttranslate('${player_name} attacks an outsider'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction('attack', clienttranslate('${player_name} uses the Attack action'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
+            'panel_data' => $this->getPlayerPanelData($player_id),
             'outsider_card_id' => $outsider_card_id,
-            'silver_cost' => $silver_cost
-        ]);
+            'silver_cost' => $silver_cost,
+        ], $this->formatActionPaymentForLog(0, $ordered_workers, $silver_cost));
         $this->gamestate->nextState('nextPlayer');
     }
 
@@ -3263,17 +3821,20 @@ class PaladinsShipped extends Table
         $this->addResource($player_id, RESOURCE_COIN, -2);
         
         // Mark action as used
-        $this->markActionAsUsed($player_id, 'convert', $worker_counts);
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $this->markActionAsUsed($player_id, 'convert', $ordered_workers);
         
         // TODO: Implement conversion logic for outsider card
         // TODO: Add convert count tracking
-        
-        self::notifyAllPlayers('convert', clienttranslate('${player_name} converts an outsider'), [
-            'player_name' => self::getCurrentPlayerName(),
+
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction('convert', clienttranslate('${player_name} uses the Convert action'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'action_space_info' => $this->getActionSpaceInfo($player_id),
-            'outsider_card_id' => $outsider_card_id
-        ]);
+            'panel_data' => $this->getPlayerPanelData($player_id),
+            'outsider_card_id' => $outsider_card_id,
+        ], $this->formatActionPaymentForLog(0, $ordered_workers, 2));
         $this->gamestate->nextState('nextPlayer');
     }
 
@@ -3300,14 +3861,16 @@ class PaladinsShipped extends Table
         $this->removeWorkerCountsForPlayer($player_id, $worker_counts);
         $this->markKingsFavourUsed($kings_favour_id);
 
-        self::notifyAllPlayers('kingsFavour', clienttranslate('${player_name} uses a King\'s Favour'), [
-            'player_name' => self::getCurrentPlayerName(),
+        $ordered_workers = $this->buildOrderedActionWorkers($worker_counts, $cost);
+        $player_name = self::getCurrentPlayerName();
+        $this->notifyPlayerAction('kingsFavour', clienttranslate('${player_name} uses a King\'s Favour'), [
+            'player_name' => $player_name,
             'player_id' => $player_id,
             'kings_favour_id' => intval($kings_favour_id),
             'kings_favour_used' => $this->getKingsFavourUsedCardIds(),
             'kings_favour_newly_revealed' => $this->getKingsFavourNewlyRevealedId(),
             'panel_data' => $this->getPlayerPanelData($player_id),
-        ]);
+        ], $this->formatActionPaymentForLog(0, $ordered_workers));
 
         $this->gamestate->nextState('nextPlayer');
     }
@@ -3315,6 +3878,8 @@ class PaladinsShipped extends Table
     // Helper method to get resource count
     private function getResourceCount($player_id, $resource_type)
     {
+        $resource_type = $this->normalizePlayerResourceColumn($resource_type);
+
         // Check if the resource exists as a column in the player table
         $valid_resources = [
             'coin', 'provision', 'white_worker', 'green_worker', 'blue_worker', 

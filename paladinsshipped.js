@@ -788,6 +788,7 @@ define([
         this.wall_cards = gamedatas.wall_cards;
         this.all_players_wall_cards = gamedatas.all_players_wall_cards || {};
         this.wall_cards_material = gamedatas.wall_cards_material || {};
+        this.wall_deck_count = gamedatas.wall_deck_count;
         this.kingsorder_display = gamedatas.kingsorder_display;
         this.kingsfavour_display = gamedatas.kingsfavour_display;
         this.attachFunctionsToUiItems();
@@ -1661,6 +1662,7 @@ define([
     setupWallCards: function () {
       const deckBackground = { type: 'wall', type_arg: 24, location: 'wall_deck' };
       this.uiItems.createAndAddItem("wall_card", deckBackground);
+      this.updateWallDeckCountDisplay(this.wall_deck_count);
 
       if (this.all_players_wall_cards) {
         Object.keys(this.all_players_wall_cards).forEach((playerId) => {
@@ -1728,45 +1730,95 @@ define([
       if (animate !== false) {
         this.animateWallCardToFortSpot(created, playerId, slot);
       } else {
-        this.drawUiItem(created);
+        this.placeWallCardInFortSpot(created, playerId, slot);
       }
     },
 
-    animateWallCardToFortSpot: function (card, playerId, slot) {
-      const deckEl = document.getElementById('wall_deck');
+    placeWallCardInFortSpot: function (card, playerId, slot) {
+      if (!card || !card.htmlNode) {
+        return;
+      }
+
+      playerId = String(playerId);
+      slot = parseInt(slot, 10);
+      if (Number.isNaN(slot)) {
+        return;
+      }
+
+      card.data.location = 'wall_hand';
+      card.data.location_arg = playerId;
+      card.data.location_position = slot;
+
       const targetEl = document.getElementById('fort_piece_' + slot + '_' + playerId);
-      if (!deckEl || !targetEl) {
+      const cardEl = card.htmlNode;
+
+      if (!targetEl) {
         this.drawUiItem(card);
         return;
       }
 
-      dojo.place(card.htmlNode, deckEl);
-      dojo.setStyle(card.htmlNode, 'display', 'block');
-      dojo.setStyle(card.htmlNode, 'position', 'absolute');
-      dojo.setStyle(card.htmlNode, 'top', '0');
-      dojo.setStyle(card.htmlNode, 'left', '0');
-      dojo.setStyle(card.htmlNode, 'transform', 'scale(0.992)');
-      dojo.setStyle(card.htmlNode, 'transform-origin', '0 0');
-      dojo.setStyle(card.htmlNode, 'z-index', '1000');
+      dojo.place(cardEl, targetEl);
+      dojo.setStyle(cardEl, 'display', 'block');
+      dojo.setStyle(cardEl, 'position', 'absolute');
+      dojo.setStyle(cardEl, 'top', '0');
+      dojo.setStyle(cardEl, 'left', '0');
+      dojo.setStyle(cardEl, 'margin', '0');
+      dojo.setStyle(cardEl, 'transform', '');
+      dojo.setStyle(cardEl, 'transition', '');
+      dojo.setStyle(cardEl, 'z-index', '');
+      dojo.setStyle(cardEl, 'pointer-events', '');
+    },
+
+    animateWallCardToFortSpot: function (card, playerId, slot) {
+      playerId = String(playerId);
+      slot = parseInt(slot, 10);
+      const deckEl = document.getElementById('wall_deck');
+      const targetEl = document.getElementById('fort_piece_' + slot + '_' + playerId);
+      if (!deckEl || !targetEl || !card || !card.htmlNode) {
+        this.placeWallCardInFortSpot(card, playerId, slot);
+        return;
+      }
+
+      const cardEl = card.htmlNode;
+      const tempCard = cardEl.cloneNode(true);
+      tempCard.removeAttribute('id');
+      tempCard.removeAttribute('data-uid');
+      dojo.setStyle(cardEl, 'display', 'none');
+      tempCard.style.display = 'block';
+      tempCard.style.position = 'absolute';
+      tempCard.style.zIndex = '10000';
+      tempCard.style.pointerEvents = 'none';
+      tempCard.style.transform = 'scale(0.8)';
+      tempCard.style.transformOrigin = '0 0';
+      tempCard.style.margin = '0';
+      document.body.appendChild(tempCard);
+
+      const sourceEl = deckEl.querySelector('.wall_card') || deckEl;
+      const deckPos = dojo.position(sourceEl);
+      const targetPos = dojo.position(targetEl);
+      if (!deckPos || !targetPos) {
+        tempCard.remove();
+        this.placeWallCardInFortSpot(card, playerId, slot);
+        return;
+      }
+
+      tempCard.style.top = deckPos.y + 'px';
+      tempCard.style.left = deckPos.x + 'px';
 
       requestAnimationFrame(() => {
-        const currentPos = dojo.position(card.htmlNode);
-        const targetPos = dojo.position(targetEl);
-        const deltaX = targetPos.x - currentPos.x;
-        const deltaY = targetPos.y - currentPos.y;
-
-        dojo.setStyle(card.htmlNode, 'transition', 'transform 0.8s ease-out');
-        dojo.setStyle(
-          card.htmlNode,
-          'transform',
-          'translate(' + deltaX + 'px, ' + deltaY + 'px) scale(0.992)',
-        );
-
-        setTimeout(() => {
-          dojo.setStyle(card.htmlNode, 'transition', 'none');
-          dojo.setStyle(card.htmlNode, 'z-index', 'auto');
-          this.drawUiItem(card);
-        }, 800);
+        dojo.animateProperty({
+          node: tempCard,
+          duration: 900,
+          easing: dojo.fx.easing.quadOut,
+          properties: {
+            top: { start: deckPos.y, end: targetPos.y },
+            left: { start: deckPos.x, end: targetPos.x },
+          },
+          onEnd: () => {
+            tempCard.remove();
+            this.placeWallCardInFortSpot(card, playerId, slot);
+          },
+        }).play();
       });
     },
 
@@ -1777,7 +1829,27 @@ define([
       }
     },
 
+    updateWallDeckCountDisplay: function (count) {
+      const el = document.getElementById('wall_deck_count');
+      if (!el) {
+        return;
+      }
+
+      const value = Math.max(0, parseInt(count, 10) || 0);
+      el.textContent = String(value);
+      el.classList.toggle('wall_deck_count_empty', value === 0);
+
+      if (this.gamedatas) {
+        this.gamedatas.wall_deck_count = value;
+      }
+      this.wall_deck_count = value;
+      this.updateActionButtons();
+    },
+
     FORTIFY_INFLUENCE_REQUIREMENTS: [0, 1, 3, 5, 7, 9, 11],
+
+    /** TEMP DEBUG — remove when done testing Fortify. */
+    DEBUG_UNLIMITED_FORTIFY: true,
 
     // Major actions: 3 workers = color A + any + color B (purple wild for A or B).
     MAJOR_ACTION_TYPES: ['commission', 'fortify', 'garrison', 'absolve', 'attack', 'convert'],
@@ -1913,6 +1985,14 @@ define([
 
       if (this.getFortifyCount(playerId) >= 7) {
         return _('You have already built all 7 walls.');
+      }
+
+      const wallDeckRemaining = Math.max(
+        0,
+        parseInt(this.wall_deck_count ?? this.gamedatas?.wall_deck_count, 10) || 0,
+      );
+      if (wallDeckRemaining < 1) {
+        return _('No wall cards remain in the deck.');
       }
 
       const requiredInfluence = this.getFortifyInfluenceRequirement(playerId);
@@ -2156,6 +2236,9 @@ define([
               dojo.setStyle(uiItem.htmlNode, "position", "absolute");
               dojo.setStyle(uiItem.htmlNode, "top", "0");
               dojo.setStyle(uiItem.htmlNode, "left", "0");
+              dojo.setStyle(uiItem.htmlNode, "margin", "0");
+              dojo.setStyle(uiItem.htmlNode, "transform", "");
+              dojo.setStyle(uiItem.htmlNode, "transition", "");
             }
           }
         } 
@@ -2194,8 +2277,9 @@ define([
       if (uiItem.uiType == "wall_card" && uiItem.data.location === "wall_hand") {
         const slot = uiItem.data.location_position !== undefined && uiItem.data.location_position !== null
           ? uiItem.data.location_position
-          : uiItem.data.location_arg;
-        containerName = "fort_piece_" + slot + "_" + uiItem.data.location_arg;
+          : 0;
+        const ownerId = String(uiItem.data.location_arg);
+        containerName = "fort_piece_" + slot + "_" + ownerId;
       }
       if (uiItem.uiType == "kingsorder_card") {
         containerName = "kingsorder_spot_" + uiItem.data.location_arg;
@@ -2360,6 +2444,9 @@ define([
       // Other existing notifications...
       dojo.subscribe("revealTaverns", this, "notif_revealTaverns");
       dojo.subscribe("cleanupTaverns", this, "notif_cleanupTaverns");
+
+      // Player action notifications
+      dojo.subscribe("fortify", this, "notif_fortify");
     },
 
     // TODO: from this point and below, you can write your game notifications handling methods
@@ -2432,6 +2519,12 @@ define([
       dojo.setStyle("tavernsSelection", "display", "none");
       this.pickedTavernCards = {};
       this.pendingTavernCardId = null;
+      this.uiItems.getByUiType("tavern_card").forEach((card) => {
+        if (card.htmlNode) {
+          card.htmlNode.remove();
+        }
+      });
+      this.tavern_display = {};
     },
 
     // Handle player resources updates (coins, provisions, workers, etc.)
@@ -2450,35 +2543,20 @@ define([
           "red_worker",
           "black_worker",
           "purple_worker",
+          "faith",
+          "strength",
+          "influence",
         ];
         resourceFields.forEach((field) => {
           if (player_data[field] !== undefined) {
             this.gamedatas.players[player_id][field] = player_data[field];
           }
         });
-      } else if (player_id && panel_data && this.gamedatas.players && this.gamedatas.players[player_id]) {
-        const resourceFields = [
-          "coin",
-          "provision",
-          "white_worker",
-          "green_worker",
-          "blue_worker",
-          "red_worker",
-          "black_worker",
-          "purple_worker",
-        ];
-        resourceFields.forEach((field) => {
-          if (panel_data[field] !== undefined) {
-            this.gamedatas.players[player_id][field] = panel_data[field];
-          }
-        });
       }
 
       if (player_id && panel_data) {
+        this.syncPlayerResourceDataFromPanel(player_id, panel_data);
         this.updatePlayerPanelResources(player_id, panel_data);
-        if (this.gamedatas.player_panels) {
-          this.gamedatas.player_panels[player_id] = panel_data;
-        }
       } else if (notif.args.all_players) {
         this.updateAllPlayerPanels();
       }
@@ -2957,6 +3035,17 @@ define([
         return;
       }
 
+      const attributeFields = ["faith", "strength", "influence"];
+      attributeFields.forEach((attr) => {
+        const baseKey = `${attr}_base`;
+        if (panelData[baseKey] !== undefined) {
+          this.gamedatas.players[playerId][attr] = panelData[baseKey];
+        } else if (panelData[attr] !== undefined) {
+          const bonus = panelData[`${attr}_bonus`] || 0;
+          this.gamedatas.players[playerId][attr] = panelData[attr] - bonus;
+        }
+      });
+
       [
         'coin',
         'provision',
@@ -2966,11 +3055,17 @@ define([
         'red_worker',
         'black_worker',
         'purple_worker',
+        'unpaid_debt',
+        'paid_debt',
       ].forEach((field) => {
         if (panelData[field] !== undefined) {
           this.gamedatas.players[playerId][field] = panelData[field];
         }
       });
+
+      if (this.gamedatas.player_panels) {
+        this.gamedatas.player_panels[playerId] = panelData;
+      }
     },
 
     setupActionButtons: function(stateName) {
@@ -3095,9 +3190,10 @@ define([
 
         const btn = document.getElementById(`${buttonDef.id}_btn`);
         const isUsed = !!(actionSpaces[buttonDef.actionSpace] && actionSpaces[buttonDef.actionSpace].used);
-        this.setActionButtonUsedState(btn, isUsed, buttonDef.text);
+        const effectivelyUsed = isUsed && !(this.DEBUG_UNLIMITED_FORTIFY && buttonDef.id === 'fortify');
+        this.setActionButtonUsedState(btn, effectivelyUsed, buttonDef.text);
 
-        if (btn && !isUsed) {
+        if (btn && !effectivelyUsed) {
           btn.disabled = false;
           if (buttonDef.id === 'fortify' && !this.canFortify()) {
             btn.disabled = true;
@@ -3199,6 +3295,14 @@ define([
     },
 
     notif_fortify: function(notif) {
+      if (notif.args.wall_card) {
+        if (notif.args.wall_deck_count !== undefined && notif.args.wall_deck_count !== null) {
+          this.updateWallDeckCountDisplay(notif.args.wall_deck_count);
+        } else {
+          const current = parseInt(this.wall_deck_count, 10);
+          this.updateWallDeckCountDisplay(Math.max(0, (Number.isNaN(current) ? 0 : current) - 1));
+        }
+      }
       if (notif.args.wall_card && notif.args.player_id !== undefined) {
         const playerId = String(notif.args.player_id);
         if (this.gamedatas.players?.[playerId]) {
@@ -3218,6 +3322,10 @@ define([
           notif.args.wall_slot,
           true,
         );
+      }
+      if (notif.args.panel_data && notif.args.player_id !== undefined) {
+        this.syncPlayerResourceDataFromPanel(String(notif.args.player_id), notif.args.panel_data);
+        this.updatePlayerPanelResources(String(notif.args.player_id), notif.args.panel_data);
       }
       this.handleActionNotif(notif);
     },
@@ -3548,8 +3656,8 @@ define([
         this.getWorkerRequirements(actionType),
       );
       
-      // Create and show the worker selection modal
-      this.createWorkerSelectionModal(actionType, requirements);
+      // Create and show the worker selection panel in place of action buttons
+      this.createWorkerSelectionPanel(actionType, requirements);
     },
 
     getWorkerRequirements: function(actionType) {
@@ -3632,33 +3740,31 @@ define([
       return `${limits.min}-${limits.max}`;
     },
 
-    createWorkerSelectionModal: function(actionType, requirements) {
-      // Remove existing modal if any
-      const existingModal = document.getElementById('worker_selection_modal');
-      if (existingModal) {
-        existingModal.remove();
+    createWorkerSelectionPanel: function(actionType, requirements) {
+      const actionContainer = document.getElementById('action_buttons');
+      if (!actionContainer) {
+        return;
       }
 
-      // Create modal container
-      const modal = document.createElement('div');
-      modal.id = 'worker_selection_modal';
-      modal.className = 'worker_selection_modal';
-      
-      // Create modal content
-      const modalContent = document.createElement('div');
-      modalContent.className = 'worker_selection_content';
-      
-      // Add header
+      actionContainer.innerHTML = '';
+
+      const panel = document.createElement('div');
+      panel.id = 'worker_selection_panel';
+      panel.className = 'worker_selection_panel';
+
+      const panelContent = document.createElement('div');
+      panelContent.className = 'worker_selection_content';
+
       const header = document.createElement('div');
       header.className = 'worker_selection_header';
       if (actionType === 'pass') {
         header.innerHTML = `<h3>${_('Choose Workers to Keep')}</h3>`;
       } else {
-        header.innerHTML = `<h3>Select Workers for ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}</h3>`;
+        const actionLabel = this.getActionDisplayName(actionType) || actionType;
+        header.innerHTML = `<h3>${dojo.string.substitute(_('Select Workers for ${action}'), { action: actionLabel })}</h3>`;
       }
-      modalContent.appendChild(header);
-      
-      // Add requirements info
+      panelContent.appendChild(header);
+
       const requirementsInfo = document.createElement('div');
       requirementsInfo.className = 'worker_requirements_info';
       if (actionType === 'pass') {
@@ -3682,49 +3788,45 @@ define([
           ${requirements.paladinBonusNote ? `<p class="paladin_bonus_note">${requirements.paladinBonusNote}</p>` : ''}
         `;
       }
-      modalContent.appendChild(requirementsInfo);
+      panelContent.appendChild(requirementsInfo);
 
       if (actionType === 'pray') {
         const prayActionSelection = document.createElement('div');
         prayActionSelection.id = 'pray_action_selection_area';
         prayActionSelection.className = 'pray_action_selection_area';
-        modalContent.appendChild(prayActionSelection);
+        panelContent.appendChild(prayActionSelection);
       }
 
       const validationError = document.createElement('div');
       validationError.id = 'worker_validation_error';
       validationError.className = 'worker_validation_error';
       validationError.style.display = 'none';
-      modalContent.appendChild(validationError);
-      
-      // Add worker selection area
+      panelContent.appendChild(validationError);
+
       const workerSelection = document.createElement('div');
       workerSelection.className = 'worker_selection_area';
       workerSelection.id = 'worker_selection_area';
-      modalContent.appendChild(workerSelection);
-      
-      // Add action buttons
+      panelContent.appendChild(workerSelection);
+
       const actionButtons = document.createElement('div');
       actionButtons.className = 'worker_selection_actions';
-      
+
       const confirmBtn = document.createElement('button');
       confirmBtn.className = 'action_button primary';
       confirmBtn.innerHTML = actionType === 'pass' ? _('Confirm Pass') : _('Confirm Action');
       confirmBtn.onclick = () => this.confirmWorkerSelection();
       actionButtons.appendChild(confirmBtn);
-      
+
       const cancelBtn = document.createElement('button');
       cancelBtn.className = 'action_button secondary';
       cancelBtn.innerHTML = _('Cancel');
-      cancelBtn.onclick = () => this.hideWorkerSelectionModal();
+      cancelBtn.onclick = () => this.hideWorkerSelectionPanel();
       actionButtons.appendChild(cancelBtn);
-      
-      modalContent.appendChild(actionButtons);
-      
-      modal.appendChild(modalContent);
-      document.body.appendChild(modal);
-      
-      // Populate available workers
+
+      panelContent.appendChild(actionButtons);
+      panel.appendChild(panelContent);
+      actionContainer.appendChild(panel);
+      this.showActionButtonsArea();
       this.populateAvailableWorkers();
     },
 
@@ -3926,7 +4028,7 @@ define([
     },
 
     updateConfirmButtonState: function() {
-      const confirmBtn = document.querySelector('#worker_selection_modal .action_button.primary');
+      const confirmBtn = document.querySelector('#worker_selection_panel .action_button.primary');
       if (!confirmBtn || !this.currentAction) return;
 
       const limits = this.getWorkerRequirementLimits(this.currentAction.type);
@@ -4021,7 +4123,7 @@ define([
         this.clearWorkerValidationError();
         const workerCounts = this.buildWorkerCountParams(this.currentAction.selectedWorkerCounts);
         this.submitAction('pass', workerCounts);
-        this.hideWorkerSelectionModal();
+        this.hideWorkerSelectionPanel();
         return;
       }
 
@@ -4059,7 +4161,7 @@ define([
       const actionParams = { ...this.currentAction.params, ...workerCounts };
 
       this.submitAction(this.currentAction.type, actionParams);
-      this.hideWorkerSelectionModal();
+      this.hideWorkerSelectionPanel();
     },
 
     submitAction: function(actionType, params) {
@@ -4096,12 +4198,9 @@ define([
       }
     },
 
-    hideWorkerSelectionModal: function() {
-      const modal = document.getElementById('worker_selection_modal');
-      if (modal) {
-        modal.remove();
-      }
+    hideWorkerSelectionPanel: function() {
       this.currentAction = null;
+      this.setupActionButtons();
     },
 
     getActionSpaceSlotCount: function(actionName) {
@@ -4379,11 +4478,13 @@ define([
         const bonusEl = document.getElementById(`panel_bonus_${attr}_${player_id}`);
         const total = panel_data[attr] || 0;
         const bonus = panel_data[`${attr}_bonus`] || 0;
+        const baseKey = `${attr}_base`;
+        const permanent = panel_data[baseKey] !== undefined ? panel_data[baseKey] : total - bonus;
 
         if (valueEl) {
-          valueEl.textContent = total;
+          valueEl.textContent = permanent;
           if (bonus > 0) {
-            valueEl.title = `${total - bonus} base + ${bonus} from paladin`;
+            valueEl.title = `${permanent} permanent + ${bonus} from paladin (= ${total} total)`;
           } else {
             valueEl.removeAttribute("title");
           }
@@ -4703,6 +4804,10 @@ define([
       this.clearBoardPositionSelection();
       this.pendingBoardAction = null;
       this.updateActionButtons();
+      if (notif.args.panel_data && notif.args.player_id !== undefined) {
+        this.syncPlayerResourceDataFromPanel(String(notif.args.player_id), notif.args.panel_data);
+        this.updatePlayerPanelResources(String(notif.args.player_id), notif.args.panel_data);
+      }
     },
 
     notif_garrisonPositionSelected: function (notif) {
@@ -4728,6 +4833,10 @@ define([
       this.clearBoardPositionSelection();
       this.pendingBoardAction = null;
       this.updateActionButtons();
+      if (notif.args.panel_data && notif.args.player_id !== undefined) {
+        this.syncPlayerResourceDataFromPanel(String(notif.args.player_id), notif.args.panel_data);
+        this.updatePlayerPanelResources(String(notif.args.player_id), notif.args.panel_data);
+      }
     },
 
     notif_slideCards: function(notif) {

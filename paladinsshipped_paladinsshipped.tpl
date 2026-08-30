@@ -118,7 +118,7 @@
             <div id="townsfolk_spot_3" class="townsfolk_spot"></div>
             <div id="townsfolk_spot_4" class="townsfolk_spot"></div>
           </div>
-          <div id="wall_deck"></div>
+          <div id="wall_deck"><div id="wall_deck_count" class="wall_deck_count"></div></div>
           <div id="tax_supply"></div>
           <div id="debt_pile"></div>
           <div id="suspicion_deck"></div>

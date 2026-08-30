@@ -304,6 +304,12 @@
   overflow: visible;
 }
 
+#board.map-only-view #wall_deck .wall_deck_count {
+  font-size: 18px;
+  min-width: 32px;
+  padding: 3px 10px;
+}
+
 #board.map-only-view #wall_deck .wall_card {
   width: 127px;
   height: 198px;
@@ -1031,6 +1037,31 @@
   left: 1451px;
 }
 
+#wall_deck .wall_deck_count {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  z-index: 20;
+  min-width: 28px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #5c4a32;
+  color: #2c2418;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+#wall_deck .wall_deck_count.wall_deck_count_empty {
+  color: #b42318;
+  border-color: #b42318;
+}
+
 #wall_deck .wall_card {
   transform: scale(0.8);
 }
@@ -1612,31 +1643,21 @@
   }
 }
 
-/* Worker Selection Modal */
-.worker_selection_modal {
-  position: fixed;
-  top: 0;
-  left: 0;
+/* Worker selection panel (replaces action buttons during worker pick) */
+.worker_selection_panel {
   width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-  backdrop-filter: blur(3px);
 }
 
-.worker_selection_content {
+#action_buttons .worker_selection_content {
   background: linear-gradient(135deg, #ffffff, #f8f9fa);
-  border-radius: 15px;
-  padding: 30px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(74, 144, 226, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border: 2px solid rgba(74, 144, 226, 0.25);
+  box-sizing: border-box;
 }
 
 .worker_selection_header {
@@ -1904,11 +1925,11 @@
   box-shadow: none;
 }
 
-/* Responsive design for worker selection modal */
+/* Responsive design for worker selection panel */
 @media (max-width: 768px) {
-  .worker_selection_content {
-    padding: 20px;
-    width: 95%;
+  #action_buttons .worker_selection_content {
+    padding: 16px;
+    width: 100%;
   }
   
   .worker_selection_header h3 {
@@ -3152,4 +3173,43 @@
   top: 335px;
   width: 81px;
   height: 21px;
+}
+
+/* Game log — color-coded action costs */
+.log_worker {
+  font-weight: 700;
+}
+
+.log_worker_white {
+  color: #6d6d6d;
+}
+
+.log_worker_green {
+  color: #1b8a3e;
+}
+
+.log_worker_blue {
+  color: #1e6fd9;
+}
+
+.log_worker_red {
+  color: #d32f2f;
+}
+
+.log_worker_black {
+  color: #424242;
+}
+
+.log_worker_purple {
+  color: #8e24aa;
+}
+
+.log_provision {
+  color: #b8860b;
+  font-weight: 700;
+}
+
+.log_silver {
+  color: #708090;
+  font-weight: 700;
 }

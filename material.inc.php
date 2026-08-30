@@ -83,14 +83,13 @@ if (!defined("RESOURCE_COIN")) {
 }
 
 
-// Always give 1 strength
+// Every fortify grants +1 Strength; printed rewards are workers, VP, choices, etc.
 $this->wall_cards_material = [
     ["gain" => [ATTR_STRENGTH]],
     ["gain" => [ATTR_STRENGTH]],
     ["gain" => [WORKER_WHITE], "vp" => 1],
     ["gain" => [WORKER_WHITE], "vp" => 1],
     ["vp" => 2],
-
     ["vp" => 2],
     ["choice" => [EFFECT_PAY_DEBT, "2_COINS"]],
     ["choice" => [EFFECT_PAY_DEBT, "2_COINS"]],

@@ -148,7 +148,7 @@ $machinestates = array(
         "name" => "prepareTaverns",
         "type" => "game",
         "action" => "stGamePickTaverns",
-        "transitions" => array("nextPlayer" => 7, "cleanupTaverns" => 8)
+        "transitions" => array("nextPlayer" => 7, "cleanupTaverns" => 13)
 
     ],
 
