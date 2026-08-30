@@ -107,7 +107,7 @@
   <aside>
     <div>
       <h1>Board slot editor</h1>
-      <p class="hint">Coordinates are <strong>native board pixels</strong> from the top-left of the board image. King's cards go on <code>mainboard.png</code>; outsiders / invaders on the play board.</p>
+      <p class="hint">Coordinates are <strong>board-native pixels</strong> (0,0 = top-left of the map). <code>y</code> can be negative (above the map) or extend below the map bottom for tall cards.</p>
       <p id="loadStatus" class="warn">Loading…</p>
     </div>
 
@@ -127,11 +127,11 @@
         <optgroup label="Card spaces (rectangle)">
           <option value="kingsorder">King's Order — card space</option>
           <option value="kingsfavour">King's Favour — card space</option>
-          <option value="townsfolk">Townsfolk — card space</option>
-          <option value="wall">Wall deck — card space</option>
+          <option value="townsfolk">Townsfolk — card space (can extend above/below map)</option>
+          <option value="outsider">Outsider — card space (can extend above map)</option>
+          <option value="wall">Wall deck — card space (can extend above/below map)</option>
         </optgroup>
         <optgroup label="Card edge lines">
-          <option value="outsider">Outsider — card bottom edge (card above board)</option>
           <option value="invader">Invader — card top edge (card below board)</option>
         </optgroup>
         <option value="custom">Custom rectangle</option>
@@ -179,8 +179,8 @@
 
   <script>
     const IMG_BASE = location.protocol === "file:" ? "../img" : "/img";
-    const PAD_TOP = 150;
-    const PAD_BOTTOM = 150;
+    const PAD_TOP = 200;
+    const PAD_BOTTOM = 200;
 
     const BOARDS = {
       main_board: {
@@ -227,30 +227,32 @@
       townsfolk: {
         shape: "rect",
         color: "#74c0fc",
-        preferredBoard: "mainboard",
+        preferredBoard: "main_board_1",
+        extendVertical: true,
         labelBase: "townsfolk_spot",
-        defaultW: 118,
-        defaultH: 62,
-        hint: "Drag a rectangle for each townsfolk card space.",
+        defaultW: 94,
+        defaultH: 145,
+        hint: "Drag the full townsfolk card area. The rectangle can extend above or below the map into the shaded zones.",
       },
       wall: {
         shape: "rect",
         color: "#ffd43b",
         preferredBoard: "mainboard",
+        extendVertical: true,
         labelBase: "wall_deck",
         defaultW: 80,
         defaultH: 100,
-        hint: "Drag a rectangle for the wall deck.",
+        hint: "Drag the full wall deck area. The rectangle can extend above or below the map into the shaded zones.",
       },
       outsider: {
-        shape: "hline",
-        marker: "bottom",
+        shape: "rect",
         color: "#da77f2",
         preferredBoard: "main_board_1",
+        extendVertical: true,
         labelBase: "outsider_spot",
-        cardW: 75,
-        cardH: 116,
-        hint: "Drag a horizontal line where the bottom of each outsider card sits on the board. The card extends upward.",
+        defaultW: 75,
+        defaultH: 116,
+        hint: "Drag the full outsider card area. The rectangle can extend above the map (card sits on top of the board).",
       },
       invader: {
         shape: "hline",
@@ -270,7 +272,7 @@
       },
     };
 
-    const STORAGE_KEY = "paladins-board-slots-v3";
+    const STORAGE_KEY = "paladins-board-slots-v4";
     const HANDLE_R = 8;
     const MIN_SIZE = 4;
     const canvas = document.getElementById("boardCanvas");
@@ -323,7 +325,9 @@
       document.getElementById("typeHint").textContent = cfg.hint || "";
       const drawHint = cfg.shape === "hline"
         ? "Drag a horizontal line along the card edge"
-        : "Click-drag a rectangle for the card space";
+        : cfg.extendVertical
+          ? "Click-drag a rectangle — can extend into the zones above/below the map"
+          : "Click-drag a rectangle for the card space";
       document.getElementById("drawHint").textContent = drawHint + " · Move/Resize: drag body to move, handles to resize · Delete removes selected";
       if (cfg.preferredBoard && boardKey !== cfg.preferredBoard) {
         document.getElementById("typeHint").textContent += ` (best on: ${BOARDS[cfg.preferredBoard].label})`;
@@ -382,10 +386,19 @@
       return slots.filter((s) => s.board === boardKey);
     }
 
+    function slotAllowsVerticalExtension(typeOrSlot) {
+      const type = typeof typeOrSlot === "string" ? typeOrSlot : typeOrSlot.type;
+      return !!slotTypeConfig(type).extendVertical;
+    }
+
     function drawBoardChrome() {
       ctx.fillStyle = "#1f1f1f";
       ctx.fillRect(0, 0, boardW, PAD_TOP);
       ctx.fillRect(0, PAD_TOP + boardH, boardW, PAD_BOTTOM);
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.font = "12px sans-serif";
+      ctx.fillText("above board", 8, 18);
+      ctx.fillText("below board", 8, PAD_TOP + boardH + 18);
       if (boardImage) {
         ctx.drawImage(boardImage, 0, PAD_TOP, boardW, boardH);
       }
@@ -449,12 +462,29 @@
       return null;
     }
 
-    function clampRect(x, y, w, h) {
+    function clampRect(x, y, w, h, type) {
       w = Math.max(MIN_SIZE, w);
       h = Math.max(MIN_SIZE, h);
       x = Math.max(0, Math.min(boardW - w, x));
-      y = Math.max(0, Math.min(boardH - h, y));
+      if (slotAllowsVerticalExtension(type)) {
+        y = Math.max(-PAD_TOP, Math.min(boardH + PAD_BOTTOM - h, y));
+      } else {
+        y = Math.max(0, Math.min(boardH - h, y));
+      }
       return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+    }
+
+    function clampSlotPosition(slot) {
+      if (slot.shape === "hline") {
+        slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, slot.x)));
+        slot.y = Math.round(Math.max(0, Math.min(boardH, slot.y)));
+        return;
+      }
+      const next = clampRect(slot.x, slot.y, slot.w, slot.h, slot.type);
+      slot.x = next.x;
+      slot.y = next.y;
+      slot.w = next.w;
+      slot.h = next.h;
     }
 
     function applyResize(slot, handle, orig, dx, dy) {
@@ -487,7 +517,7 @@
         y = orig.y + dy;
         h = orig.h - dy;
       }
-      const next = clampRect(x, y, w, h);
+      const next = clampRect(x, y, w, h, slot.type);
       slot.x = next.x;
       slot.y = next.y;
       slot.w = next.w;
@@ -508,14 +538,20 @@
     function drawRectSlot(slot, selected) {
       const color = slotTypeConfig(slot.type).color;
       const cy = boardToCanvasY(slot.y);
+      const onBoard = slot.y < boardH && slot.y + slot.h > 0;
       ctx.fillStyle = selected ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)";
       ctx.fillRect(slot.x, cy, slot.w, slot.h);
       ctx.strokeStyle = color;
       ctx.lineWidth = selected ? 3 : 2;
+      if (slotAllowsVerticalExtension(slot) && !onBoard) {
+        ctx.setLineDash([5, 4]);
+      }
       ctx.strokeRect(slot.x + 0.5, cy + 0.5, slot.w - 1, slot.h - 1);
+      ctx.setLineDash([]);
       ctx.fillStyle = "#fff";
       ctx.font = "bold 13px sans-serif";
-      ctx.fillText(slot.label, slot.x + 4, cy + 15);
+      const labelY = cy + (slot.y < 0 ? slot.h - 6 : 15);
+      ctx.fillText(slot.label, slot.x + 4, labelY);
       if (selected) drawHandles(slot);
     }
 
@@ -642,6 +678,7 @@
 
     function addSlot(raw, type) {
       const slot = normalizeSlot(raw, type);
+      clampSlotPosition(slot);
       slots.push(slot);
       selectedId = slot.id;
       saveToStorage();
@@ -688,7 +725,8 @@
           }
           css += `}\n`;
         } else {
-          css += `\n#${slot.label} {\n  position: absolute;\n  left: ${slot.x}px;\n  top: ${slot.y}px;\n  width: ${slot.w}px;\n  height: ${slot.h}px;\n}\n`;
+          css += `\n/* ${slot.label} — board coords; negative top = above map */\n`;
+          css += `#${slot.label} {\n  position: absolute;\n  left: ${slot.x}px;\n  top: ${slot.y}px;\n  width: ${slot.w}px;\n  height: ${slot.h}px;\n}\n`;
         }
       });
       document.getElementById("exportBox").value = css + "\n" + JSON.stringify({ board: boardKey, slots: items }, null, 2);
@@ -700,6 +738,15 @@
 
     function migrateSlot(slot) {
       if (slot.board === "composite") slot.board = "main_board";
+      if (slot.type === "outsider" && slot.shape === "hline") {
+        const cardH = slot.cardH || 116;
+        slot.shape = "rect";
+        slot.h = cardH;
+        slot.y = Math.round(slot.y - cardH);
+        delete slot.marker;
+        delete slot.cardW;
+        delete slot.cardH;
+      }
       if (!slot.shape) {
         const cfg = slotTypeConfig(slot.type);
         slot.shape = cfg.shape || "rect";
@@ -715,7 +762,12 @@
 
     function loadFromStorage() {
       try {
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem("paladins-board-slots-v2") || "{}");
+        const data = JSON.parse(
+          localStorage.getItem(STORAGE_KEY)
+          || localStorage.getItem("paladins-board-slots-v3")
+          || localStorage.getItem("paladins-board-slots-v2")
+          || "{}"
+        );
         slots = (data.slots || []).map(migrateSlot);
       } catch (e) {
         slots = [];
@@ -826,8 +878,16 @@
       } else if (drag.kind === "move") {
         const slot = slots.find((s) => s.id === drag.id);
         if (!slot) return;
-        slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, p.x - drag.ox)));
-        slot.y = Math.round(Math.max(0, Math.min(boardH - (slot.shape === "rect" ? slot.h : 0), p.y - drag.oy)));
+        slot.x = Math.round(p.x - drag.ox);
+        slot.y = Math.round(p.y - drag.oy);
+        if (slot.shape === "hline") {
+          slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, slot.x)));
+          slot.y = Math.round(Math.max(0, Math.min(boardH, slot.y)));
+        } else {
+          const next = clampRect(slot.x, slot.y, slot.w, slot.h, slot.type);
+          slot.x = next.x;
+          slot.y = next.y;
+        }
         redraw();
       }
     });
@@ -854,6 +914,7 @@
       if (e.key === "ArrowDown") slot.y += step;
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
         e.preventDefault();
+        clampSlotPosition(slot);
         saveToStorage();
         redraw();
       }

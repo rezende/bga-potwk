@@ -99,16 +99,35 @@
   --board-left-native-width: 1631px;
   --board-left-native-height: 200px;
   --board-left-scale: 1.36;
-  /* Left map native size (main_board_1.png) */
-  --board-left-map-native-width: 734px;
-  --board-left-map-native-height: 180px;
+  /* Full play board native size (main_board.png) */
+  --board-full-native-width: 1468px;
+  --board-full-native-height: 180px;
+  /* Sprite is 160x250; display cards at 88px wide keeping proportion */
+  --display-card-width: 88px;
+  --display-card-height: 138px;
+  --display-card-scale: 0.55;
+  /* Wall sprite is 127x198; display at 69px wide keeping proportion */
+  --display-wall-width: 69px;
+  --display-wall-height: 107px;
+  --display-wall-scale: 0.543307087;
 }
 
 #board.map-only-view {
   margin-top: 20px;
   margin-bottom: 20px;
   padding: 20px;
+  padding-top: calc(20px + var(--display-card-height) * var(--board-piece-scale));
+  padding-bottom: calc(20px + var(--display-card-height) * var(--board-piece-scale));
   background-color: transparent;
+  overflow: visible;
+}
+
+#board.map-only-view #boardMapsRow {
+  position: relative;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  overflow: visible;
 }
 
 #board.map-only-view #boardLeft,
@@ -118,49 +137,77 @@
 }
 
 #board.map-only-view #boardLeft {
-  /* Map-only: show the outsider/invader strip (left bottom-row map), not mainboard.png */
   width: var(--board-piece-width);
   height: var(--board-piece-height);
   background-image: url("img/main_board_1.png");
   background-size: var(--board-piece-width) var(--board-piece-height);
 }
 
-#board.map-only-view #boardLeftOverlay {
+#board.map-only-view #boardRight {
+  width: var(--board-piece-width);
+  height: var(--board-piece-height);
+  background-image: url("img/main_board_2.png");
+  background-size: var(--board-piece-width) var(--board-piece-height);
+}
+
+#board.map-only-view #boardMapOverlay {
   display: block;
   position: absolute;
   top: 0;
   left: 0;
-  width: var(--board-left-map-native-width);
-  height: var(--board-left-map-native-height);
+  width: var(--board-full-native-width);
+  height: var(--board-full-native-height);
   transform: scale(var(--board-piece-scale));
   transform-origin: top left;
   pointer-events: none;
+  z-index: 5;
+  overflow: visible;
 }
 
-#board.map-only-view #boardLeftOverlay > * {
+#board.map-only-view #boardMapOverlay > * {
   pointer-events: auto;
 }
 
-#board.map-only-view #boardBottomRight {
-  display: none;
-}
-
-/* Map-only: hide townsfolk/wall for now; kings cards use editor coords on main_board_1 */
-#board.map-only-view #townsfolk_cards,
-#board.map-only-view #wall_deck,
 #board.map-only-view #boardRight > *,
-#board.map-only-view #boardBottomRight > * {
+#board.map-only-view #boardBottomRight {
   display: none !important;
 }
 
+#board.map-only-view #townsfolk_cards,
 #board.map-only-view #kingsorder_cards,
-#board.map-only-view #kingsfavour_cards {
+#board.map-only-view #kingsfavour_cards,
+#board.map-only-view #outsider_cards {
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  z-index: 5;
+  padding: 0;
+  display: block;
+  overflow: visible;
+}
+
+#board.map-only-view #wall_deck {
+  position: absolute;
+  left: 651px;
+  top: calc(0px - var(--display-wall-height));
+  width: var(--display-wall-width);
+  height: var(--display-wall-height);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: visible;
+}
+
+#board.map-only-view #wall_deck .wall_card {
+  width: 127px;
+  height: 198px;
+  flex-shrink: 0;
+  min-width: 127px;
+  transform: scale(var(--display-wall-scale));
+  transform-origin: bottom center;
+  margin: 0;
+  position: relative;
 }
 
 #board.map-only-view #kingsorder_cards .kingsorder_card,
@@ -175,11 +222,47 @@
 }
 
 #board.map-only-view [id^="kingsorder_spot_"],
-#board.map-only-view [id^="kingsfavour_spot_"] {
+#board.map-only-view [id^="kingsfavour_spot_"],
+#board.map-only-view .townsfolk_spot,
+#board.map-only-view .outsider_spot {
   overflow: visible;
 }
 
-/* King's Order / Favour spots — native main_board_1 coords (from board slot editor) */
+#board.map-only-view .townsfolk_spot,
+#board.map-only-view .outsider_spot {
+  display: block;
+  position: absolute;
+  width: var(--display-card-width);
+  height: var(--display-card-height);
+  overflow: visible;
+}
+
+#board.map-only-view #townsfolk_cards .townsfolk,
+#board.map-only-view #outsider_cards .outsider {
+  width: 160px;
+  height: 250px;
+  margin: 0;
+  position: absolute;
+  left: 50%;
+  flex-shrink: 0;
+  min-width: 160px;
+  background-color: white;
+  background-repeat: no-repeat;
+}
+
+#board.map-only-view #townsfolk_cards .townsfolk {
+  bottom: 0;
+  transform: translateX(-50%) scale(var(--display-card-scale));
+  transform-origin: bottom center;
+}
+
+#board.map-only-view #outsider_cards .outsider {
+  top: 0;
+  transform: translateX(-50%) scale(var(--display-card-scale));
+  transform-origin: top center;
+}
+
+/* King's Order / Favour — native main_board coords */
 #board.map-only-view #kingsorder_spot_0 {
   position: absolute;
   left: 12px;
@@ -242,6 +325,63 @@
   top: 45px;
   width: 73px;
   height: 113px;
+}
+
+/* Townsfolk — bottom touches board top (y=0), grows upward */
+#board.map-only-view #townsfolk_spot_0 {
+  left: 19px;
+  top: calc(0px - var(--display-card-height));
+}
+
+#board.map-only-view #townsfolk_spot_1 {
+  left: 140px;
+  top: calc(0px - var(--display-card-height));
+}
+
+#board.map-only-view #townsfolk_spot_2 {
+  left: 261px;
+  top: calc(0px - var(--display-card-height));
+}
+
+#board.map-only-view #townsfolk_spot_3 {
+  left: 380px;
+  top: calc(0px - var(--display-card-height));
+}
+
+#board.map-only-view #townsfolk_spot_4 {
+  left: 498px;
+  top: calc(0px - var(--display-card-height));
+}
+
+/* Outsiders — top touches board bottom (y=180), grows downward */
+#board.map-only-view #outsider_spot_0 {
+  left: 752px;
+  top: 180px;
+}
+
+#board.map-only-view #outsider_spot_1 {
+  left: 873px;
+  top: 180px;
+}
+
+#board.map-only-view #outsider_spot_2 {
+  left: 996px;
+  top: 180px;
+}
+
+#board.map-only-view #outsider_spot_3 {
+  left: 1118px;
+  top: 180px;
+}
+
+#board.map-only-view #outsider_spot_4 {
+  left: 1235px;
+  top: 180px;
+}
+
+#board.map-only-view #outsider_spot_5 {
+  left: 1361px;
+  top: 180px;
 }
 
 #paladin_selection_area,

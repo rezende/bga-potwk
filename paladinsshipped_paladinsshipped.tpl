@@ -97,37 +97,43 @@
   <div id="boardContainer">
     <!-- mainBoardContainer contains the main board -->
     <div id="board" class="map-only-view">
-      <div id="boardLeft">
-        <div id="boardLeftOverlay">
-        <div id="townsfolk_cards">
-          <div id="townsfolk_spot_0" class="townsfolk_spot"></div>
-          <div id="townsfolk_spot_1" class="townsfolk_spot"></div>
-          <div id="townsfolk_spot_2" class="townsfolk_spot"></div>
-          <div id="townsfolk_spot_3" class="townsfolk_spot"></div>
-          <div id="townsfolk_spot_4" class="townsfolk_spot"></div>
+      <div id="boardMapsRow">
+        <div id="boardLeft"></div>
+        <div id="boardRightColumn">
+          <div id="boardRight">
+            <div id="main_board_regions"></div>
+            <div id="outsider_deck"></div>
+          </div>
         </div>
-        <div id="wall_deck"></div>
-        <div id="kingsorder_cards">
-          <div id="kingsorder_spot_0"></div>
-          <div id="kingsorder_spot_1"></div>
-          <div id="kingsorder_spot_2"></div>
-        </div>
-        <div id="kingsfavour_cards">
-          <div id="kingsfavour_spot_0"></div>
-          <div id="kingsfavour_spot_1"></div>
-          <div id="kingsfavour_spot_2"></div>
-          <div id="kingsfavour_spot_3"></div>
-          <div id="kingsfavour_spot_4"></div>
-        </div>
-        </div>
-      </div>
-      <div id="boardRightColumn">
-        <div id="boardRight">
-          <div id="main_board_regions"></div>
-          <div id="outsider_deck"></div>
-        </div>
-        <div id="boardBottomRight">
-          <div id="outsider_cards"></div>
+        <div id="boardMapOverlay">
+          <div id="townsfolk_cards">
+            <div id="townsfolk_spot_0" class="townsfolk_spot"></div>
+            <div id="townsfolk_spot_1" class="townsfolk_spot"></div>
+            <div id="townsfolk_spot_2" class="townsfolk_spot"></div>
+            <div id="townsfolk_spot_3" class="townsfolk_spot"></div>
+            <div id="townsfolk_spot_4" class="townsfolk_spot"></div>
+          </div>
+          <div id="wall_deck"></div>
+          <div id="kingsorder_cards">
+            <div id="kingsorder_spot_0"></div>
+            <div id="kingsorder_spot_1"></div>
+            <div id="kingsorder_spot_2"></div>
+          </div>
+          <div id="kingsfavour_cards">
+            <div id="kingsfavour_spot_0"></div>
+            <div id="kingsfavour_spot_1"></div>
+            <div id="kingsfavour_spot_2"></div>
+            <div id="kingsfavour_spot_3"></div>
+            <div id="kingsfavour_spot_4"></div>
+          </div>
+          <div id="outsider_cards">
+            <div id="outsider_spot_0" class="outsider_spot"></div>
+            <div id="outsider_spot_1" class="outsider_spot"></div>
+            <div id="outsider_spot_2" class="outsider_spot"></div>
+            <div id="outsider_spot_3" class="outsider_spot"></div>
+            <div id="outsider_spot_4" class="outsider_spot"></div>
+            <div id="outsider_spot_5" class="outsider_spot"></div>
+          </div>
         </div>
       </div>
     </div>
