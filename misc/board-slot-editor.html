@@ -131,6 +131,12 @@
           <option value="outsider">Outsider — card space (can extend above map)</option>
           <option value="wall">Wall deck — card space (can extend above/below map)</option>
         </optgroup>
+        <optgroup label="Board piles (grow upward from board top)">
+          <option value="tax_supply">Tax supply — coin pile 0–8 (grows upward)</option>
+          <option value="debt_pile">Debt pile — unpaid debt (static)</option>
+          <option value="suspicion_deck">Suspicion deck — deck back</option>
+          <option value="suspicion_discard">Suspicion discard — top card (empty at start)</option>
+        </optgroup>
         <optgroup label="Card edge lines">
           <option value="invader">Invader — card top edge (card below board)</option>
         </optgroup>
@@ -244,6 +250,58 @@
         defaultH: 100,
         hint: "Drag the full wall deck area. The rectangle can extend above or below the map into the shaded zones.",
       },
+      debt_pile: {
+        shape: "rect",
+        color: "#f783ac",
+        preferredBoard: "main_board",
+        extendVertical: true,
+        growUpward: true,
+        cardAspect: 198 / 127,
+        exportKind: "suspicion_debt",
+        labelBase: "debt_pile",
+        defaultW: 69,
+        defaultH: 107,
+        hint: "Drag horizontally to set card width. Height is computed from the 127×198 card proportion; the card grows upward with its bottom on the board top edge (y=0).",
+      },
+      suspicion_deck: {
+        shape: "rect",
+        color: "#ff8787",
+        preferredBoard: "main_board",
+        extendVertical: true,
+        growUpward: true,
+        cardAspect: 198 / 127,
+        exportKind: "suspicion_debt",
+        labelBase: "suspicion_deck",
+        defaultW: 69,
+        defaultH: 107,
+        hint: "Suspicion deck (shows deck back). Drag to set width; height is proportional and grows upward from y=0.",
+      },
+      suspicion_discard: {
+        shape: "rect",
+        color: "#e599f7",
+        preferredBoard: "main_board",
+        extendVertical: true,
+        growUpward: true,
+        cardAspect: 198 / 127,
+        exportKind: "suspicion_debt",
+        labelBase: "suspicion_discard",
+        defaultW: 69,
+        defaultH: 107,
+        hint: "Suspicion discard pile (top card visible, empty at game start). Drag to set width; grows upward from y=0.",
+      },
+      tax_supply: {
+        shape: "rect",
+        color: "#fab005",
+        preferredBoard: "main_board",
+        extendVertical: true,
+        growUpward: true,
+        cardAspect: 1,
+        exportKind: "tax_supply",
+        labelBase: "tax_supply",
+        defaultW: 55,
+        defaultH: 55,
+        hint: "Tax coin pile (0 = empty during inquisition, 1–8 = fuzzy pile). Drag to set width; square area grows upward from y=0.",
+      },
       outsider: {
         shape: "rect",
         color: "#da77f2",
@@ -272,7 +330,11 @@
       },
     };
 
-    const STORAGE_KEY = "paladins-board-slots-v4";
+    const STORAGE_KEY = "paladins-board-slots-v5";
+    const SINGLETON_SLOT_TYPES = ["wall", "debt_pile", "suspicion_deck", "suspicion_discard", "tax_supply"];
+    const SUSPICION_DEBT_CARD_W = 127;
+    const SUSPICION_DEBT_CARD_H = 198;
+    const TAX_SUPPLY_SPRITE_SIZE = 80;
     const HANDLE_R = 8;
     const MIN_SIZE = 4;
     const canvas = document.getElementById("boardCanvas");
@@ -280,6 +342,7 @@
 
     let boardKey = "main_board";
     let boardImage = null;
+    let taxSupplySprite = null;
     let boardW = 1468;
     let boardH = 180;
     let zoom = 1;
@@ -391,6 +454,24 @@
       return !!slotTypeConfig(type).extendVertical;
     }
 
+    function slotGrowsUpward(typeOrSlot) {
+      const type = typeof typeOrSlot === "string" ? typeOrSlot : typeOrSlot.type;
+      return !!slotTypeConfig(type).growUpward;
+    }
+
+    function cardHeightFromWidth(width, type) {
+      const aspect = slotTypeConfig(type).cardAspect || (SUSPICION_DEBT_CARD_H / SUSPICION_DEBT_CARD_W);
+      return Math.round(width * aspect);
+    }
+
+    function normalizeGrowUpwardSlot(slot) {
+      const cfg = slotTypeConfig(slot.type);
+      slot.w = Math.max(MIN_SIZE, Math.round(slot.w));
+      slot.h = cardHeightFromWidth(slot.w, slot.type);
+      slot.y = -slot.h;
+      slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, slot.x)));
+    }
+
     function drawBoardChrome() {
       ctx.fillStyle = "#1f1f1f";
       ctx.fillRect(0, 0, boardW, PAD_TOP);
@@ -480,6 +561,10 @@
         slot.y = Math.round(Math.max(0, Math.min(boardH, slot.y)));
         return;
       }
+      if (slotGrowsUpward(slot)) {
+        normalizeGrowUpwardSlot(slot);
+        return;
+      }
       const next = clampRect(slot.x, slot.y, slot.w, slot.h, slot.type);
       slot.x = next.x;
       slot.y = next.y;
@@ -503,6 +588,23 @@
         slot.x = Math.round(x);
         slot.w = Math.round(w);
         slot.y = Math.round(orig.y);
+        return;
+      }
+
+      if (slotGrowsUpward(slot)) {
+        let { x, w } = orig;
+        if (handle.includes("e")) w = orig.w + dx;
+        if (handle.includes("w")) {
+          x = orig.x + dx;
+          w = orig.w - dx;
+        }
+        if (handle.includes("n") || handle.includes("s")) {
+          w = orig.w + (handle.includes("e") ? dx : -dx);
+        }
+        w = Math.max(MIN_SIZE, w);
+        slot.w = Math.round(w);
+        slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, handle.includes("w") ? x : orig.x)));
+        normalizeGrowUpwardSlot(slot);
         return;
       }
 
@@ -535,8 +637,40 @@
       return map[handle] || "default";
     }
 
+    function drawTaxSupplyGhost(slot, selected) {
+      if (!taxSupplySprite) {
+        return;
+      }
+      const previewCoins = 5;
+      const frame = previewCoins - 1;
+      const cy = boardToCanvasY(slot.y);
+      const scale = slot.w / TAX_SUPPLY_SPRITE_SIZE;
+      const drawW = TAX_SUPPLY_SPRITE_SIZE * scale;
+      const drawH = TAX_SUPPLY_SPRITE_SIZE * scale;
+      const dx = slot.x + (slot.w - drawW) / 2;
+      const dy = cy + (slot.h - drawH) / 2;
+      ctx.save();
+      ctx.globalAlpha = selected ? 0.9 : 0.6;
+      ctx.drawImage(
+        taxSupplySprite,
+        frame * TAX_SUPPLY_SPRITE_SIZE,
+        0,
+        TAX_SUPPLY_SPRITE_SIZE,
+        TAX_SUPPLY_SPRITE_SIZE,
+        dx,
+        dy,
+        drawW,
+        drawH,
+      );
+      ctx.restore();
+      ctx.fillStyle = slotTypeConfig(slot.type).color;
+      ctx.font = "10px sans-serif";
+      ctx.fillText(`preview: ${previewCoins} coins`, slot.x + 4, cy - 18);
+    }
+
     function drawRectSlot(slot, selected) {
-      const color = slotTypeConfig(slot.type).color;
+      const cfg = slotTypeConfig(slot.type);
+      const color = cfg.color;
       const cy = boardToCanvasY(slot.y);
       const onBoard = slot.y < boardH && slot.y + slot.h > 0;
       ctx.fillStyle = selected ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)";
@@ -548,6 +682,16 @@
       }
       ctx.strokeRect(slot.x + 0.5, cy + 0.5, slot.w - 1, slot.h - 1);
       ctx.setLineDash([]);
+      if (slot.type === "tax_supply") {
+        drawTaxSupplyGhost(slot, selected);
+      } else if (slotGrowsUpward(slot)) {
+        drawCardGhost(slot.x, 0, slot.w, slot.h, "bottom", color, selected);
+      }
+      if (slotGrowsUpward(slot)) {
+        ctx.fillStyle = color;
+        ctx.font = "11px sans-serif";
+        ctx.fillText(`w:${slot.w} h:${slot.h}`, slot.x + 4, cy - 6);
+      }
       ctx.fillStyle = "#fff";
       ctx.font = "bold 13px sans-serif";
       const labelY = cy + (slot.y < 0 ? slot.h - 6 : 15);
@@ -650,7 +794,7 @@
     function defaultLabel(type) {
       const cfg = slotTypeConfig(type);
       const idx = slots.filter((s) => s.type === type).length;
-      if (type === "wall") return cfg.labelBase;
+      if (SINGLETON_SLOT_TYPES.includes(type)) return cfg.labelBase;
       return `${cfg.labelBase}_${idx}`;
     }
 
@@ -705,6 +849,65 @@
       });
     }
 
+    function renderGrowUpwardTaxExport(slot) {
+      const h = slot.w;
+      const scale = (slot.w / TAX_SUPPLY_SPRITE_SIZE).toFixed(9).replace(/\.?0+$/, "");
+      let css = `\n/* ${slot.label} — display ${slot.w}×${h}px, tax pile 0=empty / 1–8 coins */\n`;
+      css += `#board.map-only-view #${slot.label} {\n`;
+      css += `  position: absolute;\n`;
+      css += `  left: ${slot.x}px;\n`;
+      css += `  top: calc(0px - ${h}px);\n`;
+      css += `  width: ${slot.w}px;\n`;
+      css += `  height: ${h}px;\n`;
+      css += `  display: flex;\n`;
+      css += `  align-items: center;\n`;
+      css += `  justify-content: center;\n`;
+      css += `  overflow: visible;\n`;
+      css += `}\n`;
+      css += `#board.map-only-view #${slot.label} .tax_supply_pile {\n`;
+      css += `  width: 100%;\n`;
+      css += `  height: 100%;\n`;
+      css += `  background-size: 800% 100%;\n`;
+      css += `  flex-shrink: 0;\n`;
+      css += `  margin: 0;\n`;
+      css += `  position: relative;\n`;
+      css += `}\n`;
+      return css;
+    }
+
+    function renderGrowUpwardCardExport(slot) {
+      const h = cardHeightFromWidth(slot.w, slot.type);
+      const scale = (slot.w / SUSPICION_DEBT_CARD_W).toFixed(9).replace(/\.?0+$/, "");
+      const artNote = {
+        debt_pile: "static unpaid debt (sprite frame 4)",
+        suspicion_deck: "suspicion deck back (sprite frame 3)",
+        suspicion_discard: "top suspicion discard card (sprite frame 0–2); empty at start",
+      }[slot.type] || "suspicion/debt card";
+      let css = `\n/* ${slot.label} — display ${slot.w}×${h}px, ${artNote} */\n`;
+      css += `#board.map-only-view #${slot.label} {\n`;
+      css += `  position: absolute;\n`;
+      css += `  left: ${slot.x}px;\n`;
+      css += `  top: calc(0px - ${h}px);\n`;
+      css += `  width: ${slot.w}px;\n`;
+      css += `  height: ${h}px;\n`;
+      css += `  display: flex;\n`;
+      css += `  align-items: flex-end;\n`;
+      css += `  justify-content: center;\n`;
+      css += `  overflow: visible;\n`;
+      css += `}\n`;
+      css += `#board.map-only-view #${slot.label} .suspicion_card,\n`;
+      css += `#board.map-only-view #${slot.label} .debt_card {\n`;
+      css += `  width: ${SUSPICION_DEBT_CARD_W}px;\n`;
+      css += `  height: ${SUSPICION_DEBT_CARD_H}px;\n`;
+      css += `  flex-shrink: 0;\n`;
+      css += `  transform: scale(${scale});\n`;
+      css += `  transform-origin: bottom center;\n`;
+      css += `  margin: 0;\n`;
+      css += `  position: relative;\n`;
+      css += `}\n`;
+      return css;
+    }
+
     function renderExport() {
       const board = BOARDS[boardKey];
       const items = slotsForBoard();
@@ -724,6 +927,13 @@
             css += `  top: ${slot.y}px; /* card sits below board */\n`;
           }
           css += `}\n`;
+        } else if (slotGrowsUpward(slot)) {
+          const cfg = slotTypeConfig(slot.type);
+          if (cfg.exportKind === "tax_supply") {
+            css += renderGrowUpwardTaxExport(slot);
+          } else {
+            css += renderGrowUpwardCardExport(slot);
+          }
         } else {
           css += `\n/* ${slot.label} — board coords; negative top = above map */\n`;
           css += `#${slot.label} {\n  position: absolute;\n  left: ${slot.x}px;\n  top: ${slot.y}px;\n  width: ${slot.w}px;\n  height: ${slot.h}px;\n}\n`;
@@ -764,6 +974,7 @@
       try {
         const data = JSON.parse(
           localStorage.getItem(STORAGE_KEY)
+          || localStorage.getItem("paladins-board-slots-v4")
           || localStorage.getItem("paladins-board-slots-v3")
           || localStorage.getItem("paladins-board-slots-v2")
           || "{}"
@@ -800,6 +1011,15 @@
         draft.x = Math.max(0, Math.min(boardW - draft.w, draft.x));
         draft.y = Math.max(0, Math.min(boardH, draft.y));
         if (draft.w >= 4) addSlot(draft, type);
+      } else if (cfg.growUpward) {
+        const w = draft.w >= 4 ? draft.w : cfg.defaultW;
+        const x = draft.w >= 4 ? draft.x : drag.sx - w / 2;
+        addSlot({
+          x,
+          y: 0,
+          w,
+          h: cardHeightFromWidth(w, type),
+        }, type);
       } else if (draft.w >= 4 && draft.h >= 4) {
         addSlot(draft, type);
       } else if (cfg.defaultW && cfg.defaultH) {
@@ -883,6 +1103,9 @@
         if (slot.shape === "hline") {
           slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, slot.x)));
           slot.y = Math.round(Math.max(0, Math.min(boardH, slot.y)));
+        } else if (slotGrowsUpward(slot)) {
+          slot.x = Math.round(Math.max(0, Math.min(boardW - slot.w, slot.x)));
+          normalizeGrowUpwardSlot(slot);
         } else {
           const next = clampRect(slot.x, slot.y, slot.w, slot.h, slot.type);
           slot.x = next.x;
@@ -949,6 +1172,12 @@
     document.getElementById("serveUrl").textContent = location.origin + location.pathname;
 
     loadFromStorage();
+    loadImage(IMG_BASE + "/sprite_tax_supply.png")
+      .then((img) => {
+        taxSupplySprite = img;
+        redraw();
+      })
+      .catch(() => {});
     loadBoard("main_board");
     updateTypeHints();
   </script>

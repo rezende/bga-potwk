@@ -114,6 +114,10 @@
             <div id="townsfolk_spot_4" class="townsfolk_spot"></div>
           </div>
           <div id="wall_deck"></div>
+          <div id="tax_supply"></div>
+          <div id="debt_pile"></div>
+          <div id="suspicion_deck"></div>
+          <div id="suspicion_discard"></div>
           <div id="kingsorder_cards">
             <div id="kingsorder_spot_0"></div>
             <div id="kingsorder_spot_1"></div>

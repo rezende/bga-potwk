@@ -57,6 +57,8 @@ define([
         wall_card: { cssClass: "wall_card" },
         kingsorder_card: { cssClass: "kingsorder_card" },
         kingsfavour_card: { cssClass: "kingsfavour_card" },
+        suspicion_card: { cssClass: "suspicion_card suspicion_debt_sprite" },
+        debt_card: { cssClass: "debt_card suspicion_debt_sprite" },
         absolve_jar_uiitem: { cssClass: "absolve_jar" },
         development_house_uiitem: { cssClass: "development_house" },
         fort_piece_uiitem: { cssClass: "fort_piece" },
@@ -107,6 +109,20 @@ define([
           width: 127,
           height: 198,
           type_property: "type_arg",
+        },
+        suspicion_card: {
+          one_row: true,
+          items_per_row: 6,
+          width: 127,
+          height: 198,
+          type_property: "sprite_index",
+        },
+        debt_card: {
+          one_row: true,
+          items_per_row: 6,
+          width: 127,
+          height: 198,
+          type_property: "sprite_index",
         },
         absolve_jar_uiitem: {
           one_row: true,
@@ -169,6 +185,24 @@ define([
         }
         if (uiItem.uiType == "fort_mock_piece_uiitem") {
           return { x: -975, y: 430 };
+        }
+        if (uiItem.uiType == "suspicion_card") {
+          const spriteIndex =
+            uiItem.data.sprite_index !== undefined
+              ? parseInt(uiItem.data.sprite_index, 10)
+              : uiItem.data.show_back
+                ? _self.SUSPICION_DEBT_SPRITE.SUSPICION_BACK
+                : parseInt(uiItem.data.type_arg, 10);
+          return this.getBackgroundPosition("suspicion_card", spriteIndex);
+        }
+        if (uiItem.uiType == "debt_card") {
+          const spriteIndex =
+            uiItem.data.sprite_index !== undefined
+              ? parseInt(uiItem.data.sprite_index, 10)
+              : uiItem.data.paid
+                ? _self.SUSPICION_DEBT_SPRITE.DEBT_PAID
+                : _self.SUSPICION_DEBT_SPRITE.DEBT_UNPAID;
+          return this.getBackgroundPosition("debt_card", spriteIndex);
         }
         var background = { x: 0, y: 0 };
         if (this.itemBackgroundConfig[uiItem.uiType] != undefined) {
@@ -338,6 +372,177 @@ define([
     KINGS_ORDER_CARD_BACK: 6,
     KINGS_FAVOUR_CARD_BACK: 10,
 
+    // sprite_suspicion_debt.png layout (127x198 per frame, single row):
+    // 0 suspicion 0-tax | 1 suspicion 1-tax | 2 suspicion 2-tax
+    // 3 suspicion back  | 4 debt unpaid     | 5 debt paid
+    SUSPICION_DEBT_SPRITE: {
+      SUSPICION_0: 0,
+      SUSPICION_1: 1,
+      SUSPICION_2: 2,
+      SUSPICION_BACK: 3,
+      DEBT_UNPAID: 4,
+      DEBT_PAID: 5,
+    },
+
+    TAX_SUPPLY_MAX_COINS: 8,
+
+    getTaxCoinPositions: function (count) {
+      const rowPlan = {
+        1: [1],
+        2: [2],
+        3: [3],
+        4: [4],
+        5: [3, 2],
+        6: [3, 3],
+        7: [4, 3],
+        8: [4, 4],
+      };
+      const rows = rowPlan[count] || [count];
+      const positions = [];
+      const xGap = 0.19;
+      const yGap = 0.26;
+      const baseY = 0.5 - ((rows.length - 1) * yGap) / 2;
+
+      rows.forEach((colsInRow, rowIndex) => {
+        const rowWidth = (colsInRow - 1) * xGap;
+        const startX = 0.5 - rowWidth / 2;
+        const y = baseY + rowIndex * yGap;
+        for (let col = 0; col < colsInRow; col++) {
+          positions.push([startX + col * xGap, y]);
+        }
+      });
+      return positions;
+    },
+
+    getSuspicionDebtSpritePosition: function (spriteIndex) {
+      const config = this.uiItems.itemBackgroundConfig.suspicion_card;
+      return this.uiItems.getBackgroundPosition("suspicion_card", spriteIndex);
+    },
+
+    createSuspicionDebtCardElement: function (spriteIndex, extraClass) {
+      const card = dojo.create("div", {
+        class:
+          "suspicion_debt_sprite " + (extraClass || ""),
+      });
+      const position = this.getSuspicionDebtSpritePosition(spriteIndex);
+      dojo.setStyle(
+        card,
+        "background-position",
+        position.x + "px " + position.y + "px",
+      );
+      return card;
+    },
+
+    createSuspicionCardElement: function (suspicionCard, options) {
+      const opts = options || {};
+      const spriteIndex = opts.show_back
+        ? this.SUSPICION_DEBT_SPRITE.SUSPICION_BACK
+        : parseInt(suspicionCard.type_arg, 10);
+      return this.createSuspicionDebtCardElement(
+        spriteIndex,
+        "suspicion_card",
+      );
+    },
+
+    createDebtCardElement: function (isPaid) {
+      const spriteIndex = isPaid
+        ? this.SUSPICION_DEBT_SPRITE.DEBT_PAID
+        : this.SUSPICION_DEBT_SPRITE.DEBT_UNPAID;
+      return this.createSuspicionDebtCardElement(spriteIndex, "debt_card");
+    },
+
+    showSuspicionCardPreview: function (suspicionCard) {
+      if (!suspicionCard) {
+        return;
+      }
+
+      const preview = this.createSuspicionCardElement(suspicionCard);
+      preview.classList.add("suspicion_card_preview");
+      document.body.appendChild(preview);
+
+      window.setTimeout(() => {
+        if (preview.parentNode) {
+          preview.parentNode.removeChild(preview);
+        }
+      }, 2000);
+    },
+
+    setupBoardSuspicionDebtAreas: function () {
+      const debtPile = document.getElementById("debt_pile");
+      if (debtPile) {
+        debtPile.innerHTML = "";
+        debtPile.appendChild(this.createDebtCardElement(false));
+      }
+
+      const suspicionDeck = document.getElementById("suspicion_deck");
+      if (suspicionDeck) {
+        suspicionDeck.innerHTML = "";
+        suspicionDeck.appendChild(
+          this.createSuspicionDebtCardElement(
+            this.SUSPICION_DEBT_SPRITE.SUSPICION_BACK,
+            "suspicion_card",
+          ),
+        );
+      }
+
+      this.updateSuspicionDiscardDisplay(
+        this.gamedatas && this.gamedatas.suspicion_discard_top,
+      );
+      this.updateTaxSupplyDisplay(
+        this.gamedatas && this.gamedatas.tax_supply,
+      );
+    },
+
+    updateSuspicionDiscardDisplay: function (suspicionCard) {
+      const discardPile = document.getElementById("suspicion_discard");
+      if (!discardPile) {
+        return;
+      }
+
+      discardPile.innerHTML = "";
+      if (suspicionCard) {
+        discardPile.appendChild(this.createSuspicionCardElement(suspicionCard));
+      }
+
+      if (this.gamedatas) {
+        this.gamedatas.suspicion_discard_top = suspicionCard || null;
+      }
+    },
+
+    updateTaxSupplyDisplay: function (amount) {
+      const container = document.getElementById("tax_supply");
+      if (!container) {
+        return;
+      }
+
+      container.innerHTML = "";
+      const count = Math.max(
+        0,
+        Math.min(this.TAX_SUPPLY_MAX_COINS, parseInt(amount, 10) || 0),
+      );
+      if (count === 0) {
+        if (this.gamedatas) {
+          this.gamedatas.tax_supply = 0;
+        }
+        return;
+      }
+
+      const positions = this.getTaxCoinPositions(count);
+      const pile = dojo.create("div", { class: "tax_supply_pile" });
+      positions.forEach(([xRatio, yRatio]) => {
+        const coin = dojo.create("div", { class: "tax_coin" });
+        dojo.setStyle(coin, "left", xRatio * 100 + "%");
+        dojo.setStyle(coin, "top", yRatio * 100 + "%");
+        dojo.setStyle(coin, "transform", "translate(-50%, -50%)");
+        pile.appendChild(coin);
+      });
+      container.appendChild(pile);
+
+      if (this.gamedatas) {
+        this.gamedatas.tax_supply = count;
+      }
+    },
+
     buildKingsDisplayItems: function (cards, slotCount, cardType, backTypeArg, idPrefix) {
       const bySpot = {};
       this.getValuesFromObject(cards).forEach((card) => {
@@ -453,6 +658,7 @@ define([
         
         this.setupKingsOrderCards(kingsOrderCards);
         this.setupKingsFavourCards(kingsFavourCards);
+        this.setupBoardSuspicionDebtAreas();
         this.setupNotifications();
         this.setupActionButtons();
         this.updateActionButtons(); // Ensure action buttons are properly hidden/shown based on initial state
@@ -1442,6 +1648,7 @@ define([
       // Player resources update notification
       dojo.subscribe("playerResourcesUpdated", this, "notif_playerResourcesUpdated");
       dojo.subscribe("suspicionGained", this, "notif_suspicionGained");
+      dojo.subscribe("taxSupplyChanged", this, "notif_taxSupplyChanged");
       console.log("Subscribed to playerResourcesUpdated notification");
       
       // Other existing notifications...
@@ -1554,6 +1761,14 @@ define([
       const player_id = String(notif.args.player_id);
       const panel_data = notif.args.panel_data;
       const suspicion_count = notif.args.suspicion_count;
+
+      if (notif.args.suspicion_card) {
+        this.showSuspicionCardPreview(notif.args.suspicion_card);
+      }
+
+      if (notif.args.tax_supply !== undefined) {
+        this.updateTaxSupplyDisplay(notif.args.tax_supply);
+      }
 
       if (panel_data) {
         if (suspicion_count !== undefined) {
@@ -2170,9 +2385,14 @@ define([
     },
 
     notif_conspire: function(notif) {
-      
-      // Update UI to show conspiracy
-      // Refresh action buttons to update availability
+      if (notif.args.suspicion_card) {
+        this.showSuspicionCardPreview(notif.args.suspicion_card);
+      }
+
+      if (notif.args.tax_supply !== undefined) {
+        this.updateTaxSupplyDisplay(notif.args.tax_supply);
+      }
+
       this.updateActionButtons();
     },
 
@@ -2183,13 +2403,24 @@ define([
     },
 
     notif_initializeTaxSupply: function(notif) {
-      
-      // Update tax supply display if needed
+      const amount = notif.args.tax_supply !== undefined
+        ? notif.args.tax_supply
+        : notif.args.tax_amount;
+      if (amount !== undefined) {
+        this.updateTaxSupplyDisplay(amount);
+      }
+    },
+
+    notif_taxSupplyChanged: function(notif) {
+      if (notif.args.tax_supply !== undefined) {
+        this.updateTaxSupplyDisplay(notif.args.tax_supply);
+      }
     },
 
     notif_inquisition: function(notif) {
-      
-      // Update UI to show inquisition results
+      if (notif.args.tax_supply !== undefined) {
+        this.updateTaxSupplyDisplay(notif.args.tax_supply);
+      }
     },
 
     notif_commission: function(notif) {

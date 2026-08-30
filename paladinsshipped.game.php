@@ -468,6 +468,10 @@ class PaladinsShipped extends Table
                     'panel_data' => $this->getPlayerPanelData($player_id),
                 ]
             );
+
+            if (!empty($suspicion_info['tax_depleted'])) {
+                $this->handleTaxSupplyDepleted();
+            }
         }
 
         $this->notifyPlayerResourceUpdate($player_id);
@@ -494,15 +498,34 @@ class PaladinsShipped extends Table
         $current = $this->getTaxSupply();
         $new_amount = max(0, $current - $amount);
         $this->setTaxSupply($new_amount);
-        
-        $amount_removed = $current - $new_amount;
-        
-        // Check if tax supply was depleted (trigger inquisition)
-        if ($current > 0 && $new_amount == 0) {
-            $this->triggerInquisition();
-        }
-        
-        return $amount_removed; // Return actual amount removed
+
+        return [
+            'removed' => $current - $new_amount,
+            'depleted' => ($current > 0 && $new_amount == 0),
+        ];
+    }
+
+    private function handleTaxSupplyDepleted()
+    {
+        $this->triggerInquisition();
+        $this->refillTaxSupplyAfterInquisition();
+    }
+
+    private function refillTaxSupplyAfterInquisition()
+    {
+        $player_count = count(self::loadPlayersBasicInfos());
+        $tax_amounts = [2 => 5, 3 => 6, 4 => 8];
+        $refill_amount = $tax_amounts[$player_count] ?? 5;
+        $this->setTaxSupply($refill_amount);
+
+        self::notifyAllPlayers(
+            'taxSupplyChanged',
+            clienttranslate('Tax supply refilled with ${tax_amount} silver'),
+            [
+                'tax_supply' => $refill_amount,
+                'tax_amount' => $refill_amount,
+            ]
+        );
     }
 
     public function triggerInquisition()
@@ -535,17 +558,15 @@ class PaladinsShipped extends Table
                 // TODO: Implement suspicion removal logic
             }
         }
-        
-        // Refill tax supply
-        $player_count = count(self::loadPlayersBasicInfos());
-        $tax_amounts = [2 => 5, 3 => 6, 4 => 8];
-        $refill_amount = $tax_amounts[$player_count] ?? 5;
-        $this->setTaxSupply($refill_amount);
-        
-        self::notifyAllPlayers("inquisition", clienttranslate('Inquisition! Players with most suspicion gain debt. Tax supply refilled.'), [
-            'players_with_debt' => array_column($players_with_max, 'player_id'),
-            'tax_refill' => $refill_amount
-        ]);
+
+        self::notifyAllPlayers(
+            'inquisition',
+            clienttranslate('Inquisition! Players with most suspicion gain debt.'),
+            [
+                'players_with_debt' => array_column($players_with_max, 'player_id'),
+                'tax_supply' => 0,
+            ]
+        );
     }
 
     /**
@@ -582,7 +603,8 @@ class PaladinsShipped extends Table
         $this->setTaxSupply($tax_amount);
         
         self::notifyAllPlayers("initializeTaxSupply", clienttranslate('Tax supply initialized with ${tax_amount} silver'), [
-            'tax_amount' => $tax_amount
+            'tax_amount' => $tax_amount,
+            'tax_supply' => $tax_amount,
         ]);
     }
 
@@ -658,15 +680,22 @@ class PaladinsShipped extends Table
             // type_arg is the printed tax value on the card: 0, 1, or 2
             $tax_amount = $this->getSuspicionTaxAmount($suspicion_card['type_arg']);
             
-            // Get current tax supply amount
-            $tax_supply = $this->getTaxSupply();
-            
             // Add tax to player if available
             $tax_to_give = 0;
+            $tax_depleted = false;
             if ($tax_amount > 0) {
-                $tax_to_give = $this->removeFromTaxSupply($tax_amount);
+                $tax_result = $this->removeFromTaxSupply($tax_amount);
+                $tax_to_give = $tax_result['removed'];
+                $tax_depleted = $tax_result['depleted'];
                 if ($tax_to_give > 0) {
                     $this->addResource($player_id, RESOURCE_COIN, $tax_to_give, false);
+                }
+                if ($tax_depleted) {
+                    self::notifyAllPlayers(
+                        'taxSupplyChanged',
+                        clienttranslate('The tax supply is empty'),
+                        ['tax_supply' => 0]
+                    );
                 }
             }
             
@@ -675,8 +704,9 @@ class PaladinsShipped extends Table
                 'type' => $suspicion_card['type'],
                 'type_arg' => $suspicion_card['type_arg'],
                 'tax_amount' => $tax_amount,
-                'tax_supply' => $tax_supply,
+                'tax_supply' => $this->getTaxSupply(),
                 'tax_given' => $tax_to_give,
+                'tax_depleted' => $tax_depleted,
             ];
 
             if ($notify_resource_update) {
@@ -1290,7 +1320,16 @@ class PaladinsShipped extends Table
 
     public function stPerformInquisition()
     {
+        if ($this->getTaxSupply() != 0) {
+            $this->setTaxSupply(0);
+            self::notifyAllPlayers(
+                'taxSupplyChanged',
+                clienttranslate('The tax supply is empty'),
+                ['tax_supply' => 0]
+            );
+        }
         $this->triggerInquisition();
+        $this->refillTaxSupplyAfterInquisition();
         $this->gamestate->nextState('');
     }
 
@@ -1608,6 +1647,10 @@ class PaladinsShipped extends Table
                 'tax_supply' => $suspicion_info['tax_supply'],
                 'action_space_info' => $this->getActionSpaceInfo($player_id)
             ]);
+
+            if (!empty($suspicion_info['tax_depleted'])) {
+                $this->handleTaxSupplyDepleted();
+            }
         } else {
             self::notifyAllPlayers('conspire', clienttranslate('${player_name} conspires and gains a criminal'), [
                 'player_name' => self::getCurrentPlayerName(),

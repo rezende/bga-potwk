@@ -108,8 +108,15 @@
   --display-card-scale: 0.55;
   /* Wall sprite is 127x198; display at 69px wide keeping proportion */
   --display-wall-width: 69px;
-  --display-wall-height: 107px;
+  --display-wall-height: 100px;
   --display-wall-scale: 0.543307087;
+  /* Suspicion/debt sprite is 127x198; display at 70px wide keeping proportion */
+  --display-suspicion-debt-width: 70px;
+  --display-suspicion-debt-height: 109px;
+  --display-suspicion-debt-scale: 0.551181102;
+  /* Tax supply pile sprite is 80x80 per frame; scale from display width */
+  --display-tax-supply-width: 55px;
+  --display-tax-supply-scale: 0.6875;
 }
 
 #board.map-only-view {
@@ -190,7 +197,7 @@
 #board.map-only-view #wall_deck {
   position: absolute;
   left: 651px;
-  top: calc(0px - var(--display-wall-height));
+  top: -104px;
   width: var(--display-wall-width);
   height: var(--display-wall-height);
   display: flex;
@@ -232,8 +239,6 @@
 #board.map-only-view .outsider_spot {
   display: block;
   position: absolute;
-  width: var(--display-card-width);
-  height: var(--display-card-height);
   overflow: visible;
 }
 
@@ -330,58 +335,150 @@
 /* Townsfolk — bottom touches board top (y=0), grows upward */
 #board.map-only-view #townsfolk_spot_0 {
   left: 19px;
-  top: calc(0px - var(--display-card-height));
+  top: -122px;
+  width: 88px;
+  height: 122px;
 }
 
 #board.map-only-view #townsfolk_spot_1 {
   left: 140px;
-  top: calc(0px - var(--display-card-height));
+  top: -122px;
+  width: 88px;
+  height: 119px;
 }
 
 #board.map-only-view #townsfolk_spot_2 {
   left: 261px;
-  top: calc(0px - var(--display-card-height));
+  top: -124px;
+  width: 88px;
+  height: 122px;
 }
 
 #board.map-only-view #townsfolk_spot_3 {
   left: 380px;
-  top: calc(0px - var(--display-card-height));
+  top: -120px;
+  width: 88px;
+  height: 118px;
 }
 
 #board.map-only-view #townsfolk_spot_4 {
   left: 498px;
-  top: calc(0px - var(--display-card-height));
+  top: -119px;
+  width: 88px;
+  height: 116px;
 }
 
-/* Outsiders — top touches board bottom (y=180), grows downward */
+/* Outsiders — top touches board bottom, grows downward */
 #board.map-only-view #outsider_spot_0 {
   left: 752px;
-  top: 180px;
+  top: 183px;
+  width: 88px;
+  height: 106px;
 }
 
 #board.map-only-view #outsider_spot_1 {
   left: 873px;
-  top: 180px;
+  top: 182px;
+  width: 88px;
+  height: 107px;
 }
 
 #board.map-only-view #outsider_spot_2 {
   left: 996px;
-  top: 180px;
+  top: 181px;
+  width: 88px;
+  height: 97px;
 }
 
 #board.map-only-view #outsider_spot_3 {
   left: 1118px;
   top: 180px;
+  width: 88px;
+  height: 107px;
 }
 
 #board.map-only-view #outsider_spot_4 {
   left: 1235px;
-  top: 180px;
+  top: 184px;
+  width: 88px;
+  height: 108px;
 }
 
 #board.map-only-view #outsider_spot_5 {
   left: 1361px;
-  top: 180px;
+  top: 181px;
+  width: 88px;
+  height: 112px;
+}
+
+/* Debt pile, suspicion deck & discard — grow upward from board top */
+#board.map-only-view #debt_pile,
+#board.map-only-view #suspicion_deck,
+#board.map-only-view #suspicion_discard {
+  position: absolute;
+  width: var(--display-suspicion-debt-width);
+  height: var(--display-suspicion-debt-height);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: visible;
+}
+
+#board.map-only-view #debt_pile {
+  left: 1200px;
+  top: calc(0px - var(--display-suspicion-debt-height));
+}
+
+#board.map-only-view #suspicion_deck {
+  left: 1288px;
+  top: calc(0px - var(--display-suspicion-debt-height));
+}
+
+#board.map-only-view #suspicion_discard {
+  left: 1378px;
+  top: calc(0px - var(--display-suspicion-debt-height));
+}
+
+#board.map-only-view #debt_pile .debt_card,
+#board.map-only-view #suspicion_deck .suspicion_card,
+#board.map-only-view #suspicion_discard .suspicion_card {
+  width: 127px;
+  height: 198px;
+  flex-shrink: 0;
+  transform: scale(var(--display-suspicion-debt-scale));
+  transform-origin: bottom center;
+  margin: 0;
+  position: relative;
+}
+
+/* tax_supply — display 103×103px, tax pile 0=empty / 1–8 coins */
+#board.map-only-view #tax_supply {
+  position: absolute;
+  left: 766px;
+  top: calc(0px - 103px);
+  width: 103px;
+  height: 103px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+#board.map-only-view #tax_supply .tax_supply_pile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#board.map-only-view #tax_supply .tax_coin {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-image: url("img/Silver.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 #paladin_selection_area,
@@ -636,6 +733,21 @@
   height: 22px;
 }
 
+/* Suspicion/debt panel icons from sprite_suspicion_debt.png (frame 3=back, 4=unpaid, 5=paid) */
+.panel_icon_suspicion,
+.panel_icon_unpaid_debt,
+.panel_icon_paid_debt {
+  width: 22px;
+  height: 34px;
+  background-image: url("img/sprite_suspicion_debt.png");
+  background-size: 132px 34px;
+  background-repeat: no-repeat;
+}
+
+.panel_icon_suspicion { background-position: -66px 0; }
+.panel_icon_unpaid_debt { background-position: -88px 0; }
+.panel_icon_paid_debt { background-position: -110px 0; }
+
 .panel_icon_faith { background-image: url("img/panel/faith.png"); }
 .panel_icon_strength { background-image: url("img/panel/strength.png"); }
 .panel_icon_influence { background-image: url("img/panel/influence.png"); }
@@ -647,9 +759,6 @@
 .panel_icon_red_worker { background-image: url("img/panel/red_worker.png"); }
 .panel_icon_black_worker { background-image: url("img/panel/black_worker.png"); }
 .panel_icon_purple_worker { background-image: url("img/panel/purple_worker.png"); }
-.panel_icon_suspicion { background-image: url("img/panel/suspicion.png"); }
-.panel_icon_unpaid_debt { background-image: url("img/panel/unpaid_debt.png"); }
-.panel_icon_paid_debt { background-image: url("img/panel/paid_debt.png"); }
 
 .panel_resource {
   display: inline-block;
@@ -754,6 +863,31 @@
   background-color: transparent;
   background-repeat: no-repeat;
   transform-origin: 0px 0px;
+}
+
+/* Suspicion & debt cards share sprite_suspicion_debt.png (127x198 per frame) */
+.suspicion_debt_sprite {
+  width: 127px;
+  height: 198px;
+  background-image: url("img/sprite_suspicion_debt.png");
+  background-repeat: no-repeat;
+  transform-origin: 0px 0px;
+}
+
+.suspicion_card,
+.debt_card {
+  border-radius: 15px;
+  background-color: transparent;
+}
+
+.suspicion_card_preview {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 2000;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 #wall_deck {
